@@ -1,5 +1,3 @@
-WIRE_DIRS := $(abspath $(dir $(shell find app -name wire.go)))
-
 ##@ Cli Development
 
 # ================================================
@@ -16,7 +14,7 @@ wire: wire.gen
 
 .PHONY: wire.init
 wire.init:
-ifneq ($(shell which wire),$(GOBIN)/wire)
+ifeq ($(shell which wire),)
 	@echo "======> Installing wire"
 	@go install github.com/google/wire/cmd/wire@latest
 endif
@@ -24,4 +22,4 @@ endif
 .PHONY: wire.gen
 wire.gen: wire.init
 	@echo "======> Generating wire_gen code"
-	@echo $(WIRE_DIRS) | xargs -I{} sh -c 'wire gen {}'
+	@echo $(abspath $(dir $(shell find app -name wire.go))) | xargs -I{} sh -c 'wire gen {}'
