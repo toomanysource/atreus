@@ -18,6 +18,7 @@
 ![image.png](../../img/proto/app_proto_location.png)
 
 # 步骤二：确保proto文件内的包定义满足要求
+
 假如是一个服务的API定义，`package`要定义为`{服务名}.service.{版本号}`，同时，必须定义`go_package`，并且要定义为`github.com/toomanysource/atreus/api/{服务名}/service/{版本号};{版本号}`
 同样以user服务的user.proto文件为例：
 
@@ -45,6 +46,7 @@ option go_package = "github.com/toomanysource/atreus/app/user/service/internal/c
 ```
 
 # 步骤三：生成代码
+
 **注意前提环境：启用Docker**
 
 如果你已经把前面的两个步骤完成了，或者你只是修改message或者service的定义或者注释，那么你可以直接执行
@@ -59,4 +61,5 @@ make proto
    - `_http.pb.go`（如果在service中定义了http api)
 
 # 步骤四：编写其余的代码
+
 到这里你就可以愉快地编写代码了～
