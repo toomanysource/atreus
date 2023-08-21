@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package feed.service.internal.conf;
+
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/toomanysource/atreus/app/feed/service/internal/conf;conf";
+
+message Bootstrap {
+  Server server = 1;
+  Client client = 2;
+  JWT jwt = 3;
+  //  Data data = 4;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Client {
+  message Publish {
+    string to = 1;
+  }
+  Publish publish = 1;
+}
+
+message Data {
+  message Mysql {
+    string driver = 1;
+    string dsn = 2;
+  }
+  message Redis {
+    int32 db = 1;
+    string addr = 2;
+    string password = 3;
+    google.protobuf.Duration read_timeout = 4;
+    google.protobuf.Duration write_timeout = 5;
+  }
+  //   message Kafka {
+  //    string addr = 1;
+  //    string topic = 2;
+  //    google.protobuf.Duration write_timeout = 3;
+  //   }
+  Mysql mysql = 1;
+  Redis redis = 2;
+  // Kafka kafka =3;
+}
+
+message JWT {
+  message HTTP {
+    string token_key = 1;
+  }
+  message GRPC {
+    string token_key = 1;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
