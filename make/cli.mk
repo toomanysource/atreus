@@ -15,8 +15,8 @@ wire: wire.gen
 .PHONY: wire.init
 wire.init:
 ifeq ($(shell which wire),)
-	@echo "======> Installing wire"
-	@go install github.com/google/wire/cmd/wire@latest
+	@echo "======> Installing missing wire"
+	@go install github.com/google/wire/cmd/wire@v0.5.0
 endif
 
 .PHONY: wire.gen
