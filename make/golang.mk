@@ -15,13 +15,17 @@ endif
 # Public Commands:
 # ================================================
 
-.PHONY: format
-format: ## Format codes style with gofumpt and goimports.
-format: go.format
-
 .PHONY: clean
 clean: ## clean all unused generated files.
 clean: go.clean
+
+.PHONY: lint
+lint: ## Analyze go syntax and styling of go source codes.
+lint: go.lint
+
+.PHONY: format
+format: ## Format go codes style with gofumpt and goimports.
+format: go.format
 
 # ================================================
 # Private Commands:
@@ -31,6 +35,18 @@ clean: go.clean
 go.clean:
 	@echo "======> Cleaning all unused generated files"
 	@rm -rf $(OUTPUT_DIR)
+
+.PHONY: go.lint.verify
+go.lint.verify:
+ifeq ($(shell which golangci-lint),)
+	@echo "======> Installing missing golangci-lint"
+	@curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOPATH)/bin
+endif
+
+.PHONY: go.lint
+go.lint: go.lint.verify
+	@echo "======> Run golangci-lint to analyze source codes"
+	@golangci-lint run -v
 
 .PHONY: go.format.verify
 go.format.verify:

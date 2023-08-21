@@ -1,0 +1,73 @@
+run:
+  timeout: 10m
+  tests: true
+  modules-download-mode: readonly
+  skip-dirs:
+    - api
+  skip-files:
+    - ".*\\.pb\\.go$"
+  go: '1.20'
+
+linters-settings:
+  goconst:
+    min-len: 2
+    min-occurrences: 5
+  gocyclo:
+    min-complexity: 20
+  goimports:
+    local-prefixes: github.com/toomanysource/atreus
+  gomnd:
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    ignored-numbers:
+      - '0666'
+      - '0755'
+      - '42'
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: empty-block
+      - name: error-naming
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: if-return
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: range
+      - name: range-val-in-closure
+      - name: range-val-address
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: string-of-int
+      - name: time-equal
+      - name: time-naming
+      - name: superfluous-else
+      - name: unexported-return
+      - name: unreachable-code
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - gofumpt
+    - goconst
+    - gocyclo
+    - govet
+    - gosimple
+    - goimports
+    - gomnd
+    - ineffassign
+    - rowserrcheck
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
