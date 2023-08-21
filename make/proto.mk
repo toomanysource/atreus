@@ -18,7 +18,7 @@ proto: proto.gen
 
 .PHONY: proto.gen
 proto.gen:
-ifeq ($(shell docker image ls 'atreus/protoc:latest' | wc -l), 1)
+ifeq ($(shell docker image ls 'atreus/protoc:latest' | grep 'atreus/protoc'),)
 	@echo "======> Building missing docker image"
 	docker build --network host -t atreus/protoc docker/proto
 endif
@@ -28,3 +28,4 @@ endif
 		-v $(APP_DIR):/pb/proto/app \
 		-v $(THIRD_PARTY_DIR):/pb/proto/third_party \
 		atreus/protoc
+	$(MAKE) format
