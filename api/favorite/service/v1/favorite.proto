@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package favorite.service.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/toomanysource/atreus/api/favorite/service/v1;v1";
+
+service FavoriteService {
+  // 获取喜爱视频列表(客户端)
+  rpc GetFavoriteList(FavoriteListRequest) returns (FavoriteListReply) {
+    option (google.api.http) = {get: "/douyin/favorite/list"};
+  }
+  // 取消或添加喜爱视频(客户端)
+  rpc FavoriteAction(FavoriteActionRequest) returns (FavoriteActionReply) {
+    option (google.api.http) = {
+      post: "/douyin/favorite/action"
+      body: "*"
+    };
+  }
+  // 根据userId和videoId判断是否喜爱(publish)
+  rpc IsFavorite(IsFavoriteRequest) returns (IsFavoriteReply) {}
+}
+
+message IsFavoriteRequest {
+  uint32 user_id = 1; // 用户id
+  repeated uint32 video_ids = 2; // 视频id
+}
+
+message IsFavoriteReply {
+  repeated bool is_favorite = 1; // true-已点赞，false-未点赞
+}
+
+message FavoriteListRequest {
+  uint32 user_id = 1; // 用户id
+  string token = 2; // 用户token
+}
+
+message FavoriteListReply {
+  int32 status_code = 1 [json_name = "status_code"]; // 状态码，0-成功，其他值-失败
+  string status_msg = 2 [json_name = "status_msg"]; // 返回状态描述
+  repeated Video video_list = 3 [json_name = "video_list"];// 视频信息列表
+}
+
+message FavoriteActionRequest {
+  string token = 1; // 用户token
+  uint32 video_id = 2; // 视频id
+  uint32 action_type = 3; // 1-点赞，2-取消点赞
+}
+
+message FavoriteActionReply {
+  int32 status_code = 1 [json_name = "status_code"]; // 状态码，0-成功，其他值-失败
+  string status_msg = 2 [json_name = "status_msg"]; // 返回状态描述
+}
+
+message Video {
+  uint32 id = 1 [json_name = "id"];// 视频唯一标识
+  User author = 2 [json_name = "author"]; // 视频作者信息
+  string play_url = 3 [json_name = "play_url"]; // 视频播放地址
+  string cover_url = 4 [json_name = "cover_url"]; // 视频封面地址
+  uint32 favorite_count = 5 [json_name = "favorite_count"]; // 视频的点赞总数
+  uint32 comment_count = 6 [json_name = "comment_count"]; // 视频的评论总数
+  bool is_favorite = 7 [json_name = "is_favorite"]; // true-已点赞，false-未点赞
+  string title = 8 [json_name = "title"];// 视频标题
+}
+
+message User {
+  uint32 id = 1 [json_name = "id"]; // 用户id
+  string name = 2 [json_name = "name"];// 用户名称
+  uint32 follow_count = 3 [json_name = "follow_count"]; // 关注总数
+  uint32 follower_count = 4 [json_name = "follower_count"]; // 粉丝总数
+  bool is_follow = 5 [json_name = "is_follow"]; // true-已关注，false-未关注
+  string avatar = 6 [json_name = "avatar"]; //用户头像
+  string background_image = 7 [json_name = "background_image"];//用户个人页顶部大图
+  string signature = 8 [json_name = "signature"]; //个人简介
+  uint32 total_favorited = 9 [json_name = "total_favorited"]; //获赞数量
+  uint32 work_count = 10 [json_name = "work_count"]; //作品数量
+  uint32 favorite_count = 11 [json_name = "favorite_count"];//点赞数量
+}
