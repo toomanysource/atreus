@@ -1,7 +1,7 @@
 syntax = "proto3";
 package comment.service.internal.conf;
 
-option go_package = "Atreus/app/comment/service/internal/conf;conf";
+option go_package = "github.com/toomanysource/atreus/app/comment/service/internal/conf;conf";
 
 import "google/protobuf/duration.proto";
 
