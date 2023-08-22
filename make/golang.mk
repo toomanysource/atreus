@@ -23,9 +23,13 @@ clean: go.clean
 lint: ## Analyze go syntax and styling of go source codes.
 lint: go.lint
 
-.PHONY: tests
-tests: ## Run go unit tests
-tests: go.test
+.PHONY: test
+test: ## Run go unit tests
+test: go.test
+
+.PHONY: test-coverage
+test-coverage: ## Run go unit tests with coverage
+test-coverage: go.test.coverage
 
 .PHONY: style
 style: ## Check if go codes style is formatted and committed.
@@ -60,6 +64,11 @@ go.lint: go.lint.verify
 go.test:
 	@echo "======> Running unit tests in app"
 	@go test -count=1 -timeout=10m -short -v `go list ./app/...`
+
+.PHONY: go.test.coverage
+go.test.coverage:
+	@echo "======> Running unit tests with coverage in app"
+	@go test -race -v -coverprofile=coverage.out ./app/...
 
 .PHONY: go.style
 go.style:
