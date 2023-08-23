@@ -7,11 +7,12 @@
 package v1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -26,8 +27,10 @@ type IsFollowRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId   uint32   `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                // 用户id
-	ToUserId []uint32 `protobuf:"varint,2,rep,packed,name=to_user_id,json=toUserId,proto3" json:"to_user_id,omitempty"` // 对方用户id
+	// 用户id
+	UserId uint32 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// 对方用户id
+	ToUserId []uint32 `protobuf:"varint,2,rep,packed,name=to_user_id,json=toUserId,proto3" json:"to_user_id,omitempty"`
 }
 
 func (x *IsFollowRequest) Reset() {
@@ -81,7 +84,8 @@ type IsFollowReply struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	IsFollow []bool `protobuf:"varint,1,rep,packed,name=is_follow,json=isFollow,proto3" json:"is_follow,omitempty"` // true-已关注，false-未关注
+	// true-已关注，false-未关注
+	IsFollow []bool `protobuf:"varint,1,rep,packed,name=is_follow,json=isFollow,proto3" json:"is_follow,omitempty"`
 }
 
 func (x *IsFollowReply) Reset() {
@@ -128,9 +132,12 @@ type RelationActionRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Token      string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`                              // 用户鉴权token
-	ToUserId   uint32 `protobuf:"varint,2,opt,name=to_user_id,json=toUserId,proto3" json:"to_user_id,omitempty"`     // 对方用户id
-	ActionType uint32 `protobuf:"varint,3,opt,name=action_type,json=actionType,proto3" json:"action_type,omitempty"` // 1-关注，2-取消关注
+	// 用户鉴权token
+	Token string `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	// 对方用户id
+	ToUserId uint32 `protobuf:"varint,2,opt,name=to_user_id,json=toUserId,proto3" json:"to_user_id,omitempty"`
+	// 1-关注，2-取消关注
+	ActionType uint32 `protobuf:"varint,3,opt,name=action_type,json=actionType,proto3" json:"action_type,omitempty"`
 }
 
 func (x *RelationActionRequest) Reset() {
@@ -191,8 +198,10 @@ type RelationActionReply struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	StatusCode int32  `protobuf:"varint,1,opt,name=status_code,proto3" json:"status_code,omitempty"` // 状态码，0-成功，其他值-失败
-	StatusMsg  string `protobuf:"bytes,2,opt,name=status_msg,proto3" json:"status_msg,omitempty"`    // 返回状态描述
+	// 状态码，0-成功，其他值-失败
+	StatusCode int32 `protobuf:"varint,1,opt,name=status_code,proto3" json:"status_code,omitempty"`
+	// 返回状态描述
+	StatusMsg string `protobuf:"bytes,2,opt,name=status_msg,proto3" json:"status_msg,omitempty"`
 }
 
 func (x *RelationActionReply) Reset() {
@@ -246,8 +255,10 @@ type RelationFollowerListRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId uint32 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 用户id
-	Token  string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`                  // 用户鉴权token
+	// 用户id
+	UserId uint32 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// 用户鉴权token
+	Token string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 }
 
 func (x *RelationFollowerListRequest) Reset() {
@@ -301,9 +312,12 @@ type RelationFollowerListReply struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	StatusCode int32   `protobuf:"varint,1,opt,name=status_code,proto3" json:"status_code,omitempty"` // 状态码，0-成功，其他值-失败
-	StatusMsg  string  `protobuf:"bytes,2,opt,name=status_msg,proto3" json:"status_msg,omitempty"`    // 返回状态描述
-	UserList   []*User `protobuf:"bytes,3,rep,name=user_list,proto3" json:"user_list,omitempty"`      // 用户列表
+	// 状态码，0-成功，其他值-失败
+	StatusCode int32 `protobuf:"varint,1,opt,name=status_code,proto3" json:"status_code,omitempty"`
+	// 返回状态描述
+	StatusMsg string `protobuf:"bytes,2,opt,name=status_msg,proto3" json:"status_msg,omitempty"`
+	// 用户列表
+	UserList []*User `protobuf:"bytes,3,rep,name=user_list,proto3" json:"user_list,omitempty"`
 }
 
 func (x *RelationFollowerListReply) Reset() {
@@ -364,8 +378,10 @@ type RelationFollowListRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserId uint32 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // 用户id
-	Token  string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`                  // 用户鉴权token
+	// 用户id
+	UserId uint32 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// 用户鉴权token
+	Token string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 }
 
 func (x *RelationFollowListRequest) Reset() {
@@ -419,9 +435,12 @@ type RelationFollowListReply struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	StatusCode int32   `protobuf:"varint,1,opt,name=status_code,proto3" json:"status_code,omitempty"` // 状态码，0-成功，其他值-失败
-	StatusMsg  string  `protobuf:"bytes,2,opt,name=status_msg,proto3" json:"status_msg,omitempty"`    // 返回状态描述
-	UserList   []*User `protobuf:"bytes,3,rep,name=user_list,proto3" json:"user_list,omitempty"`      // 用户信息列表
+	// 状态码，0-成功，其他值-失败
+	StatusCode int32 `protobuf:"varint,1,opt,name=status_code,proto3" json:"status_code,omitempty"`
+	// 返回状态描述
+	StatusMsg string `protobuf:"bytes,2,opt,name=status_msg,proto3" json:"status_msg,omitempty"`
+	// 用户信息列表
+	UserList []*User `protobuf:"bytes,3,rep,name=user_list,proto3" json:"user_list,omitempty"`
 }
 
 func (x *RelationFollowListReply) Reset() {
@@ -482,17 +501,28 @@ type User struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id              uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`                            // 用户id
-	Name            string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`                         // 用户名称
-	FollowCount     uint32 `protobuf:"varint,3,opt,name=follow_count,proto3" json:"follow_count,omitempty"`        // 关注总数
-	FollowerCount   uint32 `protobuf:"varint,4,opt,name=follower_count,proto3" json:"follower_count,omitempty"`    // 粉丝总数
-	IsFollow        bool   `protobuf:"varint,5,opt,name=is_follow,proto3" json:"is_follow,omitempty"`              // true-已关注，false-未关注
-	Avatar          string `protobuf:"bytes,6,opt,name=avatar,proto3" json:"avatar,omitempty"`                     //用户头像
-	BackgroundImage string `protobuf:"bytes,7,opt,name=background_image,proto3" json:"background_image,omitempty"` //用户个人页顶部大图
-	Signature       string `protobuf:"bytes,8,opt,name=signature,proto3" json:"signature,omitempty"`               //个人简介
-	TotalFavorited  uint32 `protobuf:"varint,9,opt,name=total_favorited,proto3" json:"total_favorited,omitempty"`  //获赞数量
-	WorkCount       uint32 `protobuf:"varint,10,opt,name=work_count,proto3" json:"work_count,omitempty"`           //作品数量
-	FavoriteCount   uint32 `protobuf:"varint,11,opt,name=favorite_count,proto3" json:"favorite_count,omitempty"`   //点赞数量
+	// 用户id
+	Id uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// 用户名称
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// 关注总数
+	FollowCount uint32 `protobuf:"varint,3,opt,name=follow_count,proto3" json:"follow_count,omitempty"`
+	// 粉丝总数
+	FollowerCount uint32 `protobuf:"varint,4,opt,name=follower_count,proto3" json:"follower_count,omitempty"`
+	// true-已关注，false-未关注
+	IsFollow bool `protobuf:"varint,5,opt,name=is_follow,proto3" json:"is_follow,omitempty"`
+	//用户头像
+	Avatar string `protobuf:"bytes,6,opt,name=avatar,proto3" json:"avatar,omitempty"`
+	//用户个人页顶部大图
+	BackgroundImage string `protobuf:"bytes,7,opt,name=background_image,proto3" json:"background_image,omitempty"`
+	//个人简介
+	Signature string `protobuf:"bytes,8,opt,name=signature,proto3" json:"signature,omitempty"`
+	//获赞数量
+	TotalFavorited uint32 `protobuf:"varint,9,opt,name=total_favorited,proto3" json:"total_favorited,omitempty"`
+	//作品数量
+	WorkCount uint32 `protobuf:"varint,10,opt,name=work_count,proto3" json:"work_count,omitempty"`
+	//点赞数量
+	FavoriteCount uint32 `protobuf:"varint,11,opt,name=favorite_count,proto3" json:"favorite_count,omitempty"`
 }
 
 func (x *User) Reset() {

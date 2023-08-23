@@ -28,14 +28,22 @@ type Video struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id            uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`                         // 视频唯一标识
-	Author        *User  `protobuf:"bytes,2,opt,name=author,proto3" json:"author,omitempty"`                  // 视频作者信息
-	PlayUrl       string `protobuf:"bytes,3,opt,name=play_url,proto3" json:"play_url,omitempty"`              // 视频播放地址
-	CoverUrl      string `protobuf:"bytes,4,opt,name=cover_url,proto3" json:"cover_url,omitempty"`            // 视频封面地址
-	FavoriteCount uint32 `protobuf:"varint,5,opt,name=favorite_count,proto3" json:"favorite_count,omitempty"` // 视频的点赞总数
-	CommentCount  uint32 `protobuf:"varint,6,opt,name=comment_count,proto3" json:"comment_count,omitempty"`   // 视频的评论总数
-	IsFavorite    bool   `protobuf:"varint,7,opt,name=is_favorite,proto3" json:"is_favorite,omitempty"`       // true-已点赞，false-未点赞
-	Title         string `protobuf:"bytes,8,opt,name=title,proto3" json:"title,omitempty"`                    // 视频标题
+	// 视频唯一标识
+	Id uint32 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// 视频作者信息
+	Author *User `protobuf:"bytes,2,opt,name=author,proto3" json:"author,omitempty"`
+	// 视频播放地址
+	PlayUrl string `protobuf:"bytes,3,opt,name=play_url,proto3" json:"play_url,omitempty"`
+	// 视频封面地址
+	CoverUrl string `protobuf:"bytes,4,opt,name=cover_url,proto3" json:"cover_url,omitempty"`
+	// 视频的点赞总数
+	FavoriteCount uint32 `protobuf:"varint,5,opt,name=favorite_count,proto3" json:"favorite_count,omitempty"`
+	// 视频的评论总数
+	CommentCount uint32 `protobuf:"varint,6,opt,name=comment_count,proto3" json:"comment_count,omitempty"`
+	// true-已点赞，false-未点赞
+	IsFavorite bool `protobuf:"varint,7,opt,name=is_favorite,proto3" json:"is_favorite,omitempty"`
+	// 视频标题
+	Title string `protobuf:"bytes,8,opt,name=title,proto3" json:"title,omitempty"`
 }
 
 func (x *Video) Reset() {
