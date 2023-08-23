@@ -76,7 +76,7 @@ go.style:
 	@$(MAKE) format && \
 		git status && \
 		[[ -z `git status -s` ]] || \
-		echo -e "\n${RED_COLOR}Error: there are uncommitted changes after formatting go codes.\n${GREEN_COLOR}You should run 'make format' then use git to commit all those changes.${NO_COLOR}"
+		(echo -e "\n${RED_COLOR}Error: there are uncommitted changes after formatting go codes.\n${GREEN_COLOR}You should run 'make format' then use git to commit all those changes.${NO_COLOR}" && exit 1)
 
 .PHONY: go.format.verify
 go.format.verify:
