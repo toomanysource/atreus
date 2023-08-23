@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package comment.service.v1;
+
+option go_package = "github.com/toomanysource/atreus/api/comment/service/v1;v1";
+import "google/api/annotations.proto";
+
+// CommentService 用来给comment服务发送请求
+service CommentService {
+	// GetCommentList 获取评论列表
+	rpc GetCommentList(CommentListRequest) returns (CommentListReply) {
+		option (google.api.http) = {
+			get: "/douyin/comment/list"
+		};
+	}
+	// CommentAction 发布评论或者删除评论
+	rpc CommentAction(CommentActionRequest) returns (CommentActionReply) {
+		option (google.api.http) = {
+			post: "/douyin/comment/action"
+			body: "*"
+		};
+	}
+}
+
+message CommentListRequest {
+	// 用户鉴权token
+	string token = 1;
+	// 视频id
+	uint32 video_id = 2;
+}
+
+message CommentListReply {
+	// 状态码，0-成功，其他值-失败
+	int32 status_code = 1 [json_name = "status_code"];
+	// 返回状态描述
+	string status_msg = 2 [json_name = "status_msg"];
+	// 评论列表
+	repeated Comment comment_list = 3 [json_name = "comment_list"];
+}
+
+message CommentActionRequest {
+	// 用户鉴权token
+	string token = 1;
+	// 视频id
+	uint32 video_id = 2;
+	// 1-发布评论，2-删除评论
+	uint32 action_type = 3;
+	// 用户填写的评论内容，在action_type=1的时候使用
+	string comment_text = 4;
+	// 要删除的评论id，在action_type=2的时候使用
+	uint32 comment_id = 5;
+}
+
+message CommentActionReply {
+	// 状态码，0-成功，其他值-失败
+	int32 status_code = 1 [json_name = "status_code"];
+	// 返回状态描述
+	string status_msg = 2 [json_name = "status_msg"];
+	// 评论成功返回评论内容，不需要重新拉取整个列表
+	Comment comment = 3 [json_name = "comment"];
+}
+
+message Comment {
+	// 视频评论id
+	uint32 id = 1 [json_name = "id"];
+	// 评论用户信息
+	User user =2 [json_name = "user"];
+	// 评论内容
+	string content = 3 [json_name = "content"];
+	// 评论发布日期，格式 mm-dd
+	string create_date = 4 [json_name = "create_date"];
+}
+
+message User {
+	// 用户id
+	uint32 id = 1 [json_name = "id"];
+	// 用户名称
+	string name = 2 [json_name = "name"];
+	// 关注总数
+	uint32 follow_count = 3 [json_name = "follow_count"];
+	// 粉丝总数
+	uint32 follower_count = 4 [json_name = "follower_count"];
+	// true-已关注，false-未关注
+	bool is_follow = 5 [json_name = "is_follow"];
+	//用户头像
+	string avatar = 6 [json_name = "avatar"];
+	//用户个人页顶部大图
+	string background_image = 7 [json_name = "background_image"];
+	//个人简介
+	string signature = 8 [json_name = "signature"];
+	//获赞数量
+	uint32 total_favorited = 9 [json_name = "total_favorited"];
+	//作品数量
+	uint32 work_count = 10 [json_name = "work_count"];
+	//点赞数量
+	uint32 favorite_count = 11 [json_name = "favorite_count"];
+}
