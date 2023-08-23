@@ -34,14 +34,22 @@ service PublishService {
 
 // 视频信息
 message Video {
-	uint32 id = 1 [json_name = "id"];// 视频唯一标识
-	User author = 2 [json_name = "author"]; // 视频作者信息
-	string play_url = 3 [json_name = "play_url"]; // 视频播放地址
-	string cover_url = 4 [json_name = "cover_url"]; // 视频封面地址
-	uint32 favorite_count = 5 [json_name = "favorite_count"]; // 视频的点赞总数
-	uint32 comment_count = 6 [json_name = "comment_count"]; // 视频的评论总数
-	bool is_favorite = 7 [json_name = "is_favorite"]; // true-已点赞，false-未点赞
-	string title = 8 [json_name = "title"];// 视频标题
+	// 视频唯一标识
+	uint32 id = 1 [json_name = "id"];
+	// 视频作者信息
+	User author = 2 [json_name = "author"];
+	// 视频播放地址
+	string play_url = 3 [json_name = "play_url"];
+	// 视频封面地址
+	string cover_url = 4 [json_name = "cover_url"];
+	// 视频的点赞总数
+	uint32 favorite_count = 5 [json_name = "favorite_count"];
+	// 视频的评论总数
+	uint32 comment_count = 6 [json_name = "comment_count"];
+	// true-已点赞，false-未点赞
+	bool is_favorite = 7 [json_name = "is_favorite"];
+	// 视频标题
+	string title = 8 [json_name = "title"];
 }
 
 // 用户信息
