@@ -27,5 +27,6 @@ endif
 		-v $(API_DIR):/pb/proto/api \
 		-v $(APP_DIR):/pb/proto/app \
 		-v $(THIRD_PARTY_DIR):/pb/proto/third_party \
+		--user $(shell id -u):$(shell id -g) \
 		atreus/protoc
 	$(MAKE) format

@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package message.service.v1;
 
-option go_package = "api/message/service/v1;v1";
 import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/toomanysource/atreus/api/feed/service/v1;v1";
 
 service messageService {
 	rpc GetMessageList(MessageListRequest) returns (MessageListReply) {
@@ -20,33 +22,50 @@ service messageService {
 }
 
 message MessageListRequest {
-  string token = 1; // 用户鉴权token
-  int64 to_user_id = 2; // 对方用户id
-  int64 pre_msg_time=3;//上次最新消息的时间（新增字段-apk更新中）
+  // 用户鉴权token
+  string token = 1 [(validate.rules).string.min_len = 1];
+  // 对方用户id
+  uint32 to_user_id = 2;
+  //上次最新消息的时间
+  int64 pre_msg_time = 3;
 }
 
 message MessageListReply {
-  int32 status_code = 1 [json_name = "status_code"]; // 状态码，0-成功，其他值-失败
-  string status_msg = 2 [json_name = "status_msg"]; // 返回状态描述
-  repeated Message message_list = 3 [json_name = "message_list"]; // 消息列表
+  // 状态码，0-成功，其他值-失败
+  int32 status_code = 1 [json_name = "status_code"];
+  // 返回状态描述
+  string status_msg = 2 [json_name = "status_msg"];
+  // 消息列表
+  repeated Message message_list = 3 [json_name = "message_list"];
 }
 
 message MessageActionRequest {
-  string token = 1; // 用户鉴权token
-  int64 to_user_id = 2; // 对方用户id
-  int32 action_type = 3; // 1-发送消息
-  string content = 4; // 消息内容
+  // 用户鉴权token
+  string token = 1 [(validate.rules).string.min_len = 1];
+  // 对方用户id
+  uint32 to_user_id = 2;
+  // 1-发送消息
+  uint32 action_type = 3;
+  // 消息内容
+  string content = 4;
 }
 
 message MessageActionReply {
-  int32 status_code = 1 [json_name = "status_code"]; // 状态码，0-成功，其他值-失败
-  string status_msg = 2 [json_name = "status_msg"]; // 返回状态描述
+  // 状态码，0-成功，其他值-失败
+  int32 status_code = 1 [json_name = "status_code"];
+  // 返回状态描述
+  string status_msg = 2 [json_name = "status_msg"];
 }
 
 message Message {
-  int64 id = 1 [json_name = "id"]; // 消息id
-  int64 to_user_id = 2 [json_name = "to_user_id"]; // 该消息接收者的id
-  int64 from_user_id =3 [json_name = "from_user_id"]; // 该消息发送者的id
-  string content = 4 [json_name = "content"]; // 消息内容
-  string create_time = 5 [json_name = "create_time"]; // 消息创建时间
+  // 消息id
+  uint64 id = 1 [json_name = "id"];
+  // 该消息接收者的id
+  uint32 to_user_id = 2 [json_name = "to_user_id"];
+  // 该消息发送者的id
+  uint32 from_user_id =3 [json_name = "from_user_id"];
+  // 消息内容
+  string content = 4 [json_name = "content"];
+  // 消息创建时间
+  int64 create_time = 5 [json_name = "create_time"];
 }

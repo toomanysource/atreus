@@ -3,6 +3,7 @@ module github.com/toomanysource/atreus
 go 1.20
 
 require (
+	github.com/envoyproxy/protoc-gen-validate v0.10.1
 	github.com/go-kratos/kratos/v2 v2.7.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230815205213-6bfd019c3878
 	google.golang.org/grpc v1.57.0
