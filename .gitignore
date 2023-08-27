@@ -1,5 +1,6 @@
-_output
-
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -13,6 +14,9 @@ _output
 # Output of the go coverage tool, specifically when used with LiteIDE
 IDE
 *.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
 # Go workspace file
 go.work
@@ -41,5 +45,12 @@ bin/
 # Develop tools
 .vscode/
 .idea/
-*.iml
 *.swp
+
+# the data directory should not be upload
+# but we need to keep this
+data/*
+!data/.gitkeep
+
+# config file that contains sensitive information
+config.dev.yaml
