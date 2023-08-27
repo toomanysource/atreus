@@ -7,14 +7,14 @@
 package main
 
 import (
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
+
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 	"github.com/toomanysource/atreus/app/comment/service/internal/data"
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 	"github.com/toomanysource/atreus/app/comment/service/internal/service"
-
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
 
 	_ "go.uber.org/automaxprocs"
 )
