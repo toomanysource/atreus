@@ -128,17 +128,16 @@ func (r *commentRepo) CreateComment(
 			}
 			r.log.Info("redis transaction success")
 			return
-
-		} else {
-			// 将评论存入redis缓存
-			marc, err := json.Marshal(co)
-			if err = r.data.cache.HSet(
-				ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(co.Id)), marc).Err(); err != nil {
-				r.log.Errorf("redis store error %w", err)
-				return
-			}
-			r.log.Info("redis store success")
 		}
+		// 将评论存入redis缓存
+		marc, err := json.Marshal(co)
+		if err = r.data.cache.HSet(
+			ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(co.Id)), marc).Err(); err != nil {
+			r.log.Errorf("redis store error %w", err)
+			return
+		}
+		r.log.Info("redis store success")
+		return
 	}()
 	users, err := r.userRepo.GetUserInfos(ctx, 0, []uint32{userId})
 	if err != nil {
@@ -336,7 +335,9 @@ func (r *commentRepo) CacheCreateCommentTransaction(ctx context.Context, cl []*C
 			return fmt.Errorf("redis store error, err : %w", err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
-		err = pipe.Expire(ctx, strconv.Itoa(int(videoId)), randomTime(time.Minute, 360, 720)).Err()
+		// 随机生成时间范围
+		begin, end := 360, 720
+		err = pipe.Expire(ctx, strconv.Itoa(int(videoId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
 			return fmt.Errorf("redis expire error, err : %w", err)
 		}
