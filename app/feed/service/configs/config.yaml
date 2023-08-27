@@ -8,10 +8,6 @@ server:
 client:
   publish:
     to: 0.0.0.0:9003
-data:
-  mysql:
-    driver: mysql
-    dsn: "root:toomanysource@tcp(127.0.0.1:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local"
   # redis:
   #   db: 1
   #   addr: 127.0.0.1:6379
