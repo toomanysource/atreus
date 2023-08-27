@@ -44,7 +44,7 @@ func NewClient(extraConn ExtraConn, intraConn IntraConn) *Client {
 func (c *Client) UploadLocalFile(ctx context.Context, filePath string, bucketName string, fileName string, opt minio.PutObjectOptions) error {
 	// check whether the bucket exists
 	if exists, err := c.intraConn.conn.BucketExists(ctx, bucketName); !(err == nil && exists) {
-		return fmt.Errorf("minio buckect %s miss,err: %v\n", bucketName, err)
+		return fmt.Errorf("minio buckect %s miss,err: %v", bucketName, err)
 	}
 	uploadInfo, err := c.intraConn.conn.FPutObject(
 		ctx, bucketName, fileName, filePath, opt)
@@ -58,7 +58,7 @@ func (c *Client) UploadLocalFile(ctx context.Context, filePath string, bucketNam
 // UploadSizeFile 读取固定大小的文件并上传至minio(主要使用)
 func (c *Client) UploadSizeFile(ctx context.Context, bucketName string, fileName string, reader io.Reader, size int64, opt minio.PutObjectOptions) error {
 	if exists, err := c.intraConn.conn.BucketExists(ctx, bucketName); !(err == nil && exists) {
-		return fmt.Errorf("minio buckect %s miss,err: %v\n", bucketName, err)
+		return fmt.Errorf("minio buckect %s miss,err: %v", bucketName, err)
 	}
 	uploadInfo, err := c.intraConn.conn.PutObject(ctx, bucketName, fileName, reader, size, opt)
 	if err != nil {
@@ -71,7 +71,7 @@ func (c *Client) UploadSizeFile(ctx context.Context, bucketName string, fileName
 // GetFileURL 根据文件名从minio获取文件URL
 func (c *Client) GetFileURL(ctx context.Context, bucketName string, fileName string, timeLimit time.Duration) (*url.URL, error) {
 	if exists, err := c.extraConn.conn.BucketExists(ctx, bucketName); !(err == nil && exists) {
-		return nil, fmt.Errorf("minio buckect %s miss,err: %v\n", bucketName, err)
+		return nil, fmt.Errorf("minio buckect %s miss,err: %v", bucketName, err)
 	}
 	reqParams := make(url.Values)
 	reqParams.Set("response-content", "attachment; filename=\""+fileName+"\"")
@@ -80,6 +80,6 @@ func (c *Client) GetFileURL(ctx context.Context, bucketName string, fileName str
 	if err != nil {
 		return nil, fmt.Errorf("failed generated presigned url, err : %w", err)
 	}
-	fmt.Println("successfully generated presigned url", preSignedURL)
+	fmt.Println("successfully generated preSigned url", preSignedURL)
 	return preSignedURL, nil
 }
