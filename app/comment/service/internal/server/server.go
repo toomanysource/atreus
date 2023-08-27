@@ -32,7 +32,7 @@ func NewUserClient(c *conf.Client, logger log.Logger) UserConn {
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to User Services, err : %w", err)
+		log.Fatalf("Error connecting to User Services, err : %v", err)
 	}
 	return conn
 }
@@ -48,7 +48,7 @@ func NewPublishClient(c *conf.Client, logger log.Logger) PublishConn {
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to Publish Services, err : %w", err)
+		log.Fatalf("Error connecting to Publish Services, err : %v", err)
 	}
 	return conn
 }
