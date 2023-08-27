@@ -90,7 +90,6 @@ func (r *commentRepo) DeleteComment(
 				return
 			}
 		}
-		return
 	}()
 	r.log.Infof(
 		"DeleteComment -> videoId: %v - userId: %v - commentId: %v", videoId, userId, commentId)
@@ -137,7 +136,6 @@ func (r *commentRepo) CreateComment(
 			return
 		}
 		r.log.Info("redis store success")
-		return
 	}()
 	users, err := r.userRepo.GetUserInfos(ctx, 0, []uint32{userId})
 	if err != nil {
