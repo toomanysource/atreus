@@ -11,6 +11,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+type UserIdKey string
+
 // TokenParseAll 所有用户都可以访问，非必须token
 func TokenParseAll(keyFunc jwt.Keyfunc) middleware.Middleware {
 	return func(handler middleware.Handler) middleware.Handler {
@@ -30,7 +32,9 @@ func TokenParseAll(keyFunc jwt.Keyfunc) middleware.Middleware {
 					if !token.Valid {
 						return nil, errorX.New(-1, "token is invalid")
 					}
-					ctx = context.WithValue(ctx, "user_id", uint32(token.Claims.(jwt.MapClaims)["user_id"].(float64)))
+					// 使用自定义的key，避免和其他包冲突
+					key := UserIdKey("user_id")
+					ctx = context.WithValue(ctx, key, uint32(token.Claims.(jwt.MapClaims)["user_id"].(float64)))
 				}
 			}
 			return handler(ctx, req)
