@@ -39,7 +39,7 @@ func ErrorEncoder(w netHttp.ResponseWriter, r *netHttp.Request, err error) {
 	codec, _ := http.CodecForRequest(r, "Accept")
 	body, err := codec.Marshal(se)
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(netHttp.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/"+codec.Name())
