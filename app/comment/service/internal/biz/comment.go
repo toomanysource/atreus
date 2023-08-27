@@ -59,7 +59,8 @@ func (uc *CommentUsecase) CommentAction(
 	actionType uint32, commentText string,
 ) (*Comment, error) {
 	// 判断actionType是否在指定范围内
-	createType, deleteType := uint32(1), uint32(2)
+	var createType uint32 = 1
+	var deleteType uint32 = 2
 	switch actionType {
 	case createType:
 		return uc.commentRepo.CreateComment(ctx, videoId, commentText)
