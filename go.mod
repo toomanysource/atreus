@@ -7,7 +7,6 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/envoyproxy/protoc-gen-validate v0.10.1
 	github.com/go-kratos/kratos/v2 v2.7.0
-	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
