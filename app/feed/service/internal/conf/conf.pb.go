@@ -187,66 +187,6 @@ func (x *Client) GetPublish() *Client_Publish {
 	return nil
 }
 
-type Data struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	//	message Kafka {
-	//	 string addr = 1;
-	//	 string topic = 2;
-	//	 google.protobuf.Duration write_timeout = 3;
-	//	}
-	Mysql *Data_Mysql `protobuf:"bytes,1,opt,name=mysql,proto3" json:"mysql,omitempty"`
-	Redis *Data_Redis `protobuf:"bytes,2,opt,name=redis,proto3" json:"redis,omitempty"` // Kafka kafka =3;
-}
-
-func (x *Data) Reset() {
-	*x = Data{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Data) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data) ProtoMessage() {}
-
-func (x *Data) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data.ProtoReflect.Descriptor instead.
-func (*Data) Descriptor() ([]byte, []int) {
-	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Data) GetMysql() *Data_Mysql {
-	if x != nil {
-		return x.Mysql
-	}
-	return nil
-}
-
-func (x *Data) GetRedis() *Data_Redis {
-	if x != nil {
-		return x.Redis
-	}
-	return nil
-}
-
 type JWT struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -259,7 +199,7 @@ type JWT struct {
 func (x *JWT) Reset() {
 	*x = JWT{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[4]
+		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -272,7 +212,7 @@ func (x *JWT) String() string {
 func (*JWT) ProtoMessage() {}
 
 func (x *JWT) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[4]
+	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -285,7 +225,7 @@ func (x *JWT) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWT.ProtoReflect.Descriptor instead.
 func (*JWT) Descriptor() ([]byte, []int) {
-	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{4}
+	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *JWT) GetHttp() *JWT_HTTP {
@@ -315,7 +255,7 @@ type Server_HTTP struct {
 func (x *Server_HTTP) Reset() {
 	*x = Server_HTTP{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[5]
+		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -328,7 +268,7 @@ func (x *Server_HTTP) String() string {
 func (*Server_HTTP) ProtoMessage() {}
 
 func (x *Server_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[5]
+	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -378,7 +318,7 @@ type Server_GRPC struct {
 func (x *Server_GRPC) Reset() {
 	*x = Server_GRPC{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[6]
+		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -391,7 +331,7 @@ func (x *Server_GRPC) String() string {
 func (*Server_GRPC) ProtoMessage() {}
 
 func (x *Server_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[6]
+	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -439,7 +379,7 @@ type Client_Publish struct {
 func (x *Client_Publish) Reset() {
 	*x = Client_Publish{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[7]
+		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -452,7 +392,7 @@ func (x *Client_Publish) String() string {
 func (*Client_Publish) ProtoMessage() {}
 
 func (x *Client_Publish) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[7]
+	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -475,140 +415,6 @@ func (x *Client_Publish) GetTo() string {
 	return ""
 }
 
-type Data_Mysql struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Driver string `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
-	Dsn    string `protobuf:"bytes,2,opt,name=dsn,proto3" json:"dsn,omitempty"`
-}
-
-func (x *Data_Mysql) Reset() {
-	*x = Data_Mysql{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[8]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Data_Mysql) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_Mysql) ProtoMessage() {}
-
-func (x *Data_Mysql) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[8]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_Mysql.ProtoReflect.Descriptor instead.
-func (*Data_Mysql) Descriptor() ([]byte, []int) {
-	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{3, 0}
-}
-
-func (x *Data_Mysql) GetDriver() string {
-	if x != nil {
-		return x.Driver
-	}
-	return ""
-}
-
-func (x *Data_Mysql) GetDsn() string {
-	if x != nil {
-		return x.Dsn
-	}
-	return ""
-}
-
-type Data_Redis struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Db           int32                `protobuf:"varint,1,opt,name=db,proto3" json:"db,omitempty"`
-	Addr         string               `protobuf:"bytes,2,opt,name=addr,proto3" json:"addr,omitempty"`
-	Password     string               `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
-	ReadTimeout  *durationpb.Duration `protobuf:"bytes,4,opt,name=read_timeout,json=readTimeout,proto3" json:"read_timeout,omitempty"`
-	WriteTimeout *durationpb.Duration `protobuf:"bytes,5,opt,name=write_timeout,json=writeTimeout,proto3" json:"write_timeout,omitempty"`
-}
-
-func (x *Data_Redis) Reset() {
-	*x = Data_Redis{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[9]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Data_Redis) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Data_Redis) ProtoMessage() {}
-
-func (x *Data_Redis) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[9]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Data_Redis.ProtoReflect.Descriptor instead.
-func (*Data_Redis) Descriptor() ([]byte, []int) {
-	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{3, 1}
-}
-
-func (x *Data_Redis) GetDb() int32 {
-	if x != nil {
-		return x.Db
-	}
-	return 0
-}
-
-func (x *Data_Redis) GetAddr() string {
-	if x != nil {
-		return x.Addr
-	}
-	return ""
-}
-
-func (x *Data_Redis) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
-}
-
-func (x *Data_Redis) GetReadTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.ReadTimeout
-	}
-	return nil
-}
-
-func (x *Data_Redis) GetWriteTimeout() *durationpb.Duration {
-	if x != nil {
-		return x.WriteTimeout
-	}
-	return nil
-}
-
 type JWT_HTTP struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -620,7 +426,7 @@ type JWT_HTTP struct {
 func (x *JWT_HTTP) Reset() {
 	*x = JWT_HTTP{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[10]
+		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -633,7 +439,7 @@ func (x *JWT_HTTP) String() string {
 func (*JWT_HTTP) ProtoMessage() {}
 
 func (x *JWT_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[10]
+	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -646,7 +452,7 @@ func (x *JWT_HTTP) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWT_HTTP.ProtoReflect.Descriptor instead.
 func (*JWT_HTTP) Descriptor() ([]byte, []int) {
-	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{4, 0}
+	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *JWT_HTTP) GetTokenKey() string {
@@ -667,7 +473,7 @@ type JWT_GRPC struct {
 func (x *JWT_GRPC) Reset() {
 	*x = JWT_GRPC{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[11]
+		mi := &file_feed_service_internal_conf_conf_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -680,7 +486,7 @@ func (x *JWT_GRPC) String() string {
 func (*JWT_GRPC) ProtoMessage() {}
 
 func (x *JWT_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[11]
+	mi := &file_feed_service_internal_conf_conf_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -693,7 +499,7 @@ func (x *JWT_GRPC) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JWT_GRPC.ProtoReflect.Descriptor instead.
 func (*JWT_GRPC) Descriptor() ([]byte, []int) {
-	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{4, 1}
+	return file_feed_service_internal_conf_conf_proto_rawDescGZIP(), []int{3, 1}
 }
 
 func (x *JWT_GRPC) GetTokenKey() string {
@@ -752,31 +558,7 @@ var file_feed_service_internal_conf_conf_proto_rawDesc = []byte{
 	0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x52, 0x07,
 	0x70, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x1a, 0x19, 0x0a, 0x07, 0x50, 0x75, 0x62, 0x6c, 0x69,
 	0x73, 0x68, 0x12, 0x0e, 0x0a, 0x02, 0x74, 0x6f, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02,
-	0x74, 0x6f, 0x22, 0xfd, 0x02, 0x0a, 0x04, 0x44, 0x61, 0x74, 0x61, 0x12, 0x3c, 0x0a, 0x05, 0x6d,
-	0x79, 0x73, 0x71, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x66, 0x65, 0x65,
-	0x64, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
-	0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x2e, 0x4d, 0x79, 0x73,
-	0x71, 0x6c, 0x52, 0x05, 0x6d, 0x79, 0x73, 0x71, 0x6c, 0x12, 0x3c, 0x0a, 0x05, 0x72, 0x65, 0x64,
-	0x69, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x66, 0x65, 0x65, 0x64, 0x2e,
-	0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c,
-	0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x2e, 0x44, 0x61, 0x74, 0x61, 0x2e, 0x52, 0x65, 0x64, 0x69, 0x73,
-	0x52, 0x05, 0x72, 0x65, 0x64, 0x69, 0x73, 0x1a, 0x31, 0x0a, 0x05, 0x4d, 0x79, 0x73, 0x71, 0x6c,
-	0x12, 0x16, 0x0a, 0x06, 0x64, 0x72, 0x69, 0x76, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x06, 0x64, 0x72, 0x69, 0x76, 0x65, 0x72, 0x12, 0x10, 0x0a, 0x03, 0x64, 0x73, 0x6e, 0x18,
-	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x64, 0x73, 0x6e, 0x1a, 0xc5, 0x01, 0x0a, 0x05, 0x52,
-	0x65, 0x64, 0x69, 0x73, 0x12, 0x0e, 0x0a, 0x02, 0x64, 0x62, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05,
-	0x52, 0x02, 0x64, 0x62, 0x12, 0x12, 0x0a, 0x04, 0x61, 0x64, 0x64, 0x72, 0x18, 0x02, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x61, 0x64, 0x64, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x70, 0x61, 0x73, 0x73,
-	0x77, 0x6f, 0x72, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x70, 0x61, 0x73, 0x73,
-	0x77, 0x6f, 0x72, 0x64, 0x12, 0x3c, 0x0a, 0x0c, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x74, 0x69, 0x6d,
-	0x65, 0x6f, 0x75, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x67, 0x6f, 0x6f,
-	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x44, 0x75, 0x72,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0b, 0x72, 0x65, 0x61, 0x64, 0x54, 0x69, 0x6d, 0x65, 0x6f,
-	0x75, 0x74, 0x12, 0x3e, 0x0a, 0x0d, 0x77, 0x72, 0x69, 0x74, 0x65, 0x5f, 0x74, 0x69, 0x6d, 0x65,
-	0x6f, 0x75, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x67, 0x6f, 0x6f, 0x67,
-	0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x44, 0x75, 0x72, 0x61,
-	0x74, 0x69, 0x6f, 0x6e, 0x52, 0x0c, 0x77, 0x72, 0x69, 0x74, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x6f,
-	0x75, 0x74, 0x22, 0xc3, 0x01, 0x0a, 0x03, 0x4a, 0x57, 0x54, 0x12, 0x38, 0x0a, 0x04, 0x68, 0x74,
+	0x74, 0x6f, 0x22, 0xc3, 0x01, 0x0a, 0x03, 0x4a, 0x57, 0x54, 0x12, 0x38, 0x0a, 0x04, 0x68, 0x74,
 	0x74, 0x70, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x24, 0x2e, 0x66, 0x65, 0x65, 0x64, 0x2e,
 	0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c,
 	0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x2e, 0x4a, 0x57, 0x54, 0x2e, 0x48, 0x54, 0x54, 0x50, 0x52, 0x04,
@@ -808,42 +590,35 @@ func file_feed_service_internal_conf_conf_proto_rawDescGZIP() []byte {
 	return file_feed_service_internal_conf_conf_proto_rawDescData
 }
 
-var file_feed_service_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_feed_service_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_feed_service_internal_conf_conf_proto_goTypes = []interface{}{
 	(*Bootstrap)(nil),           // 0: feed.service.internal.conf.Bootstrap
 	(*Server)(nil),              // 1: feed.service.internal.conf.Server
 	(*Client)(nil),              // 2: feed.service.internal.conf.Client
-	(*Data)(nil),                // 3: feed.service.internal.conf.Data
-	(*JWT)(nil),                 // 4: feed.service.internal.conf.JWT
-	(*Server_HTTP)(nil),         // 5: feed.service.internal.conf.Server.HTTP
-	(*Server_GRPC)(nil),         // 6: feed.service.internal.conf.Server.GRPC
-	(*Client_Publish)(nil),      // 7: feed.service.internal.conf.Client.Publish
-	(*Data_Mysql)(nil),          // 8: feed.service.internal.conf.Data.Mysql
-	(*Data_Redis)(nil),          // 9: feed.service.internal.conf.Data.Redis
-	(*JWT_HTTP)(nil),            // 10: feed.service.internal.conf.JWT.HTTP
-	(*JWT_GRPC)(nil),            // 11: feed.service.internal.conf.JWT.GRPC
-	(*durationpb.Duration)(nil), // 12: google.protobuf.Duration
+	(*JWT)(nil),                 // 3: feed.service.internal.conf.JWT
+	(*Server_HTTP)(nil),         // 4: feed.service.internal.conf.Server.HTTP
+	(*Server_GRPC)(nil),         // 5: feed.service.internal.conf.Server.GRPC
+	(*Client_Publish)(nil),      // 6: feed.service.internal.conf.Client.Publish
+	(*JWT_HTTP)(nil),            // 7: feed.service.internal.conf.JWT.HTTP
+	(*JWT_GRPC)(nil),            // 8: feed.service.internal.conf.JWT.GRPC
+	(*durationpb.Duration)(nil), // 9: google.protobuf.Duration
 }
 var file_feed_service_internal_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: feed.service.internal.conf.Bootstrap.server:type_name -> feed.service.internal.conf.Server
 	2,  // 1: feed.service.internal.conf.Bootstrap.client:type_name -> feed.service.internal.conf.Client
-	4,  // 2: feed.service.internal.conf.Bootstrap.jwt:type_name -> feed.service.internal.conf.JWT
-	5,  // 3: feed.service.internal.conf.Server.http:type_name -> feed.service.internal.conf.Server.HTTP
-	6,  // 4: feed.service.internal.conf.Server.grpc:type_name -> feed.service.internal.conf.Server.GRPC
-	7,  // 5: feed.service.internal.conf.Client.publish:type_name -> feed.service.internal.conf.Client.Publish
-	8,  // 6: feed.service.internal.conf.Data.mysql:type_name -> feed.service.internal.conf.Data.Mysql
-	9,  // 7: feed.service.internal.conf.Data.redis:type_name -> feed.service.internal.conf.Data.Redis
-	10, // 8: feed.service.internal.conf.JWT.http:type_name -> feed.service.internal.conf.JWT.HTTP
-	11, // 9: feed.service.internal.conf.JWT.grpc:type_name -> feed.service.internal.conf.JWT.GRPC
-	12, // 10: feed.service.internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	12, // 11: feed.service.internal.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	12, // 12: feed.service.internal.conf.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
-	12, // 13: feed.service.internal.conf.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	3,  // 2: feed.service.internal.conf.Bootstrap.jwt:type_name -> feed.service.internal.conf.JWT
+	4,  // 3: feed.service.internal.conf.Server.http:type_name -> feed.service.internal.conf.Server.HTTP
+	5,  // 4: feed.service.internal.conf.Server.grpc:type_name -> feed.service.internal.conf.Server.GRPC
+	6,  // 5: feed.service.internal.conf.Client.publish:type_name -> feed.service.internal.conf.Client.Publish
+	7,  // 6: feed.service.internal.conf.JWT.http:type_name -> feed.service.internal.conf.JWT.HTTP
+	8,  // 7: feed.service.internal.conf.JWT.grpc:type_name -> feed.service.internal.conf.JWT.GRPC
+	9,  // 8: feed.service.internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	9,  // 9: feed.service.internal.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_feed_service_internal_conf_conf_proto_init() }
@@ -889,18 +664,6 @@ func file_feed_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_feed_service_internal_conf_conf_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JWT); i {
 			case 0:
 				return &v.state
@@ -912,7 +675,7 @@ func file_feed_service_internal_conf_conf_proto_init() {
 				return nil
 			}
 		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_feed_service_internal_conf_conf_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Server_HTTP); i {
 			case 0:
 				return &v.state
@@ -924,7 +687,7 @@ func file_feed_service_internal_conf_conf_proto_init() {
 				return nil
 			}
 		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_feed_service_internal_conf_conf_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Server_GRPC); i {
 			case 0:
 				return &v.state
@@ -936,7 +699,7 @@ func file_feed_service_internal_conf_conf_proto_init() {
 				return nil
 			}
 		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_feed_service_internal_conf_conf_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Client_Publish); i {
 			case 0:
 				return &v.state
@@ -948,31 +711,7 @@ func file_feed_service_internal_conf_conf_proto_init() {
 				return nil
 			}
 		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Mysql); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Redis); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_feed_service_internal_conf_conf_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JWT_HTTP); i {
 			case 0:
 				return &v.state
@@ -984,7 +723,7 @@ func file_feed_service_internal_conf_conf_proto_init() {
 				return nil
 			}
 		}
-		file_feed_service_internal_conf_conf_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_feed_service_internal_conf_conf_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JWT_GRPC); i {
 			case 0:
 				return &v.state
@@ -1003,7 +742,7 @@ func file_feed_service_internal_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_feed_service_internal_conf_conf_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
