@@ -130,6 +130,10 @@ func (r *commentRepo) CreateComment(
 		}
 		// 将评论存入redis缓存
 		marc, err := json.Marshal(co)
+		if err != nil {
+			r.log.Errorf("json marshal error %w", err)
+			return
+		}
 		if err = r.data.cache.HSet(
 			ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(co.Id)), marc).Err(); err != nil {
 			r.log.Errorf("redis store error %w", err)

@@ -58,10 +58,12 @@ func (uc *CommentUsecase) CommentAction(
 	ctx context.Context, videoId, commentId uint32,
 	actionType uint32, commentText string,
 ) (*Comment, error) {
+	// 1: create, 2: delete
+	createType, deleteType := uint32(1), uint32(2)
 	switch actionType {
-	case 1:
+	case createType:
 		return uc.commentRepo.CreateComment(ctx, videoId, commentText)
-	case 2:
+	case deleteType:
 		return uc.commentRepo.DeleteComment(ctx, videoId, commentId)
 	default:
 		return nil, errors.New("the value of action_type is not in the specified range")
