@@ -61,7 +61,7 @@ func (l *Log) SetLevel(level kralog.Level) {
 }
 
 func (l *Log) FilePath(path string) (*os.File, error) {
-	return os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	return os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, os.FileMode(0o666))
 }
 
 func (l *Log) SetTimeFileName(name string, flag bool) string {
