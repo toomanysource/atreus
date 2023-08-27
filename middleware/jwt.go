@@ -19,10 +19,12 @@ func TokenParseAll(keyFunc jwt.Keyfunc) middleware.Middleware {
 		return func(ctx context.Context, req interface{}) (interface{}, error) {
 			if tr, ok := transport.FromServerContext(ctx); ok {
 				if hr, ok := tr.(*http.Transport); ok {
+					// 使用自定义的key，避免和其他包冲突
+					key := UserIdKey("user_id")
 					values := hr.Request().URL.Query()
 					tokenString := values.Get("token")
 					if tokenString == "" {
-						ctx = context.WithValue(ctx, "user_id", uint32(0))
+						ctx = context.WithValue(ctx, key, uint32(0))
 						return handler(ctx, req)
 					}
 					token, err := jwt.Parse(tokenString, keyFunc)
@@ -32,8 +34,6 @@ func TokenParseAll(keyFunc jwt.Keyfunc) middleware.Middleware {
 					if !token.Valid {
 						return nil, errorX.New(-1, "token is invalid")
 					}
-					// 使用自定义的key，避免和其他包冲突
-					key := UserIdKey("user_id")
 					ctx = context.WithValue(ctx, key, uint32(token.Claims.(jwt.MapClaims)["user_id"].(float64)))
 				}
 			}
