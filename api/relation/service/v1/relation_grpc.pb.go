@@ -23,6 +23,7 @@ const (
 	RelationService_GetFollowerRelationList_FullMethodName = "/relation.service.v1.RelationService/GetFollowerRelationList"
 	RelationService_GetFollowRelationList_FullMethodName   = "/relation.service.v1.RelationService/GetFollowRelationList"
 	RelationService_RelationAction_FullMethodName          = "/relation.service.v1.RelationService/RelationAction"
+	RelationService_GetFriendRelationList_FullMethodName   = "/relation.service.v1.RelationService/GetFriendRelationList"
 	RelationService_IsFollow_FullMethodName                = "/relation.service.v1.RelationService/IsFollow"
 )
 
@@ -36,6 +37,8 @@ type RelationServiceClient interface {
 	GetFollowRelationList(ctx context.Context, in *RelationFollowListRequest, opts ...grpc.CallOption) (*RelationFollowListReply, error)
 	// 关注或取关用户(客户端)
 	RelationAction(ctx context.Context, in *RelationActionRequest, opts ...grpc.CallOption) (*RelationActionReply, error)
+	// 获取好友列表(客户端)
+	GetFriendRelationList(ctx context.Context, in *RelationFriendListRequest, opts ...grpc.CallOption) (*RelationFriendListReply, error)
 	// 根据userId和toUserId判断是否关注(user)
 	IsFollow(ctx context.Context, in *IsFollowRequest, opts ...grpc.CallOption) (*IsFollowReply, error)
 }
@@ -75,6 +78,15 @@ func (c *relationServiceClient) RelationAction(ctx context.Context, in *Relation
 	return out, nil
 }
 
+func (c *relationServiceClient) GetFriendRelationList(ctx context.Context, in *RelationFriendListRequest, opts ...grpc.CallOption) (*RelationFriendListReply, error) {
+	out := new(RelationFriendListReply)
+	err := c.cc.Invoke(ctx, RelationService_GetFriendRelationList_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *relationServiceClient) IsFollow(ctx context.Context, in *IsFollowRequest, opts ...grpc.CallOption) (*IsFollowReply, error) {
 	out := new(IsFollowReply)
 	err := c.cc.Invoke(ctx, RelationService_IsFollow_FullMethodName, in, out, opts...)
@@ -94,6 +106,8 @@ type RelationServiceServer interface {
 	GetFollowRelationList(context.Context, *RelationFollowListRequest) (*RelationFollowListReply, error)
 	// 关注或取关用户(客户端)
 	RelationAction(context.Context, *RelationActionRequest) (*RelationActionReply, error)
+	// 获取好友列表(客户端)
+	GetFriendRelationList(context.Context, *RelationFriendListRequest) (*RelationFriendListReply, error)
 	// 根据userId和toUserId判断是否关注(user)
 	IsFollow(context.Context, *IsFollowRequest) (*IsFollowReply, error)
 	mustEmbedUnimplementedRelationServiceServer()
@@ -111,6 +125,9 @@ func (UnimplementedRelationServiceServer) GetFollowRelationList(context.Context,
 }
 func (UnimplementedRelationServiceServer) RelationAction(context.Context, *RelationActionRequest) (*RelationActionReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RelationAction not implemented")
+}
+func (UnimplementedRelationServiceServer) GetFriendRelationList(context.Context, *RelationFriendListRequest) (*RelationFriendListReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFriendRelationList not implemented")
 }
 func (UnimplementedRelationServiceServer) IsFollow(context.Context, *IsFollowRequest) (*IsFollowReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method IsFollow not implemented")
@@ -182,6 +199,24 @@ func _RelationService_RelationAction_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RelationService_GetFriendRelationList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RelationFriendListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelationServiceServer).GetFriendRelationList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RelationService_GetFriendRelationList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelationServiceServer).GetFriendRelationList(ctx, req.(*RelationFriendListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RelationService_IsFollow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IsFollowRequest)
 	if err := dec(in); err != nil {
@@ -218,6 +253,10 @@ var RelationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RelationAction",
 			Handler:    _RelationService_RelationAction_Handler,
+		},
+		{
+			MethodName: "GetFriendRelationList",
+			Handler:    _RelationService_GetFriendRelationList_Handler,
 		},
 		{
 			MethodName: "IsFollow",

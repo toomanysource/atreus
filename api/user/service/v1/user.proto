@@ -2,10 +2,11 @@ syntax = "proto3";
 
 package user.service.v1;
 
-option go_package = "github.com/toomanysource/atreus/api/user/service/v1;v1";
-
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/toomanysource/atreus/api/user/service/v1;v1";
 
 // UserService 用来给user服务发送请求
 service UserService {
@@ -81,7 +82,7 @@ message UserInfoRequest {
 	// 用户id
 	uint32 user_id = 1;
 	// 用户鉴权token
-	string token = 2;
+	string token = 2 [(validate.rules).string.min_len = 1];
 }
 
 message UserInfoReply {
@@ -113,9 +114,9 @@ message UserLoginReply {
 
 message UserRegisterRequest {
 	// 注册用户名，最长32个字符
-	string username = 1;
+	string username = 1 [(validate.rules).string = {min_len:1, max_len:32}];
 	// 密码，最长32个字符
-	string password = 2;
+	string password = 2 [(validate.rules).string = {min_len:6, max_len:32}];
 }
 
 message UserRegisterReply {
