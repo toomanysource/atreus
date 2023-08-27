@@ -51,7 +51,7 @@ func (c *Client) UploadLocalFile(ctx context.Context, filePath string, bucketNam
 	if err != nil {
 		return fmt.Errorf("failed uploaded object, err : %w", err)
 	}
-	fmt.Println("Successfully uploaded object: ", uploadInfo)
+	fmt.Println("successfully uploaded object: ", uploadInfo)
 	return nil
 }
 
@@ -64,7 +64,7 @@ func (c *Client) UploadSizeFile(ctx context.Context, bucketName string, fileName
 	if err != nil {
 		return fmt.Errorf("failed uploaded bytes, err : %w", err)
 	}
-	fmt.Println("Successfully uploaded bytes: ", uploadInfo)
+	fmt.Println("successfully uploaded bytes: ", uploadInfo)
 	return nil
 }
 
@@ -80,6 +80,6 @@ func (c *Client) GetFileURL(ctx context.Context, bucketName string, fileName str
 	if err != nil {
 		return nil, fmt.Errorf("failed generated presigned url, err : %w", err)
 	}
-	fmt.Println("Successfully generated preSigned URL", preSignedURL)
+	fmt.Println("successfully generated presigned url", preSignedURL)
 	return preSignedURL, nil
 }
