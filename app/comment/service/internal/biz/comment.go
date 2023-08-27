@@ -58,7 +58,7 @@ func (uc *CommentUsecase) CommentAction(
 	ctx context.Context, videoId, commentId uint32,
 	actionType uint32, commentText string,
 ) (*Comment, error) {
-	// 1: create, 2: delete
+	// 判断actionType是否在指定范围内
 	createType, deleteType := uint32(1), uint32(2)
 	switch actionType {
 	case createType:
