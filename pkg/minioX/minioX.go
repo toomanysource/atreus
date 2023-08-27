@@ -78,7 +78,7 @@ func (c *Client) GetFileURL(ctx context.Context, bucketName string, fileName str
 
 	preSignedURL, err := c.extraConn.conn.PresignedGetObject(ctx, bucketName, fileName, timeLimit, reqParams)
 	if err != nil {
-		return nil, fmt.Errorf("failed generated presigned URL, err : %w", err)
+		return nil, fmt.Errorf("failed generated presigned url, err : %w", err)
 	}
 	fmt.Println("Successfully generated preSigned URL", preSignedURL)
 	return preSignedURL, nil
