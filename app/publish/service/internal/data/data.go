@@ -3,6 +3,8 @@ package data
 import (
 	"context"
 
+	"github.com/segmentio/kafka-go"
+
 	"github.com/toomanysource/atreus/app/publish/service/internal/conf"
 	"github.com/toomanysource/atreus/pkg/minioX"
 
@@ -17,26 +19,31 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewPublishRepo, NewMysqlConn, NewRedisConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
+var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewPublishRepo, NewMysqlConn, NewRedisConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
 
 // Data .
 type Data struct {
-	db    *gorm.DB
-	oss   *minioX.Client
-	cache *redis.Client
-	log   *log.Helper
+	db        *gorm.DB
+	oss       *minioX.Client
+	kfkReader *kafka.Reader
+	cache     *redis.Client
+	log       *log.Helper
 }
 
 // NewData .
-func NewData(db *gorm.DB, minioClient *minioX.Client, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, minioClient *minioX.Client, kfkReader *kafka.Reader, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
 	cleanup := func() {
-		log.NewHelper(logger).Info("closing the data resources")
+		if err := kfkReader.Close(); err != nil {
+			log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+		}
+		log.NewHelper(logger).Info("Successfully close the Kafka connection")
 	}
 	data := &Data{
-		db:    db.Model(&Video{}),
-		oss:   minioClient,
-		cache: cacheClient,
-		log:   log.NewHelper(logger),
+		db:        db.Model(&Video{}),
+		oss:       minioClient,
+		kfkReader: kfkReader,
+		cache:     cacheClient,
+		log:       log.NewHelper(logger),
 	}
 	return data, cleanup, nil
 }
@@ -104,6 +111,19 @@ func NewMinioIntraConn(c *conf.Minio) minioX.IntraConn {
 	}
 	log.Info("minioIntra enabled successfully")
 	return minioX.NewIntraConn(intraConn)
+}
+
+func NewKafkaReader(c *conf.Data) *kafka.Reader {
+	var maxBytes int = 10e6
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:   []string{c.Kafka.Addr},
+		Partition: int(c.Kafka.Partition),
+		GroupID:   "comment",
+		Topic:     c.Kafka.Topic,
+		MaxBytes:  maxBytes, // 10MB
+	})
+	log.Info("Kafka enabled successfully!")
+	return reader
 }
 
 func InitDB(db *gorm.DB) {
