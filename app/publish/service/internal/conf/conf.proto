@@ -11,6 +11,7 @@ message Bootstrap {
   Client client = 2;
   Data data = 3;
   JWT jwt = 4;
+  Minio minio = 5;
 }
 
 message Server {
@@ -27,7 +28,6 @@ message Server {
   HTTP http = 1;
   GRPC grpc = 2;
 }
-
 message Client {
   message User {
     string to = 1;
@@ -52,17 +52,8 @@ message Data {
     google.protobuf.Duration read_timeout = 4;
     google.protobuf.Duration write_timeout = 5;
   }
-  message Minio {
-    string endpoint_extra = 1;
-    string endpoint_intra = 2;
-    string access_key_id = 3;
-    string access_secret = 4;
-    bool use_ssl = 5;
-    string bucket_name = 6;
-  }
   Mysql mysql = 1;
   Redis redis = 2;
-  Minio minio = 3;
 }
 
 message JWT {
@@ -74,4 +65,13 @@ message JWT {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+}
+
+message Minio {
+  string endpoint_extra = 1;
+  string endpoint_intra = 2;
+  string access_key_id = 3;
+  string access_secret = 4;
+  bool use_ssl = 5;
+  string bucket_name = 6;
 }
