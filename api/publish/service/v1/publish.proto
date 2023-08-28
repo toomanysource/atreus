@@ -2,9 +2,11 @@ syntax = "proto3";
 
 package publish.service.v1;
 
-option go_package = "github.com/toomanysource/atreus/api/publish/service/v1;v1";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/toomanysource/atreus/api/publish/service/v1;v1";
 
 // PublishService 处理Publish相关的请求
 service PublishService {
@@ -117,7 +119,7 @@ message UpdateCommentCountRequest {
 
 message PublishActionRequest {
 	// 用户鉴权token
-	string token = 1;
+	string token = 1 [(validate.rules).string.min_len = 1];
 	// 视频数据
 	bytes data = 2;
 	// 视频标题
@@ -146,5 +148,3 @@ message PublishListReply {
 	// 用户发布视频列表
 	repeated Video video_list = 3 [json_name = "video_list"];
 }
-
-

@@ -1,0 +1,49 @@
+version: '3'
+services:
+  mysql:
+    image: mysql/mysql-server:8.0.32
+    container_name: mysql
+    privileged: true
+    restart: always
+    ports:
+      - "33069:3306"
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: toomanysource
+      MYSQL_DATABASE: atreus
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - ../../_data/mysql/data:/var/lib/mysql
+    command:
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --explicit_defaults_for_timestamp=true
+      --lower_case_table_names=1
+    networks:
+      - atreus_net
+
+  user-service:
+    build:
+      context: ../../
+      dockerfile: docker/build/Dockerfile
+      args:
+        - SERVICE_NAME=user
+    container_name: user-service
+    privileged: true
+    restart: always
+    ports:
+      - "8000:8000"
+      - "9000:9000"
+    networks:
+      - atreus_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+networks:
+  atreus_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.0.0/16

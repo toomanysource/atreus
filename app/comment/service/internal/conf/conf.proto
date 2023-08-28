@@ -1,9 +1,9 @@
 syntax = "proto3";
 package comment.service.internal.conf;
 
-option go_package = "github.com/toomanysource/atreus/app/comment/service/internal/conf;conf";
-
 import "google/protobuf/duration.proto";
+
+option go_package = "github.com/toomanysource/atreus/app/comment/service/internal/conf;conf";
 
 message Bootstrap {
   Server server = 1;
