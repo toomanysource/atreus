@@ -1,0 +1,29 @@
+server:
+  http:
+    addr: 0.0.0.0:8001
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9001
+    timeout: 1s
+client:
+  user:
+    to: 0.0.0.0:9005
+  publish:
+    to: 0.0.0.0:9003
+data:
+  mysql:
+    driver: mysql
+    dsn: "root:toomanysource@tcp(127.0.0.1:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local"
+  redis:
+    favorite_db: 8
+    addr: 127.0.0.1:6379
+    password: "atreus"
+    username: "atreus"
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+    TTL: 1000
+jwt:
+  http:
+    token_key: "AtReUs"
+  grpc:
+    token_key: "ToOMaNySoUrCe"
