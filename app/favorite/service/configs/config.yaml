@@ -22,6 +22,12 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
     TTL: 1000
+  kafka:
+    addr: 127.0.0.1:9092
+    topic: "favorite"
+    partition: 0
+    read_timeout: 0.2s
+    write_timeout: 0.2s
 jwt:
   http:
     token_key: "AtReUs"

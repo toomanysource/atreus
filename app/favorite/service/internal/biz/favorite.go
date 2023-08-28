@@ -55,7 +55,6 @@ type UserRepo interface {
 
 type PublishRepo interface {
 	GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]Video, error)
-	UpdateFavoriteCount(ctx context.Context, videoId uint32, change int32) error
 }
 
 type FavoriteUsecase struct {
