@@ -30,8 +30,6 @@ service PublishService {
 	rpc GetVideoListByVideoIds(VideoListByVideoIdsRequest) returns (VideoListReply) {}
 	// relation相关服务请求更新某一视频点赞数量
 	rpc UpdateFavorite(UpdateFavoriteCountRequest) returns (google.protobuf.Empty) {}
-	// comment相关服务请求更新某一视频评论数量
-	rpc UpdateComment(UpdateCommentCountRequest) returns (google.protobuf.Empty) {}
 }
 
 // 视频信息
@@ -108,13 +106,6 @@ message UpdateFavoriteCountRequest {
 	uint32 video_id = 1;
 	// 关注数变化值
 	int32 favorite_change = 2;
-}
-
-message UpdateCommentCountRequest {
-	// 视频id
-	uint32 video_id = 1;
-	// 评论数变化值
-	int32 comment_change = 2;
 }
 
 message PublishActionRequest {

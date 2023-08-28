@@ -26,7 +26,6 @@ const (
 	PublishService_GetVideoList_FullMethodName           = "/publish.service.v1.PublishService/GetVideoList"
 	PublishService_GetVideoListByVideoIds_FullMethodName = "/publish.service.v1.PublishService/GetVideoListByVideoIds"
 	PublishService_UpdateFavorite_FullMethodName         = "/publish.service.v1.PublishService/UpdateFavorite"
-	PublishService_UpdateComment_FullMethodName          = "/publish.service.v1.PublishService/UpdateComment"
 )
 
 // PublishServiceClient is the client API for PublishService service.
@@ -43,8 +42,6 @@ type PublishServiceClient interface {
 	GetVideoListByVideoIds(ctx context.Context, in *VideoListByVideoIdsRequest, opts ...grpc.CallOption) (*VideoListReply, error)
 	// relation相关服务请求更新某一视频点赞数量
 	UpdateFavorite(ctx context.Context, in *UpdateFavoriteCountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// comment相关服务请求更新某一视频评论数量
-	UpdateComment(ctx context.Context, in *UpdateCommentCountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type publishServiceClient struct {
@@ -100,15 +97,6 @@ func (c *publishServiceClient) UpdateFavorite(ctx context.Context, in *UpdateFav
 	return out, nil
 }
 
-func (c *publishServiceClient) UpdateComment(ctx context.Context, in *UpdateCommentCountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, PublishService_UpdateComment_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // PublishServiceServer is the server API for PublishService service.
 // All implementations must embed UnimplementedPublishServiceServer
 // for forward compatibility
@@ -123,8 +111,6 @@ type PublishServiceServer interface {
 	GetVideoListByVideoIds(context.Context, *VideoListByVideoIdsRequest) (*VideoListReply, error)
 	// relation相关服务请求更新某一视频点赞数量
 	UpdateFavorite(context.Context, *UpdateFavoriteCountRequest) (*emptypb.Empty, error)
-	// comment相关服务请求更新某一视频评论数量
-	UpdateComment(context.Context, *UpdateCommentCountRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedPublishServiceServer()
 }
 
@@ -146,9 +132,6 @@ func (UnimplementedPublishServiceServer) GetVideoListByVideoIds(context.Context,
 }
 func (UnimplementedPublishServiceServer) UpdateFavorite(context.Context, *UpdateFavoriteCountRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateFavorite not implemented")
-}
-func (UnimplementedPublishServiceServer) UpdateComment(context.Context, *UpdateCommentCountRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateComment not implemented")
 }
 func (UnimplementedPublishServiceServer) mustEmbedUnimplementedPublishServiceServer() {}
 
@@ -253,24 +236,6 @@ func _PublishService_UpdateFavorite_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PublishService_UpdateComment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateCommentCountRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublishServiceServer).UpdateComment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PublishService_UpdateComment_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublishServiceServer).UpdateComment(ctx, req.(*UpdateCommentCountRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // PublishService_ServiceDesc is the grpc.ServiceDesc for PublishService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -297,10 +262,6 @@ var PublishService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateFavorite",
 			Handler:    _PublishService_UpdateFavorite_Handler,
-		},
-		{
-			MethodName: "UpdateComment",
-			Handler:    _PublishService_UpdateComment_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
