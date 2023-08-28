@@ -12,7 +12,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -25,7 +24,6 @@ const (
 	PublishService_PublishAction_FullMethodName          = "/publish.service.v1.PublishService/PublishAction"
 	PublishService_GetVideoList_FullMethodName           = "/publish.service.v1.PublishService/GetVideoList"
 	PublishService_GetVideoListByVideoIds_FullMethodName = "/publish.service.v1.PublishService/GetVideoListByVideoIds"
-	PublishService_UpdateFavorite_FullMethodName         = "/publish.service.v1.PublishService/UpdateFavorite"
 )
 
 // PublishServiceClient is the client API for PublishService service.
@@ -40,8 +38,6 @@ type PublishServiceClient interface {
 	GetVideoList(ctx context.Context, in *VideoListRequest, opts ...grpc.CallOption) (*VideoListReply, error)
 	// favorite相关服务请求根据视频id列表获取视频列表
 	GetVideoListByVideoIds(ctx context.Context, in *VideoListByVideoIdsRequest, opts ...grpc.CallOption) (*VideoListReply, error)
-	// relation相关服务请求更新某一视频点赞数量
-	UpdateFavorite(ctx context.Context, in *UpdateFavoriteCountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type publishServiceClient struct {
@@ -88,15 +84,6 @@ func (c *publishServiceClient) GetVideoListByVideoIds(ctx context.Context, in *V
 	return out, nil
 }
 
-func (c *publishServiceClient) UpdateFavorite(ctx context.Context, in *UpdateFavoriteCountRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, PublishService_UpdateFavorite_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // PublishServiceServer is the server API for PublishService service.
 // All implementations must embed UnimplementedPublishServiceServer
 // for forward compatibility
@@ -109,8 +96,6 @@ type PublishServiceServer interface {
 	GetVideoList(context.Context, *VideoListRequest) (*VideoListReply, error)
 	// favorite相关服务请求根据视频id列表获取视频列表
 	GetVideoListByVideoIds(context.Context, *VideoListByVideoIdsRequest) (*VideoListReply, error)
-	// relation相关服务请求更新某一视频点赞数量
-	UpdateFavorite(context.Context, *UpdateFavoriteCountRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedPublishServiceServer()
 }
 
@@ -129,9 +114,6 @@ func (UnimplementedPublishServiceServer) GetVideoList(context.Context, *VideoLis
 }
 func (UnimplementedPublishServiceServer) GetVideoListByVideoIds(context.Context, *VideoListByVideoIdsRequest) (*VideoListReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVideoListByVideoIds not implemented")
-}
-func (UnimplementedPublishServiceServer) UpdateFavorite(context.Context, *UpdateFavoriteCountRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UpdateFavorite not implemented")
 }
 func (UnimplementedPublishServiceServer) mustEmbedUnimplementedPublishServiceServer() {}
 
@@ -218,24 +200,6 @@ func _PublishService_GetVideoListByVideoIds_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PublishService_UpdateFavorite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateFavoriteCountRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PublishServiceServer).UpdateFavorite(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PublishService_UpdateFavorite_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PublishServiceServer).UpdateFavorite(ctx, req.(*UpdateFavoriteCountRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // PublishService_ServiceDesc is the grpc.ServiceDesc for PublishService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -258,10 +222,6 @@ var PublishService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVideoListByVideoIds",
 			Handler:    _PublishService_GetVideoListByVideoIds_Handler,
-		},
-		{
-			MethodName: "UpdateFavorite",
-			Handler:    _PublishService_UpdateFavorite_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
