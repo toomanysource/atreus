@@ -177,14 +177,13 @@ func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
 			}
 			r.log.Info("redis transaction success")
 			return
-		} else {
-			if err = r.data.cache.followRelation.HSet(
-				ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId)), "").Err(); err != nil {
-				r.log.Errorf("redis store error %w", err)
-				return
-			}
-			r.log.Info("redis store success")
 		}
+		if err = r.data.cache.followRelation.HSet(
+			ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId)), "").Err(); err != nil {
+			r.log.Errorf("redis store error %w", err)
+			return
+		}
+		r.log.Info("redis store success")
 	}()
 	go func() {
 		ctx := context.TODO()
@@ -211,14 +210,13 @@ func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
 			}
 			r.log.Info("redis transaction success")
 			return
-		} else {
-			if err = r.data.cache.followedRelation.HSet(
-				ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId)), "").Err(); err != nil {
-				r.log.Errorf("redis store error %w", err)
-				return
-			}
-			r.log.Info("redis store success")
 		}
+		if err = r.data.cache.followedRelation.HSet(
+			ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId)), "").Err(); err != nil {
+			r.log.Errorf("redis store error %w", err)
+			return
+		}
+		r.log.Info("redis store success")
 	}()
 	r.log.Infof(
 		"CreateRelation -> userId: %v - toUserId: %v", userId, toUserId)
@@ -246,7 +244,6 @@ func (r *relationRepo) UnFollow(ctx context.Context, toUserId uint32) error {
 				return
 			}
 		}
-		return
 	}()
 	go func() {
 		ctx := context.TODO()
@@ -262,9 +259,7 @@ func (r *relationRepo) UnFollow(ctx context.Context, toUserId uint32) error {
 				r.log.Errorf("redis delete error %w", err)
 				return
 			}
-			return
 		}
-		return
 	}()
 	r.log.Infof(
 		"DelRelation -> userId: %v - toUserId: %v", userId, toUserId)
@@ -417,7 +412,8 @@ func CacheCreateRelationTransaction(ctx context.Context, cache *redis.Client, ul
 			return fmt.Errorf("redis store error, err : %w", err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
-		err = pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, 360, 720)).Err()
+		begin, end := 360, 720
+		err = pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
 			return fmt.Errorf("redis expire error, err : %w", err)
 		}

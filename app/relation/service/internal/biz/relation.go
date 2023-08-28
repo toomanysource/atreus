@@ -53,15 +53,17 @@ func (uc *RelationUsecase) GetFollowerList(ctx context.Context, userId uint32) (
 
 // Action 关注和取消关注
 func (uc *RelationUsecase) Action(ctx context.Context, toUserId uint32, actionType uint32) error {
+	var followType uint32 = 1
+	var unfollowType uint32 = 2
 	switch actionType {
 	// 1为关注
-	case 1:
+	case followType:
 		err := uc.repo.Follow(ctx, toUserId)
 		if err != nil {
 			return fmt.Errorf("failed to follow: %w", err)
 		}
 	// 2为取消关注
-	case 2:
+	case unfollowType:
 		err := uc.repo.UnFollow(ctx, toUserId)
 		if err != nil {
 			return fmt.Errorf("failed to unfollow: %w", err)

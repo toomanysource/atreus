@@ -27,7 +27,7 @@ func NewUserClient(c *conf.Client, logger log.Logger) *stdgrpc.ClientConn {
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to User Services, err : %w", err)
+		log.Fatalf("Error connecting to User Services, err : %v", err)
 	}
 	return conn
 }

@@ -33,7 +33,7 @@ func NewData(db *gorm.DB, cache *CacheClient, logger log.Logger) (*Data, func(),
 	// 关闭Redis连接
 	cleanup := func() {
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			_, err := cache.followedRelation.Ping(context.Background()).Result()
@@ -44,6 +44,7 @@ func NewData(db *gorm.DB, cache *CacheClient, logger log.Logger) (*Data, func(),
 				logHelper.Errorf("Redis connection closure failed, err: %w", err)
 			}
 		}()
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			_, err := cache.followRelation.Ping(context.Background()).Result()
@@ -83,7 +84,7 @@ func NewMysqlConn(c *conf.Data) *gorm.DB {
 func NewRedisConn(c *conf.Data) (cache *CacheClient) {
 	var wg sync.WaitGroup
 	cache = &CacheClient{}
-	wg.Add(2)
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		cache.followedRelation = redis.NewClient(&redis.Options{
@@ -101,6 +102,7 @@ func NewRedisConn(c *conf.Data) (cache *CacheClient) {
 			log.Fatalf("Redis database connection failure, err : %v", err)
 		}
 	}()
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		cache.followRelation = redis.NewClient(&redis.Options{
