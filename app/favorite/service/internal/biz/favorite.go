@@ -9,6 +9,11 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+var (
+	actionFavorite   uint32 = 1
+	actionUnFavorite uint32 = 2
+)
+
 // Video is used to receive video info from video service;response is an array of Videos
 type Video struct {
 	Id            uint32
@@ -63,19 +68,19 @@ func NewFavoriteUsecase(conf *conf.JWT, repo FavoriteRepo, logger log.Logger) *F
 	return &FavoriteUsecase{config: conf, favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
 }
 
-func (uc *FavoriteUsecase) FavoriteAction(ctx context.Context, videoId, actionType uint32, tokenString string) error {
+func (uc *FavoriteUsecase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
 	userId := ctx.Value("user_id").(uint32)
 	switch actionType {
-	case 1:
+	case actionFavorite:
 		return uc.favoriteRepo.CreateFavorite(ctx, userId, videoId)
-	case 2:
+	case actionUnFavorite:
 		return uc.favoriteRepo.DeleteFavorite(ctx, userId, videoId)
 	default:
 		return fmt.Errorf("invalid action type(not 1 nor 2)")
 	}
 }
 
-func (uc *FavoriteUsecase) GetFavoriteList(ctx context.Context, userID uint32, tokenString string) ([]Video, error) {
+func (uc *FavoriteUsecase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
 	userIdFromToken := ctx.Value("user_id").(uint32)
 	if userIdFromToken != userID {
 		uc.log.Errorf(

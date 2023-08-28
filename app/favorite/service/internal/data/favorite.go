@@ -329,7 +329,8 @@ func CacheCreateFavoriteTransaction(ctx context.Context, cache *redis.Client, vl
 			return fmt.Errorf("redis store error, err : %w", err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
-		err = pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, 360, 720)).Err()
+		begin, end := 360, 720
+		err = pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
 			return fmt.Errorf("redis expire error, err : %w", err)
 		}
