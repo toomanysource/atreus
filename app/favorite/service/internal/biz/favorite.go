@@ -2,7 +2,7 @@ package biz
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"github.com/toomanysource/atreus/app/favorite/service/internal/conf"
 
@@ -71,7 +71,7 @@ func (uc *FavoriteUsecase) FavoriteAction(ctx context.Context, videoId, actionTy
 	case 2:
 		return uc.favoriteRepo.DeleteFavorite(ctx, userId, videoId)
 	default:
-		return errors.New("invalid action type(not 1 nor 2)")
+		return fmt.Errorf("invalid action type(not 1 nor 2)")
 	}
 }
 
@@ -80,6 +80,7 @@ func (uc *FavoriteUsecase) GetFavoriteList(ctx context.Context, userID uint32, t
 	if userIdFromToken != userID {
 		uc.log.Errorf(
 			"GetFavoriteList: userID not correspond to token,token: %d, param:%d", userIdFromToken, userID)
+		return nil, fmt.Errorf("invalid token")
 	}
 	return uc.favoriteRepo.GetFavoriteList(ctx, userID)
 }
