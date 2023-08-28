@@ -1,7 +1,7 @@
 syntax = "proto3";
 package relation.service.internal.conf;
 
-option go_package = "github.com/toomanysource/atreus/app/relation/service/internal/conf;conf";
+option go_package = "github.com/toomanysource/atreus/app/relation/internal/conf;conf";
 
 import "google/protobuf/duration.proto";
 
