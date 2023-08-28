@@ -6,11 +6,11 @@
 package main
 
 import (
-	"github.com/toomanysource/atreus/app/relation/internal/biz"
-	"github.com/toomanysource/atreus/app/relation/internal/conf"
-	"github.com/toomanysource/atreus/app/relation/internal/data"
-	"github.com/toomanysource/atreus/app/relation/internal/server"
-	"github.com/toomanysource/atreus/app/relation/internal/service"
+	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
+	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
+	"github.com/toomanysource/atreus/app/relation/service/internal/data"
+	"github.com/toomanysource/atreus/app/relation/service/internal/server"
+	"github.com/toomanysource/atreus/app/relation/service/internal/service"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"

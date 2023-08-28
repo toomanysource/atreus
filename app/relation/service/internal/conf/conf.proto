@@ -1,0 +1,65 @@
+syntax = "proto3";
+package relation.service.internal.conf;
+
+option go_package = "github.com/toomanysource/atreus/app/relation/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Client client = 2;
+  Data data = 3;
+  JWT jwt = 4;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Client {
+  message User {
+    string to = 1;
+  }
+  User user = 1;
+}
+
+message Data {
+  message Mysql {
+    string driver = 1;
+    string dsn = 2;
+  }
+  message Redis {
+    int32 follow_relation_db = 1;
+    int32 followed_relation_db = 2;
+    string addr = 3;
+    string password = 4;
+    string username = 5;
+    google.protobuf.Duration read_timeout = 6;
+    google.protobuf.Duration write_timeout = 7;
+  }
+  Mysql mysql = 1;
+  Redis redis = 2;
+}
+
+message JWT {
+  message HTTP {
+    string token_key = 1;
+  }
+  message GRPC {
+    string token_key = 1;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}

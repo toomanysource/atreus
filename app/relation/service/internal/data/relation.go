@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/toomanysource/atreus/app/relation/internal/biz"
+	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis/v8"

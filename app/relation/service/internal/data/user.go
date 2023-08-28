@@ -3,10 +3,11 @@ package data
 import (
 	"context"
 
-	pb "github.com/toomanysource/atreus/api/user/service/v1"
-	"github.com/toomanysource/atreus/app/relation/internal/biz"
+	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
 
 	"google.golang.org/grpc"
+
+	pb "github.com/toomanysource/atreus/api/user/service/v1"
 )
 
 type userRepo struct {

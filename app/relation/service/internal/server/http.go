@@ -2,8 +2,8 @@ package server
 
 import (
 	v1 "github.com/toomanysource/atreus/api/relation/service/v1"
-	"github.com/toomanysource/atreus/app/relation/internal/conf"
-	"github.com/toomanysource/atreus/app/relation/internal/service"
+	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
+	"github.com/toomanysource/atreus/app/relation/service/internal/service"
 	"github.com/toomanysource/atreus/middleware"
 	"github.com/toomanysource/atreus/pkg/errorX"
 

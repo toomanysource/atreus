@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 
-	pb "github.com/toomanysource/atreus/api/relation/service/v1"
-	"github.com/toomanysource/atreus/app/relation/internal/biz"
+	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
+
+	pb "github.com/toomanysource/atreus/api/relation/service/v1"
 )
 
 type RelationService struct {

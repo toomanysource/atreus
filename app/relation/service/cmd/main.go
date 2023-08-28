@@ -4,7 +4,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/toomanysource/atreus/app/relation/internal/conf"
+	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
+
 	"github.com/toomanysource/atreus/pkg/logX"
 
 	"github.com/go-kratos/kratos/v2"
