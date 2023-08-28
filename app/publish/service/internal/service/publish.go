@@ -7,7 +7,6 @@ import (
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/toomanysource/atreus/api/publish/service/v1"
 )
@@ -75,11 +74,6 @@ func (s *PublishService) GetVideoListByVideoIds(ctx context.Context, req *pb.Vid
 	return &pb.VideoListReply{
 		VideoList: pbVideoList,
 	}, nil
-}
-
-func (s *PublishService) UpdateFavorite(ctx context.Context, req *pb.UpdateFavoriteCountRequest) (*emptypb.Empty, error) {
-	err := s.usecase.UpdateFavorite(ctx, req.VideoId, req.FavoriteChange)
-	return &emptypb.Empty{}, err
 }
 
 func bizVideoList2pbVideoList(bizVideoList []*biz.Video) (pbVideoList []*pb.Video) {

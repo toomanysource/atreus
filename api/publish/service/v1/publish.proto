@@ -3,7 +3,6 @@ syntax = "proto3";
 package publish.service.v1;
 
 import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
 import "validate/validate.proto";
 
 option go_package = "github.com/toomanysource/atreus/api/publish/service/v1;v1";
@@ -28,8 +27,6 @@ service PublishService {
 	rpc GetVideoList(VideoListRequest) returns (VideoListReply) {}
 	// favorite相关服务请求根据视频id列表获取视频列表
 	rpc GetVideoListByVideoIds(VideoListByVideoIdsRequest) returns (VideoListReply) {}
-	// relation相关服务请求更新某一视频点赞数量
-	rpc UpdateFavorite(UpdateFavoriteCountRequest) returns (google.protobuf.Empty) {}
 }
 
 // 视频信息
@@ -99,13 +96,6 @@ message VideoListByVideoIdsRequest {
 	uint32 user_id = 2;
 	// 视频id列表
 	repeated uint32 video_ids = 1;
-}
-
-message UpdateFavoriteCountRequest {
-	// 视频id
-	uint32 video_id = 1;
-	// 关注数变化值
-	int32 favorite_change = 2;
 }
 
 message PublishActionRequest {

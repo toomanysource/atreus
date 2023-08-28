@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"sync"
 
 	"github.com/segmentio/kafka-go"
 
@@ -21,21 +22,38 @@ import (
 // ProviderSet is data providers.
 var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewPublishRepo, NewMysqlConn, NewRedisConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
 
+type KfkReader struct {
+	comment  *kafka.Reader
+	favorite *kafka.Reader
+}
+
 // Data .
 type Data struct {
 	db        *gorm.DB
 	oss       *minioX.Client
-	kfkReader *kafka.Reader
+	kfkReader KfkReader
 	cache     *redis.Client
 	log       *log.Helper
 }
 
 // NewData .
-func NewData(db *gorm.DB, minioClient *minioX.Client, kfkReader *kafka.Reader, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, minioClient *minioX.Client, kfkReader KfkReader, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
 	cleanup := func() {
-		if err := kfkReader.Close(); err != nil {
-			log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
-		}
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfkReader.comment.Close(); err != nil {
+				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			if err := kfkReader.favorite.Close(); err != nil {
+				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+			}
+		}()
+		wg.Wait()
 		log.NewHelper(logger).Info("Successfully close the Kafka connection")
 	}
 	data := &Data{
@@ -113,17 +131,28 @@ func NewMinioIntraConn(c *conf.Minio) minioX.IntraConn {
 	return minioX.NewIntraConn(intraConn)
 }
 
-func NewKafkaReader(c *conf.Data) *kafka.Reader {
+func NewKafkaReader(c *conf.Data) KfkReader {
 	var maxBytes int = 10e6
-	reader := kafka.NewReader(kafka.ReaderConfig{
+	commentReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   []string{c.Kafka.Addr},
 		Partition: int(c.Kafka.Partition),
 		GroupID:   "comment",
-		Topic:     c.Kafka.Topic,
+		Topic:     c.Kafka.CommentTopic,
 		MaxBytes:  maxBytes, // 10MB
 	})
 	log.Info("Kafka enabled successfully!")
-	return reader
+	favoriteReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:   []string{c.Kafka.Addr},
+		Partition: int(c.Kafka.Partition),
+		GroupID:   "favorite",
+		Topic:     c.Kafka.FavoriteTopic,
+		MaxBytes:  maxBytes, // 10MB
+	})
+	log.Info("Kafka enabled successfully!")
+	return KfkReader{
+		comment:  commentReader,
+		favorite: favoriteReader,
+	}
 }
 
 func InitDB(db *gorm.DB) {

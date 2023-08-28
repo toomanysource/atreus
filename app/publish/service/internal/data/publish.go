@@ -308,6 +308,52 @@ func (r *publishRepo) GetVideoAuthor(ctx context.Context, userId uint32, videoLi
 	return vl, nil
 }
 
+func (r *publishRepo) InitUpdateFavoriteQueue() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// 监听Ctrl+C退出信号
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signChan
+		cancel()
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			msg, err := r.data.kfkReader.favorite.ReadMessage(ctx)
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+			if err != nil {
+				r.log.Errorf("read message error, err: %v", err)
+			}
+			videoId, err := strconv.Atoi(string(msg.Key))
+			if err != nil {
+				r.log.Errorf("strconv.Atoi error, err: %v", err)
+				return
+			}
+			change, err := strconv.Atoi(string(msg.Value))
+			if err != nil {
+				r.log.Errorf("strconv.Atoi error, err: %v", err)
+				return
+			}
+			err = r.UpdateFavoriteCount(ctx, uint32(videoId), int32(change))
+			if err != nil {
+				r.log.Errorf("update favorite count error, err: %v", err)
+				return
+			}
+			err = r.data.kfkReader.favorite.CommitMessages(ctx, msg)
+			if err != nil {
+				r.log.Errorf("commit message error, err: %v", err)
+				return
+			}
+		}
+	}
+}
+
 func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, favoriteChange int32) error {
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
@@ -337,7 +383,7 @@ func (r *publishRepo) InitUpdateCommentQueue() {
 		case <-ctx.Done():
 			return
 		default:
-			msg, err := r.data.kfkReader.ReadMessage(ctx)
+			msg, err := r.data.kfkReader.comment.ReadMessage(ctx)
 			if errors.Is(err, context.Canceled) {
 				return
 			}
@@ -359,7 +405,7 @@ func (r *publishRepo) InitUpdateCommentQueue() {
 				r.log.Errorf("update comment count error, err: %v", err)
 				return
 			}
-			err = r.data.kfkReader.CommitMessages(ctx, msg)
+			err = r.data.kfkReader.comment.CommitMessages(ctx, msg)
 			if err != nil {
 				r.log.Errorf("commit message error, err: %v", err)
 				return
