@@ -57,8 +57,6 @@ func NewPublishUsecase(repo PublishRepo, JWTConf *conf.JWT, logger log.Logger) *
 	return &PublishUsecase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
 }
 
-// HTTP ---------------------------------------------------------------------
-
 func (u *PublishUsecase) GetPublishList(
 	ctx context.Context, userId uint32,
 ) ([]*Video, error) {
@@ -70,8 +68,6 @@ func (u *PublishUsecase) PublishAction(
 ) error {
 	return u.repo.UploadVideo(ctx, fileBytes, title)
 }
-
-// RPC ---------------------------------------------------------------------
 
 func (u *PublishUsecase) GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {
 	videoList, err := u.repo.FindVideoListByVideoIds(ctx, userId, videoIds)
