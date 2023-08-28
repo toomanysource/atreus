@@ -1,10 +1,9 @@
 syntax = "proto3";
-
 package message.service.internal.conf;
 
-option go_package = "github.com/toomanysource/atreus/app/message/service/internal/conf;conf";
-
 import "google/protobuf/duration.proto";
+
+option go_package = "github.com/toomanysource/atreus/app/message/service/internal/conf;conf";
 
 message Bootstrap {
   Server server = 1;
@@ -17,6 +16,7 @@ message Server {
     string network = 1;
     string addr = 2;
     google.protobuf.Duration timeout = 3;
+
   }
   message GRPC {
     string network = 1;
@@ -28,25 +28,37 @@ message Server {
 }
 
 message Data {
-  message Database {
+  message Mysql {
     string driver = 1;
-    string source = 2;
+    string dsn = 2;
+  }
+  message Redis {
+    int32 message_db = 1;
+    string addr = 2;
+    string password = 3;
+    string username = 4;
+    google.protobuf.Duration read_timeout = 5;
+    google.protobuf.Duration write_timeout = 6;
   }
   message Kafka {
     string addr = 1;
     string topic = 2;
-    google.protobuf.Duration write_timeout = 3;
+    int32 partition = 3;
+    google.protobuf.Duration read_timeout = 4;
+    google.protobuf.Duration write_timeout = 5;
   }
-  Database database = 1;
+  Mysql mysql = 1;
+  Redis redis = 2;
+  Kafka kafka = 3;
 }
 
 message JWT {
-  message Http {
+  message HTTP {
     string token_key = 1;
   }
-  message Grpc {
+  message GRPC {
     string token_key = 1;
   }
-  Http http = 1;
-  Grpc grpc = 2;
+  HTTP http = 1;
+  GRPC grpc = 2;
 }
