@@ -2,6 +2,9 @@ package data
 
 import (
 	"context"
+	"sync"
+
+	"github.com/segmentio/kafka-go"
 
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 
@@ -13,32 +16,48 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var ProviderSet = wire.NewSet(NewData, NewCommentRepo, NewUserRepo, NewPublishRepo, NewMysqlConn, NewRedisConn)
+var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewCommentRepo, NewUserRepo, NewMysqlConn, NewRedisConn)
 
 type Data struct {
 	db    *gorm.DB
 	cache *redis.Client
+	kfk   *kafka.Writer
 	log   *log.Helper
 }
 
-func NewData(db *gorm.DB, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data"))
 	// 并发关闭所有数据库连接，后期根据Redis与Mysql是否数据同步修改
 	cleanup := func() {
-		_, err := cacheClient.Ping(context.Background()).Result()
-		if err != nil {
-			logHelper.Warn("Redis connection pool is empty")
-			return
-		}
-		if err = cacheClient.Close(); err != nil {
-			logHelper.Errorf("Redis connection closure failed, err: %w", err)
-		}
-		logHelper.Info("Successfully close the Redis connection")
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := cacheClient.Ping(context.Background()).Result()
+			if err != nil {
+				logHelper.Warn("Redis connection pool is empty")
+				return
+			}
+			if err = cacheClient.Close(); err != nil {
+				logHelper.Errorf("Redis connection closure failed, err: %w", err)
+			}
+			logHelper.Info("Successfully close the Redis connection")
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.Close(); err != nil {
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
+			}
+			logHelper.Info("Successfully close the Kafka connection")
+		}()
+		wg.Wait()
 	}
 
 	data := &Data{
 		db:    db.Model(&Comment{}),
 		cache: cacheClient,
+		kfk:   kfk,
 		log:   logHelper,
 	}
 	return data, cleanup, nil
@@ -77,6 +96,19 @@ func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
 	}
 	logs.Info("Cache enabled successfully!")
 	return client
+}
+
+func NewKafkaWriter(c *conf.Data) *kafka.Writer {
+	writer := &kafka.Writer{
+		Addr:                   kafka.TCP(c.Kafka.Addr),
+		Topic:                  c.Kafka.Topic,
+		Balancer:               &kafka.LeastBytes{},
+		WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
+		ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),
+		AllowAutoTopicCreation: true,
+	}
+	log.Info("Kafka enabled successfully!")
+	return writer
 }
 
 // InitDB 创建Comments数据表，并自动迁移
