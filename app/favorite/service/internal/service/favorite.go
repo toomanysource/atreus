@@ -27,7 +27,7 @@ func (s *FavoriteService) GetFavoriteList(
 	ctx context.Context, req *pb.FavoriteListRequest,
 ) (*pb.FavoriteListReply, error) {
 	reply := &pb.FavoriteListReply{StatusCode: 0, StatusMsg: "success"}
-	videos, err := s.fu.GetFavoriteList(ctx, req.UserId, req.Token)
+	videos, err := s.fu.GetFavoriteList(ctx, req.UserId)
 	if err != nil {
 		reply.StatusCode = -1
 		reply.StatusMsg = err.Error()
@@ -64,7 +64,7 @@ func (s *FavoriteService) FavoriteAction(
 	ctx context.Context, req *pb.FavoriteActionRequest,
 ) (*pb.FavoriteActionReply, error) {
 	reply := &pb.FavoriteActionReply{StatusCode: 0, StatusMsg: "success"}
-	err := s.fu.FavoriteAction(ctx, req.VideoId, req.ActionType, req.Token)
+	err := s.fu.FavoriteAction(ctx, req.VideoId, req.ActionType)
 	if err != nil {
 		reply.StatusCode = -1
 		reply.StatusMsg = err.Error()
