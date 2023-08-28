@@ -2,8 +2,10 @@ syntax = "proto3";
 
 package comment.service.v1;
 
-option go_package = "github.com/toomanysource/atreus/api/comment/service/v1;v1";
 import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/toomanysource/atreus/api/comment/service/v1;v1";
 
 // CommentService 用来给comment服务发送请求
 service CommentService {
@@ -40,7 +42,7 @@ message CommentListReply {
 
 message CommentActionRequest {
 	// 用户鉴权token
-	string token = 1;
+	string token = 1 [(validate.rules).string.min_len = 1];
 	// 视频id
 	uint32 video_id = 2;
 	// 1-发布评论，2-删除评论

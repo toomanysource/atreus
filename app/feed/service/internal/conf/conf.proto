@@ -35,27 +35,23 @@ message Client {
   Publish publish = 1;
 }
 
-message Data {
-  message Mysql {
-    string driver = 1;
-    string dsn = 2;
-  }
-  message Redis {
-    int32 db = 1;
-    string addr = 2;
-    string password = 3;
-    google.protobuf.Duration read_timeout = 4;
-    google.protobuf.Duration write_timeout = 5;
-  }
+// message Data {
+  // message Redis {
+  //   int32 db = 1;
+  //   string addr = 2;
+  //   string password = 3;
+  //   google.protobuf.Duration read_timeout = 4;
+  //   google.protobuf.Duration write_timeout = 5;
+  // }
   //   message Kafka {
   //    string addr = 1;
   //    string topic = 2;
   //    google.protobuf.Duration write_timeout = 3;
   //   }
-  Mysql mysql = 1;
-  Redis redis = 2;
+  // Mysql mysql = 1;
+  // Redis redis = 2;
   // Kafka kafka =3;
-}
+// }
 
 message JWT {
   message HTTP {

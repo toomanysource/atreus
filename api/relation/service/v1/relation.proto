@@ -2,114 +2,163 @@ syntax = "proto3";
 
 package relation.service.v1;
 
-option go_package = "github.com/toomanysource/atreus/api/relation/service/v1;v1";
 import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/toomanysource/atreus/api/relation/service/v1;v1";
 
 service RelationService {
-  // 获取粉丝列表(客户端)
-  rpc GetFollowerRelationList(RelationFollowerListRequest) returns (RelationFollowerListReply) {
-    option (google.api.http) = {
-      get: "/douyin/relation/follower/list"
-    };
-  }
-  // 获取关注列表(客户端)
-  rpc GetFollowRelationList(RelationFollowListRequest) returns (RelationFollowListReply) {
-    option (google.api.http) = {
-      get: "/douyin/relation/follow/list"
-    };
-  }
-  // 关注或取关用户(客户端)
-  rpc RelationAction(RelationActionRequest) returns (RelationActionReply) {
-    option (google.api.http) = {
-      post: "/douyin/relation/action"
-      body: "*"
-    };
-  }
-  // 根据userId和toUserId判断是否关注(user)
-  rpc IsFollow(IsFollowRequest) returns (IsFollowReply) {}
+	// 获取粉丝列表(客户端)
+	rpc GetFollowerRelationList(RelationFollowerListRequest) returns (RelationFollowerListReply) {
+		option (google.api.http) = {
+			get: "/douyin/relation/follower/list"
+		};
+	}
+	// 获取关注列表(客户端)
+	rpc GetFollowRelationList(RelationFollowListRequest) returns (RelationFollowListReply) {
+		option (google.api.http) = {
+			get: "/douyin/relation/follow/list"
+		};
+	}
+	// 关注或取关用户(客户端)
+	rpc RelationAction(RelationActionRequest) returns (RelationActionReply) {
+		option (google.api.http) = {
+			post: "/douyin/relation/action"
+			body: "*"
+		};
+	}
+	// 获取好友列表(客户端)
+	rpc GetFriendRelationList(RelationFriendListRequest) returns (RelationFriendListReply) {
+		option (google.api.http) = {
+			get: "/douyin/relation/friend/list"
+		};
+	}
+
+	// 根据userId和toUserId判断是否关注(user)
+	rpc IsFollow(IsFollowRequest) returns (IsFollowReply) {}
 }
 
 message IsFollowRequest {
-  // 用户id
-  uint32 user_id = 1;
-  // 对方用户id
-  repeated uint32 to_user_id = 2;
+	// 用户id
+	uint32 user_id = 1;
+	// 对方用户id
+	repeated uint32 to_user_id = 2;
 }
 
 message IsFollowReply {
-  // true-已关注，false-未关注
-  repeated bool is_follow = 1;
+	// true-已关注，false-未关注
+	repeated bool is_follow = 1;
 }
 
 message RelationActionRequest {
-  // 用户鉴权token
-  string token = 1;
-  // 对方用户id
-  uint32 to_user_id = 2;
-  // 1-关注，2-取消关注
-  uint32 action_type = 3;
+	// 用户鉴权token
+	string token = 1 [(validate.rules).string.min_len = 1];
+	// 对方用户id
+	uint32 to_user_id = 2;
+	// 1-关注，2-取消关注
+	uint32 action_type = 3;
 }
 
 message RelationActionReply{
-  // 状态码，0-成功，其他值-失败
-  int32 status_code = 1 [json_name = "status_code"];
-  // 返回状态描述
-  string status_msg = 2 [json_name = "status_msg"];
+	// 状态码，0-成功，其他值-失败
+	int32 status_code = 1 [json_name = "status_code"];
+	// 返回状态描述
+	string status_msg = 2 [json_name = "status_msg"];
 }
 
 message RelationFollowerListRequest {
-  // 用户id
-  uint32 user_id = 1;
-  // 用户鉴权token
-  string token = 2;
+	// 用户id
+	uint32 user_id = 1;
+	// 用户鉴权token
+	string token = 2;
 }
 
 message RelationFollowerListReply {
-  // 状态码，0-成功，其他值-失败
-  int32 status_code = 1 [json_name = "status_code"];
-  // 返回状态描述
-  string status_msg = 2 [json_name = "status_msg"];
-  // 用户列表
-  repeated User user_list = 3 [json_name = "user_list"];
+	// 状态码，0-成功，其他值-失败
+	int32 status_code = 1 [json_name = "status_code"];
+	// 返回状态描述
+	string status_msg = 2 [json_name = "status_msg"];
+	// 用户列表
+	repeated User user_list = 3 [json_name = "user_list"];
 }
 
 message RelationFollowListRequest {
-  // 用户id
-  uint32 user_id = 1;
-  // 用户鉴权token
-  string token = 2;
+	// 用户id
+	uint32 user_id = 1;
+	// 用户鉴权token
+	string token = 2;
 }
 
 message RelationFollowListReply {
-  // 状态码，0-成功，其他值-失败
-  int32 status_code = 1 [json_name = "status_code"];
-  // 返回状态描述
-  string status_msg = 2 [json_name = "status_msg"];
-  // 用户信息列表
-  repeated User user_list = 3 [json_name = "user_list"];
+	// 状态码，0-成功，其他值-失败
+	int32 status_code = 1 [json_name = "status_code"];
+	// 返回状态描述
+	string status_msg = 2 [json_name = "status_msg"];
+	// 用户信息列表
+	repeated User user_list = 3 [json_name = "user_list"];
+}
+
+message RelationFriendListRequest {
+	uint32 user_id = 1; // 用户id
+	string token = 2 [(validate.rules).string.min_len = 1]; // 用户鉴权token
+}
+
+message RelationFriendListReply {
+	int32 status_code = 1 [json_name = "status_code"]; // 状态码，0-成功，其他值-失败
+	string status_msg = 2 [json_name = "status_msg"]; // 返回状态描述
+	repeated FriendUser user_list = 3 [json_name = "user_list"]; // 用户列表
 }
 
 message User {
-  // 用户id
-  uint32 id = 1 [json_name = "id"];
-  // 用户名称
-  string name = 2 [json_name = "name"];
-  // 关注总数
-  uint32 follow_count = 3 [json_name = "follow_count"];
-  // 粉丝总数
-  uint32 follower_count = 4 [json_name = "follower_count"];
-  // true-已关注，false-未关注
-  bool is_follow = 5 [json_name = "is_follow"];
-  //用户头像
-  string avatar = 6 [json_name = "avatar"];
-  //用户个人页顶部大图
-  string background_image = 7 [json_name = "background_image"];
-  //个人简介
-  string signature = 8 [json_name = "signature"];
-  //获赞数量
-  uint32 total_favorited = 9 [json_name = "total_favorited"];
-  //作品数量
-  uint32 work_count = 10 [json_name = "work_count"];
-  //点赞数量
-  uint32 favorite_count = 11 [json_name = "favorite_count"];
+	// 用户id
+	uint32 id = 1 [json_name = "id"];
+	// 用户名称
+	string name = 2 [json_name = "name"];
+	// 关注总数
+	uint32 follow_count = 3 [json_name = "follow_count"];
+	// 粉丝总数
+	uint32 follower_count = 4 [json_name = "follower_count"];
+	// true-已关注，false-未关注
+	bool is_follow = 5 [json_name = "is_follow"];
+	//用户头像
+	string avatar = 6 [json_name = "avatar"];
+	//用户个人页顶部大图
+	string background_image = 7 [json_name = "background_image"];
+	//个人简介
+	string signature = 8 [json_name = "signature"];
+	//获赞数量
+	uint32 total_favorited = 9 [json_name = "total_favorited"];
+	//作品数量
+	uint32 work_count = 10 [json_name = "work_count"];
+	//点赞数量
+	uint32 favorite_count = 11 [json_name = "favorite_count"];
+}
+
+message FriendUser {
+	// 用户id
+	uint32 id = 1 [json_name = "id"];
+	// 用户名称
+	string name = 2 [json_name = "name"];
+	// 关注总数
+	uint32 follow_count = 3 [json_name = "follow_count"];
+	// 粉丝总数
+	uint32 follower_count = 4 [json_name = "follower_count"];
+	// true-已关注，false-未关注
+	bool is_follow = 5 [json_name = "is_follow"];
+	//用户头像
+	string avatar = 6 [json_name = "avatar"];
+	//用户个人页顶部大图
+	string background_image = 7 [json_name = "background_image"];
+	//个人简介
+	string signature = 8 [json_name = "signature"];
+	//获赞数量
+	uint32 total_favorited = 9 [json_name = "total_favorited"];
+	//作品数量
+	uint32 work_count = 10 [json_name = "work_count"];
+	//点赞数量
+	uint32 favorite_count = 11 [json_name = "favorite_count"];
+	// 和该好友的最新聊天消息
+	string message = 12 [json_name = "message"];
+	// message消息的类型，0 => 当前请求用户接收的消息， 1 => 当前请求用户发送的消息
+	uint32 msgType = 13 [json_name = "msg_type"];
 }
