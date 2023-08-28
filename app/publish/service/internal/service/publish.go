@@ -77,11 +77,6 @@ func (s *PublishService) GetVideoListByVideoIds(ctx context.Context, req *pb.Vid
 	}, nil
 }
 
-func (s *PublishService) UpdateComment(ctx context.Context, req *pb.UpdateCommentCountRequest) (*emptypb.Empty, error) {
-	err := s.usecase.UpdateComment(ctx, req.VideoId, req.CommentChange)
-	return &emptypb.Empty{}, err
-}
-
 func (s *PublishService) UpdateFavorite(ctx context.Context, req *pb.UpdateFavoriteCountRequest) (*emptypb.Empty, error) {
 	err := s.usecase.UpdateFavorite(ctx, req.VideoId, req.FavoriteChange)
 	return &emptypb.Empty{}, err

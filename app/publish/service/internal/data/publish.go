@@ -3,12 +3,15 @@ package data
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
@@ -319,19 +322,65 @@ func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, f
 	return err
 }
 
-func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, commentChange int32) error {
+func (r *publishRepo) InitUpdateCommentQueue() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// 监听Ctrl+C退出信号
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signChan
+		cancel()
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			msg, err := r.data.kfkReader.ReadMessage(ctx)
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+			if err != nil {
+				r.log.Errorf("read message error, err: %v", err)
+			}
+			videoId, err := strconv.Atoi(string(msg.Key))
+			if err != nil {
+				r.log.Errorf("strconv.Atoi error, err: %v", err)
+				return
+			}
+			change, err := strconv.Atoi(string(msg.Value))
+			if err != nil {
+				r.log.Errorf("strconv.Atoi error, err: %v", err)
+				return
+			}
+			err = r.UpdateCommentCount(ctx, uint32(videoId), int32(change))
+			if err != nil {
+				r.log.Errorf("update comment count error, err: %v", err)
+				return
+			}
+			err = r.data.kfkReader.CommitMessages(ctx, msg)
+			if err != nil {
+				r.log.Errorf("commit message error, err: %v", err)
+				return
+			}
+		}
+	}
+}
+
+func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, change int32) error {
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
 	if err != nil {
 		return err
 	}
-	newCount := calculateValidUint32(video.FavoriteCount, commentChange)
+	newCount := calculateValidUint32(video.FavoriteCount, change)
 	err = r.data.db.Model(&Video{}).Where("id = ?", videoId).
 		Update("comment_count", newCount).Error
 	if err != nil {
 		return err
 	}
-	return err
+	return nil
 }
 
 // CheckUrl 检查url是否过期

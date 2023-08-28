@@ -42,7 +42,7 @@ type PublishRepo interface {
 	FindVideoListByTime(context.Context, string, uint32, uint32) (int64, []*Video, error)
 	FindVideoListByVideoIds(context.Context, uint32, []uint32) ([]*Video, error)
 	UpdateFavoriteCount(context.Context, uint32, int32) error
-	UpdateCommentCount(context.Context, uint32, int32) error
+	InitUpdateCommentQueue()
 }
 
 // PublishUsecase is a publishing usecase.
@@ -54,6 +54,7 @@ type PublishUsecase struct {
 
 // NewPublishUsecase new a publishing usecase.
 func NewPublishUsecase(repo PublishRepo, JWTConf *conf.JWT, logger log.Logger) *PublishUsecase {
+	go repo.InitUpdateCommentQueue()
 	return &PublishUsecase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
 }
 
@@ -82,8 +83,4 @@ func (u *PublishUsecase) GetVideoList(
 
 func (u *PublishUsecase) UpdateFavorite(ctx context.Context, videoId uint32, favoriteChange int32) error {
 	return u.repo.UpdateFavoriteCount(ctx, videoId, favoriteChange)
-}
-
-func (u *PublishUsecase) UpdateComment(ctx context.Context, videoId uint32, commentChange int32) error {
-	return u.repo.UpdateCommentCount(ctx, videoId, commentChange)
 }
