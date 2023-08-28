@@ -17,16 +17,22 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewFavoriteRepo, NewUserRepo, NewPublishRepo, NewMysqlConn, NewRedisConn)
+var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewFavoriteRepo, NewPublishRepo, NewMysqlConn, NewRedisConn)
+
+type KfkWriter struct {
+	userFavorite   *kafka.Writer
+	authorFavorite *kafka.Writer
+	videoFavorite  *kafka.Writer
+}
 
 type Data struct {
 	db    *gorm.DB
 	cache *redis.Client
-	kfk   *kafka.Writer
+	kfk   KfkWriter
 	log   *log.Helper
 }
 
-func NewData(db *gorm.DB, cache *redis.Client, kfk *kafka.Writer, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, cache *redis.Client, kfk KfkWriter, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data/favorite"))
 	// 并发关闭所有数据库连接，后期根据Redis与Mysql是否数据同步修改
 	// MySQL 会自动关闭连接，但是 Redis 不会，所以需要手动关闭
@@ -47,12 +53,26 @@ func NewData(db *gorm.DB, cache *redis.Client, kfk *kafka.Writer, logger log.Log
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := kfk.Close(); err != nil {
+			if err := kfk.authorFavorite.Close(); err != nil {
 				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
 			}
-			logHelper.Info("Successfully close the Kafka connection")
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.userFavorite.Close(); err != nil {
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.videoFavorite.Close(); err != nil {
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
+			}
 		}()
 		wg.Wait()
+		logHelper.Info("Successfully close the Kafka connection")
 	}
 
 	data := &Data{
@@ -99,17 +119,22 @@ func NewRedisConn(c *conf.Data, l log.Logger) (cacheClient *redis.Client) {
 	return cache
 }
 
-func NewKafkaWriter(c *conf.Data) *kafka.Writer {
-	writer := &kafka.Writer{
-		Addr:                   kafka.TCP(c.Kafka.Addr),
-		Topic:                  c.Kafka.Topic,
-		Balancer:               &kafka.LeastBytes{},
-		WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
-		ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),
-		AllowAutoTopicCreation: true,
+func NewKafkaWriter(c *conf.Data) KfkWriter {
+	writer := func(topic string) *kafka.Writer {
+		return &kafka.Writer{
+			Addr:                   kafka.TCP(c.Kafka.Addr),
+			Topic:                  topic,
+			Balancer:               &kafka.LeastBytes{},
+			WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
+			ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),
+			AllowAutoTopicCreation: true,
+		}
 	}
-	log.Info("Kafka enabled successfully!")
-	return writer
+	return KfkWriter{
+		userFavorite:   writer(c.Kafka.UserFavoriteTopic),
+		authorFavorite: writer(c.Kafka.AuthorFavoriteTopic),
+		videoFavorite:  writer(c.Kafka.VideoFavoriteTopic),
+	}
 }
 
 // InitDB 创建User数据表，并自动迁移

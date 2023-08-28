@@ -24,7 +24,9 @@ data:
     TTL: 1000
   kafka:
     addr: 127.0.0.1:9092
-    topic: "favorite"
+    video_favorite_topic: "video_favorite"
+    user_favorite_topic: "user_favorite"
+    author_favorite_topic: "author_favorite"
     partition: 0
     read_timeout: 0.2s
     write_timeout: 0.2s

@@ -12,11 +12,11 @@ import (
 
 type FavoriteService struct {
 	pb.UnimplementedFavoriteServiceServer
-	fu  *biz.FavoriteUsecase
+	fu  *biz.FavoriteUseCase
 	log *log.Helper
 }
 
-func NewFavoriteService(fu *biz.FavoriteUsecase, logger log.Logger) *FavoriteService {
+func NewFavoriteService(fu *biz.FavoriteUseCase, logger log.Logger) *FavoriteService {
 	return &FavoriteService{
 		fu:  fu,
 		log: log.NewHelper(log.With(logger, "model", "service/favorite")),
