@@ -32,6 +32,7 @@ func (Favorite) TableName() string {
 
 type favoriteRepo struct {
 	data        *Data
+	kfk         KfkWriter
 	publishRepo biz.PublishRepo
 	log         *log.Helper
 }
@@ -42,6 +43,7 @@ func NewFavoriteRepo(
 	return &favoriteRepo{
 		data:        data,
 		publishRepo: NewPublishRepo(publishConn),
+		kfk:         data.kfk,
 		log:         log.NewHelper(log.With(logger, "module", "favorite-service/repo")),
 	}
 }
@@ -181,30 +183,6 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 	return r.CheckFavorite(ctx, userId, videoIds)
 }
 
-func (r *favoriteRepo) UpdateVideoFavorite(videoId uint32, change int32) error {
-	return r.data.kfk.videoFavorite.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(videoId))),
-		Value:     []byte(strconv.Itoa(int(change))),
-	})
-}
-
-func (r *favoriteRepo) UpdateUserFavorite(userId uint32, change int32) error {
-	return r.data.kfk.userFavorite.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(userId))),
-		Value:     []byte(strconv.Itoa(int(change))),
-	})
-}
-
-func (r *favoriteRepo) UpdateAuthorFavorite(authorId uint32, change int32) error {
-	return r.data.kfk.authorFavorite.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(authorId))),
-		Value:     []byte(strconv.Itoa(int(change))),
-	})
-}
-
 func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint32) error {
 	isFavorite, err := r.CheckFavorite(ctx, userId, []uint32{videoId})
 	if err != nil {
@@ -227,13 +205,13 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 			return err
 		}
 
-		if err = r.UpdateAuthorFavorite(authorId, 1); err != nil {
+		if err = UpdateFavorite(r.kfk.authorFavorite, authorId, 1); err != nil {
 			return fmt.Errorf("updateFavorited err: %w", err)
 		}
-		if err = r.UpdateUserFavorite(userId, 1); err != nil {
+		if err = UpdateFavorite(r.kfk.userFavorite, userId, 1); err != nil {
 			return fmt.Errorf("updateFavorite err: %w", err)
 		}
-		if err = r.UpdateVideoFavorite(videoId, 1); err != nil {
+		if err = UpdateFavorite(r.kfk.videoFavorite, videoId, 1); err != nil {
 			return fmt.Errorf("updateFavoriteCount err: %w", err)
 		}
 		return nil
@@ -264,15 +242,15 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 			return fmt.Errorf("failed to delete favorite: %w", err)
 		}
 
-		err = r.UpdateAuthorFavorite(authorId, -1)
+		err = UpdateFavorite(r.kfk.authorFavorite, authorId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorited: %w", err)
 		}
-		err = r.UpdateUserFavorite(userId, -1)
+		err = UpdateFavorite(r.kfk.userFavorite, userId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite: %w", err)
 		}
-		err = r.UpdateVideoFavorite(videoId, -1)
+		err = UpdateFavorite(r.kfk.videoFavorite, videoId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite count: %w", err)
 		}
@@ -366,4 +344,12 @@ func CacheCreateFavoriteTransaction(ctx context.Context, cache *redis.Client, vl
 // randomTime 随机生成时间
 func randomTime(timeType time.Duration, begin, end int) time.Duration {
 	return timeType * time.Duration(rand.Intn(end-begin+1)+begin)
+}
+
+func UpdateFavorite(writer *kafka.Writer, id uint32, change int32) error {
+	return writer.WriteMessages(context.TODO(), kafka.Message{
+		Partition: 0,
+		Key:       []byte(strconv.Itoa(int(id))),
+		Value:     []byte(strconv.Itoa(int(change))),
+	})
 }
