@@ -13,7 +13,6 @@ require (
 	github.com/google/wire v0.5.0
 	github.com/jinzhu/copier v0.4.0
 	github.com/minio/minio-go/v7 v7.0.62
-	github.com/segmentio/kafka-go v0.4.42
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.2
 	github.com/u2takey/ffmpeg-go v0.5.0
@@ -49,7 +48,6 @@ require (
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/u2takey/go-utils v0.3.1 // indirect
