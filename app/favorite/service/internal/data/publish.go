@@ -41,15 +41,3 @@ func (f *publishRepo) GetVideoListByVideoIds(
 	}
 	return videos, nil
 }
-
-// UpdateFavoriteCount 更新视频点赞数 - 在点赞/取消点赞时调用
-func (f *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, change int32) error {
-	_, err := f.client.UpdateFavorite(ctx, &pb.UpdateFavoriteCountRequest{
-		VideoId:        videoId,
-		FavoriteChange: change,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}

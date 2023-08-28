@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/segmentio/kafka-go"
+
 	"github.com/go-redis/redis/v8"
 
 	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
@@ -181,6 +183,14 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 	return r.CheckFavorite(ctx, userId, videoIds)
 }
 
+func (r *favoriteRepo) UpdateVideoFavorite(videoId uint32, change int32) error {
+	return r.data.kfk.WriteMessages(context.TODO(), kafka.Message{
+		Partition: 0,
+		Key:       []byte(strconv.Itoa(int(videoId))),
+		Value:     []byte(strconv.Itoa(int(change))),
+	})
+}
+
 func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint32) error {
 	isFavorite, err := r.CheckFavorite(ctx, userId, []uint32{videoId})
 	if err != nil {
@@ -195,8 +205,8 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 		return fmt.Errorf("failed to fetch video author: %w", err)
 	}
 
-	err = r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err = tx.Create(&Favorite{
+	err = r.data.db.Transaction(func(tx *gorm.DB) error {
+		if err = tx.WithContext(ctx).Create(&Favorite{
 			VideoID: videoId,
 			UserID:  userId,
 		}).Error; err != nil {
@@ -209,7 +219,7 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 		if err = r.userRepo.UpdateFavorite(ctx, userId, 1); err != nil {
 			return fmt.Errorf("updateFavorite err: %w", err)
 		}
-		if err = r.publishRepo.UpdateFavoriteCount(ctx, videoId, 1); err != nil {
+		if err = r.UpdateVideoFavorite(videoId, 1); err != nil {
 			return fmt.Errorf("updateFavoriteCount err: %w", err)
 		}
 		return nil
@@ -234,8 +244,8 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 		return errors.New("failed to fetch video author")
 	}
 
-	result := r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		err = tx.Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{}).Error
+	result := r.data.db.Transaction(func(tx *gorm.DB) error {
+		err = tx.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{}).Error
 		if err != nil {
 			return fmt.Errorf("failed to delete favorite: %w", err)
 		}
@@ -248,7 +258,7 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 		if err != nil {
 			return fmt.Errorf("failed to update favorite: %w", err)
 		}
-		err = r.publishRepo.UpdateFavoriteCount(ctx, videoId, -1)
+		err = r.UpdateVideoFavorite(videoId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite count: %w", err)
 		}
