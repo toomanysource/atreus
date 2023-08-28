@@ -14,7 +14,6 @@ var (
 	actionUnFavorite uint32 = 2
 )
 
-// Video is used to receive video info from video service;response is an array of Videos
 type Video struct {
 	Id            uint32
 	Author        *User
@@ -26,7 +25,6 @@ type Video struct {
 	Title         string
 }
 
-// User is used to receive video info from user service;& send response
 type User struct {
 	Id              uint32
 	Name            string
@@ -48,26 +46,21 @@ type FavoriteRepo interface {
 	CreateFavorite(ctx context.Context, userID uint32, videoID uint32) error
 }
 
-type UserRepo interface {
-	UpdateFavorited(ctx context.Context, userId uint32, change int32) error
-	UpdateFavorite(ctx context.Context, userId uint32, change int32) error
-}
-
 type PublishRepo interface {
 	GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]Video, error)
 }
 
-type FavoriteUsecase struct {
+type FavoriteUseCase struct {
 	favoriteRepo FavoriteRepo
 	config       *conf.JWT
 	log          *log.Helper
 }
 
-func NewFavoriteUsecase(conf *conf.JWT, repo FavoriteRepo, logger log.Logger) *FavoriteUsecase {
-	return &FavoriteUsecase{config: conf, favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
+func NewFavoriteUseCase(conf *conf.JWT, repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
+	return &FavoriteUseCase{config: conf, favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
 }
 
-func (uc *FavoriteUsecase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
+func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
 	userId := ctx.Value("user_id").(uint32)
 	switch actionType {
 	case actionFavorite:
@@ -79,7 +72,7 @@ func (uc *FavoriteUsecase) FavoriteAction(ctx context.Context, videoId, actionTy
 	}
 }
 
-func (uc *FavoriteUsecase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
+func (uc *FavoriteUseCase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
 	userIdFromToken := ctx.Value("user_id").(uint32)
 	if userIdFromToken != userID {
 		uc.log.Errorf(
@@ -89,7 +82,7 @@ func (uc *FavoriteUsecase) GetFavoriteList(ctx context.Context, userID uint32) (
 	return uc.favoriteRepo.GetFavoriteList(ctx, userID)
 }
 
-func (uc *FavoriteUsecase) IsFavorite(ctx context.Context, userID uint32, videoIDs []uint32) ([]bool, error) {
+func (uc *FavoriteUseCase) IsFavorite(ctx context.Context, userID uint32, videoIDs []uint32) ([]bool, error) {
 	ret, err := uc.favoriteRepo.IsFavorite(ctx, userID, videoIDs)
 	if err != nil {
 		return nil, err
