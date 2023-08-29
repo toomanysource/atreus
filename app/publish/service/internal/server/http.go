@@ -25,6 +25,7 @@ import (
 func NewHTTPServer(c *conf.Server, t *conf.JWT, publish *service.PublishService, logger log.Logger) *http.Server {
 	opts := []http.ServerOption{
 		http.ErrorEncoder(errorX.ErrorEncoder),
+		http.RequestDecoder(MultipartFormDataDecoder),
 		http.Middleware(
 			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {
 				return []byte(t.Http.TokenKey), nil
