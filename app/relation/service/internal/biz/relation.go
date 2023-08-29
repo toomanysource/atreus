@@ -31,28 +31,28 @@ type RelationRepo interface {
 	IsFollow(ctx context.Context, userId uint32, toUserId []uint32) ([]bool, error)
 }
 
-type RelationUsecase struct {
+type RelationUseCase struct {
 	repo   RelationRepo
 	config *conf.JWT
 	log    *log.Helper
 }
 
-func NewRelationUsecase(repo RelationRepo, JWTConf *conf.JWT, logger log.Logger) *RelationUsecase {
-	return &RelationUsecase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
+func NewRelationUseCase(repo RelationRepo, JWTConf *conf.JWT, logger log.Logger) *RelationUseCase {
+	return &RelationUseCase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
 }
 
 // GetFollowList 获取关注列表
-func (uc *RelationUsecase) GetFollowList(ctx context.Context, userId uint32) ([]*User, error) {
+func (uc *RelationUseCase) GetFollowList(ctx context.Context, userId uint32) ([]*User, error) {
 	return uc.repo.GetFollowList(ctx, userId)
 }
 
 // GetFollowerList 获取粉丝列表
-func (uc *RelationUsecase) GetFollowerList(ctx context.Context, userId uint32) ([]*User, error) {
+func (uc *RelationUseCase) GetFollowerList(ctx context.Context, userId uint32) ([]*User, error) {
 	return uc.repo.GetFollowerList(ctx, userId)
 }
 
 // Action 关注和取消关注
-func (uc *RelationUsecase) Action(ctx context.Context, toUserId uint32, actionType uint32) error {
+func (uc *RelationUseCase) Action(ctx context.Context, toUserId uint32, actionType uint32) error {
 	var followType uint32 = 1
 	var unfollowType uint32 = 2
 	switch actionType {
@@ -72,6 +72,6 @@ func (uc *RelationUsecase) Action(ctx context.Context, toUserId uint32, actionTy
 	return nil
 }
 
-func (uc *RelationUsecase) IsFollow(ctx context.Context, userId uint32, toUserId []uint32) ([]bool, error) {
+func (uc *RelationUseCase) IsFollow(ctx context.Context, userId uint32, toUserId []uint32) ([]bool, error) {
 	return uc.repo.IsFollow(ctx, userId, toUserId)
 }

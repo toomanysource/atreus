@@ -49,16 +49,3 @@ func (u *userRepo) GetUserInfos(ctx context.Context, userId uint32, userIds []ui
 	}
 	return users, nil
 }
-
-// UpdateFollow 接收User服务的回应
-func (u *userRepo) UpdateFollow(ctx context.Context, userId uint32, followChange int32) error {
-	_, err := u.client.UpdateFollow(
-		ctx, &pb.UpdateFollowRequest{UserId: userId, FollowChange: followChange})
-	return err
-}
-
-func (u *userRepo) UpdateFollower(ctx context.Context, userId uint32, followerChange int32) error {
-	_, err := u.client.UpdateFollower(
-		ctx, &pb.UpdateFollowerRequest{UserId: userId, FollowerChange: followerChange})
-	return err
-}

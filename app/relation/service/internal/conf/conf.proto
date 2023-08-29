@@ -49,8 +49,17 @@ message Data {
     google.protobuf.Duration read_timeout = 6;
     google.protobuf.Duration write_timeout = 7;
   }
+  message Kafka {
+    string addr = 1;
+    string follow_topic = 2;
+    string follower_topic = 3;
+    int32 partition = 4;
+    google.protobuf.Duration read_timeout = 5;
+    google.protobuf.Duration write_timeout = 6;
+  }
   Mysql mysql = 1;
   Redis redis = 2;
+  Kafka kafka = 3;
 }
 
 message JWT {

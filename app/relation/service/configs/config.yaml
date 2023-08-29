@@ -22,6 +22,13 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
     TTL: 1000
+  kafka:
+    addr: 43.138.192.7:9092
+    follow_topic: "follow"
+    follower_topic: "follower"
+    partition: 0
+    read_timeout: 0.2s
+    write_timeout: 0.2s
 jwt:
   http:
     token_key: "AtReUs"
