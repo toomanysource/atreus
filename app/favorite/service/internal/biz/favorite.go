@@ -72,12 +72,6 @@ func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionTy
 }
 
 func (uc *FavoriteUseCase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
-	userIdFromToken := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-	if userIdFromToken != userID {
-		uc.log.Errorf(
-			"GetFavoriteList: userID not correspond to token,token: %d, param:%d", userIdFromToken, userID)
-		return nil, fmt.Errorf("invalid token")
-	}
 	return uc.favoriteRepo.GetFavoriteList(ctx, userID)
 }
 
