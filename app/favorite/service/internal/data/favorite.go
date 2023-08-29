@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/segmentio/kafka-go"
+	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/go-redis/redis/v8"
 
@@ -205,13 +205,13 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 			return err
 		}
 
-		if err = UpdateFavorite(r.kfk.authorFavorite, authorId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.authorFavorite, authorId, 1); err != nil {
 			return fmt.Errorf("updateFavorited err: %w", err)
 		}
-		if err = UpdateFavorite(r.kfk.userFavorite, userId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.userFavorite, userId, 1); err != nil {
 			return fmt.Errorf("updateFavorite err: %w", err)
 		}
-		if err = UpdateFavorite(r.kfk.videoFavorite, videoId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, 1); err != nil {
 			return fmt.Errorf("updateFavoriteCount err: %w", err)
 		}
 		return nil
@@ -242,15 +242,15 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 			return fmt.Errorf("failed to delete favorite: %w", err)
 		}
 
-		err = UpdateFavorite(r.kfk.authorFavorite, authorId, -1)
+		err = kafkaX.Update(r.kfk.authorFavorite, authorId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorited: %w", err)
 		}
-		err = UpdateFavorite(r.kfk.userFavorite, userId, -1)
+		err = kafkaX.Update(r.kfk.userFavorite, userId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite: %w", err)
 		}
-		err = UpdateFavorite(r.kfk.videoFavorite, videoId, -1)
+		err = kafkaX.Update(r.kfk.videoFavorite, videoId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite count: %w", err)
 		}
@@ -344,12 +344,4 @@ func CacheCreateFavoriteTransaction(ctx context.Context, cache *redis.Client, vl
 // randomTime 随机生成时间
 func randomTime(timeType time.Duration, begin, end int) time.Duration {
 	return timeType * time.Duration(rand.Intn(end-begin+1)+begin)
-}
-
-func UpdateFavorite(writer *kafka.Writer, id uint32, change int32) error {
-	return writer.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(id))),
-		Value:     []byte(strconv.Itoa(int(change))),
-	})
 }
