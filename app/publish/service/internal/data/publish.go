@@ -23,6 +23,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var VideoCount = 30
+
 // Video Database Model
 type Video struct {
 	Id            uint32 `gorm:"column:id;primary_key;auto_increment"`
@@ -37,7 +39,6 @@ type Video struct {
 
 type UserRepo interface {
 	GetUserInfos(context.Context, uint32, []uint32) ([]*biz.User, error)
-	UpdateVideoCount(context.Context, uint32, int32) error
 }
 type FavoriteRepo interface {
 	IsFavorite(context.Context, uint32, []uint32) ([]bool, error)
@@ -133,7 +134,7 @@ func (r *publishRepo) UploadVideo(ctx context.Context, fileBytes []byte, title s
 				return fmt.Errorf("create video error: %w", err)
 			}
 		}
-		err = r.userRepo.UpdateVideoCount(ctx, userId, 1)
+		err = kafkaX.Update(r.data.kfkWriter, userId, 1)
 		if err != nil {
 			return fmt.Errorf("update user video count error: %w", err)
 		}
@@ -232,16 +233,20 @@ func (r *publishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32
 	return r.GetVideoAuthor(ctx, userId, videoList)
 }
 
-func (r *publishRepo) FindVideoListByTime(
-	ctx context.Context, latestTime string, userId uint32, number uint32,
+func (r *publishRepo) GetFeedList(
+	ctx context.Context, latestTime string,
 ) (int64, []*biz.Video, error) {
+	userId := ctx.Value("user_id").(uint32)
+	if latestTime == "0" {
+		latestTime = strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
 	var videoList []*Video
 	times, err := strconv.Atoi(latestTime)
 	if err != nil {
 		return 0, nil, fmt.Errorf("strconv.Atoi error: %w", err)
 	}
 	err = r.data.db.WithContext(ctx).Where("created_at < ?", int64(times)).
-		Order("created_at desc").Limit(int(number)).Find(&videoList).Error
+		Order("created_at desc").Limit(VideoCount).Find(&videoList).Error
 	if err != nil {
 		return 0, nil, fmt.Errorf("find video list error: %w", err)
 	}

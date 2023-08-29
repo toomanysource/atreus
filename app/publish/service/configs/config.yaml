@@ -23,7 +23,9 @@ data:
     TTL: 1000
   kafka:
     addr: 127.0.0.1:9092
-    topic: "comment"
+    comment_topic: "comment"
+    favorite_topic: "favorite"
+    publish_topic: "publish"
     partition: 0
     read_timeout: 0.2s
     write_timeout: 0.2s
