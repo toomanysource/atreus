@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/segmentio/kafka-go"
-
 	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -337,11 +335,11 @@ func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId ui
 		if err != nil {
 			return fmt.Errorf("failed to create relation: %w", err)
 		}
-		err = UpdateFollow(r.kfk.follow, userId, 1)
+		err = kafkaX.Update(r.kfk.follow, userId, 1)
 		if err != nil {
 			return fmt.Errorf("failed to update follow: %w", err)
 		}
-		err = UpdateFollow(r.kfk.follower, toUserId, 1)
+		err = kafkaX.Update(r.kfk.follower, toUserId, 1)
 		if err != nil {
 			return fmt.Errorf("failed to update follower: %w", err)
 		}
@@ -365,11 +363,11 @@ func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId ui
 		if err != nil {
 			return err
 		}
-		err = UpdateFollow(r.kfk.follow, userId, -1)
+		err = kafkaX.Update(r.kfk.follow, userId, -1)
 		if err != nil {
 			return err
 		}
-		err = UpdateFollow(r.kfk.follower, toUserId, -1)
+		err = kafkaX.Update(r.kfk.follower, toUserId, -1)
 		if err != nil {
 			return err
 		}
@@ -427,12 +425,4 @@ func CacheCreateRelationTransaction(ctx context.Context, cache *redis.Client, ul
 // randomTime 随机生成时间
 func randomTime(timeType time.Duration, begin, end int) time.Duration {
 	return timeType * time.Duration(rand.Intn(end-begin+1)+begin)
-}
-
-func UpdateFollow(writer *kafka.Writer, id uint32, num int64) error {
-	return writer.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(id))),
-		Value:     []byte(strconv.Itoa(int(num))),
-	})
 }
