@@ -2,19 +2,42 @@ package data
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-redis/redis/v8"
+	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
 
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 )
 
+var ErrUserNotFound = errors.Join(biz.ErrUserNotFound)
+
+var FixedCacheExpire = 720
+
 var userTableName = "users"
 
 type User struct {
-	*biz.User
-	gorm.DeletedAt
+	Id              uint32       `gorm:"primary_key" json:"id"`
+	Username        string       `gorm:"column:username;not null" json:"username"`
+	Password        string       `gorm:"column:password;not null" json:"password"`
+	Name            string       `gorm:"column:name;not null" json:"name"`
+	FollowCount     uint32       `gorm:"column:follow_count;not null;default:0" json:"follow_count"`
+	FollowerCount   uint32       `gorm:"column:follower_count;not null;default:0" json:"follower_count"`
+	Avatar          string       `gorm:"column:avatar_url;not null;default:''" json:"avatar"`
+	BackgroundImage string       `gorm:"column:background_image_url;not null;default:''" json:"background_image"`
+	Signature       string       `gorm:"column:signature;not null;default:''" json:"signature"`
+	TotalFavorited  uint32       `gorm:"column:total_favorited;not null;default:0" json:"total_favorited"`
+	WorkCount       uint32       `gorm:"column:work_count;not null;default:0" json:"work_count"`
+	FavoriteCount   uint32       `grom:"column:favorite_count;not null;default:0" json:"favorite_count"`
+	CreatedAt       time.Time    `gorm:"column:created_at;not null" json:"-"`
+	UpdatedAt       time.Time    `gorm:"column:updated_at;not null" json:"-"`
+	DeletedAt       sql.NullTime `gorm:"column:deleted_at" json:"-"`
 }
 
 func (User) TableName() string {
@@ -22,150 +45,287 @@ func (User) TableName() string {
 }
 
 type userRepo struct {
-	data *Data
-	log  *log.Helper
+	db  *gorm.DB
+	rdb *redis.Client
+	log *log.Helper
 }
 
 // NewUserRepo .
 func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
-	repo := &userRepo{
-		data: data,
-		log:  log.NewHelper(logger),
+	logs := log.NewHelper(log.With(logger, "data", "user_repo"))
+	r := &userRepo{
+		db:  data.db,
+		rdb: data.rdb,
+		log: logs,
 	}
-	return repo
+	if err := r.db.AutoMigrate(&User{}); err != nil {
+		log.Fatalf("database %s initialize failed: %s", userTableName, err.Error())
+	}
+	return r
 }
 
-// Save .
-func (r *userRepo) Save(ctx context.Context, user *biz.User) (*biz.User, error) {
-	u := User{
-		User: user,
-	}
-	err := r.data.db.WithContext(ctx).Save(&u).Error
+// Create .
+func (r *userRepo) Create(ctx context.Context, user *biz.User) (*biz.User, error) {
+	u := new(User)
+	copier.Copy(u, user)
+	err := r.db.WithContext(ctx).Save(u).Error
 	if err != nil {
 		return nil, err
 	}
-
+	// 缓存用户信息
+	go func() {
+		err := r.cacheUserById(u)
+		if err != nil {
+			r.log.Errorf("cache user by id %d failed: %s", u.Id, err.Error())
+		}
+	}()
 	return user, nil
 }
 
-// FindById .
+// FindById 返回的是*biz.User
 func (r *userRepo) FindById(ctx context.Context, id uint32) (*biz.User, error) {
-	u := new(User)
-	err := r.data.db.WithContext(ctx).
-		Where("id = ?", id).Limit(1).
-		Take(u).Error
+	u, err := r.findById(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	user := new(biz.User)
+	copier.Copy(user, u)
+	return user, nil
+}
+
+// findById 返回的是*User
+func (r *userRepo) findById(ctx context.Context, id uint32) (*User, error) {
+	// 先查看缓存有无对应的user信息
+	u, err := r.getCachedUserById(ctx, id)
+	if err == nil {
+		return u, nil
+	}
+	// 如果遇到错误，但不是key不存在的错误，则输出到日志里，继续查询数据库
+	if !errors.Is(err, redis.Nil) {
+		r.log.Errorf("get user cache by id %d failed: %s", id, err.Error())
+	}
+	u = new(User)
+	err = r.db.WithContext(ctx).Model(u).
+		Where("id = ?", id).
+		First(u).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return &biz.User{}, nil
+		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-
-	return u.User, nil
+	// 缓存用户信息
+	go func() {
+		err := r.cacheUserById(u)
+		if err != nil {
+			r.log.Errorf("cache user by id %d failed: %s", id, err.Error())
+		}
+	}()
+	return u, nil
 }
 
 // FindByIds .
 func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) ([]*biz.User, error) {
-	us := make([]*User, len(ids))
-	err := r.data.db.WithContext(ctx).Model(&User{}).
-		Where("id IN ?", ids).
-		Find(&us).Error
-	if err != nil {
-		return nil, err
-	}
-	if len(us) == 0 {
-		return nil, nil
-	}
-	// gorm使用IN查询，如果是根据主键，将会略重复数据。若非主键，则不会忽略
-	resultMap := make(map[uint32]*biz.User, len(ids))
-	for _, u := range us {
-		resultMap[u.Id] = u.User
-	}
-
 	result := make([]*biz.User, 0, len(ids))
+	// 记录查询过的id，避免出现查询重复的id
+	once := make(map[uint32]int)
+	session := r.db.WithContext(ctx)
 	for _, id := range ids {
-		result = append(result, resultMap[id])
+		// 重复id无需查询，从已查询的结果中获取
+		if idx, ok := once[id]; ok {
+			result = append(result, result[idx])
+			continue
+		}
+		// 先查看缓存有无对应的user信息
+		u, err := r.getCachedUserById(ctx, id)
+		if err == nil {
+			user := new(biz.User)
+			copier.Copy(user, u)
+			result = append(result, user)
+			once[id] = len(result) - 1
+			continue
+		}
+		// 如果遇到错误，但不是key不存在的错误，则输出到日志里，继续查询数据库
+		if !errors.Is(err, redis.Nil) {
+			r.log.Errorf("get user cache by id %d failed: %s", id, err.Error())
+		}
+		u = new(User)
+		// 对于唯一id，进行查询
+		err = session.Model(u).
+			Where("id = ?", id).
+			First(u).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		// 缓存用户信息
+		go func(id uint32) {
+			err := r.cacheUserById(u)
+			if err != nil {
+				r.log.Errorf("cache user by id %d failed: %s", id, err.Error())
+			}
+		}(u.Id)
+		user := new(biz.User)
+		copier.Copy(user, u)
+		result = append(result, user)
+		once[id] = len(result) - 1
 	}
 	return result, nil
 }
 
 // FindByUsername .
 func (r *userRepo) FindByUsername(ctx context.Context, username string) (*biz.User, error) {
-	u := new(User)
-	err := r.data.db.WithContext(ctx).Model(&User{}).
-		Where("username = ?", username).Limit(1).
-		Take(u).Error
+	u, err := r.findByUsername(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	user := new(biz.User)
+	copier.Copy(user, u)
+	return user, nil
+}
+
+func (r *userRepo) findByUsername(ctx context.Context, username string) (*User, error) {
+	// 先查看缓存有无对应的user信息
+	u, err := r.getCachedUserByUsername(ctx, username)
+	if err == nil {
+		return u, nil
+	}
+	// 如果遇到错误，但不是key不存在的错误，则输出到日志里，继续查询数据库
+	if !errors.Is(err, redis.Nil) {
+		r.log.Errorf("get user cache by username %s failed: %s", username, err.Error())
+	}
+	u = new(User)
+	err = r.db.WithContext(ctx).Model(u).
+		Where("username = ?", username).
+		First(u).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return &biz.User{}, nil
+		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-
-	return u.User, nil
+	// 缓存用户信息
+	go func() {
+		err = r.cacheUserByUsername(u)
+		if err != nil {
+			r.log.Errorf("cache user by username %s failed: %s", u.Username, err.Error())
+		}
+	}()
+	return u, nil
 }
 
 // UpdateFollow .
 func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, followChange int32) error {
-	user, err := r.FindById(ctx, id)
+	user, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	modifiedValue := calculateValidUint32(user.FollowCount, followChange)
-	session := r.data.db.WithContext(ctx)
-	sqlStmt := "update " + userTableName + " set follow_count = ? where id = ?"
-	return session.Exec(sqlStmt, modifiedValue, id).Error
+	newValue := addUint32int32(user.FollowCount, followChange)
+	return r.db.WithContext(ctx).Model(user).
+		Update("follow_count", newValue).Error
 }
 
 // UpdateFollower .
 func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, followerChange int32) error {
-	user, err := r.FindById(ctx, id)
+	user, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	modifiedValue := calculateValidUint32(user.FollowerCount, followerChange)
-	session := r.data.db.WithContext(ctx)
-	sqlStmt := "update " + userTableName + " set follower_count = ? where id = ?"
-	return session.Exec(sqlStmt, modifiedValue, id).Error
+	newValue := addUint32int32(user.FollowerCount, followerChange)
+	return r.db.WithContext(ctx).Model(user).
+		Update("follower_count", newValue).Error
 }
 
 // UpdateFavorited .
 func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, favoritedChange int32) error {
-	user, err := r.FindById(ctx, id)
+	user, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	modifiedValue := calculateValidUint32(user.TotalFavorited, favoritedChange)
-	session := r.data.db.WithContext(ctx)
-	sqlStmt := "update " + userTableName + " set total_favorited = ? where id = ?"
-	return session.Exec(sqlStmt, modifiedValue, id).Error
+	newValue := addUint32int32(user.TotalFavorited, favoritedChange)
+	return r.db.WithContext(ctx).Model(user).
+		Update("total_favorited", newValue).Error
 }
 
 // UpdateWork .
 func (r *userRepo) UpdateWork(ctx context.Context, id uint32, workChange int32) error {
-	user, err := r.FindById(ctx, id)
+	user, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	modifiedValue := calculateValidUint32(user.WorkCount, workChange)
-	session := r.data.db.WithContext(ctx)
-	sqlStmt := "update " + userTableName + " set work_count = ? where id = ?"
-	return session.Exec(sqlStmt, modifiedValue, id).Error
+	newValue := addUint32int32(user.WorkCount, workChange)
+	return r.db.WithContext(ctx).Model(user).
+		Update("work_count", newValue).Error
 }
 
 // UpdateFavorite .
 func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, favoriteChange int32) error {
-	user, err := r.FindById(ctx, id)
+	user, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	modifiedValue := calculateValidUint32(user.FavoriteCount, favoriteChange)
-	session := r.data.db.WithContext(ctx)
-	sqlStmt := "update " + userTableName + " set favorite_count = ? where id = ?"
-	return session.Exec(sqlStmt, modifiedValue, id).Error
+	newValue := addUint32int32(user.FavoriteCount, favoriteChange)
+	return r.db.WithContext(ctx).Model(user).
+		Update("favorite_count", newValue).Error
 }
 
-func calculateValidUint32(src uint32, mod int32) uint32 {
+// cacheUserById 用id来缓存User信息
+func (r *userRepo) cacheUserById(user *User) error {
+	bs, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	return r.rdb.Set(context.TODO(), getUserCachedKeyById(user.Id), bs, time.Duration(FixedCacheExpire)*time.Minute).Err()
+}
+
+// cacheUserById 用username来缓存User信息
+func (r *userRepo) cacheUserByUsername(user *User) error {
+	bs, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	return r.rdb.Set(context.TODO(), getUserCachedKeyByUsername(user.Username), bs, time.Duration(FixedCacheExpire)*time.Minute).Err()
+}
+
+// getCachedUserById 根据id来获取缓存的User信息
+// error 可能是key不存在
+func (r *userRepo) getCachedUserById(ctx context.Context, id uint32) (*User, error) {
+	user := new(User)
+	bs, err := r.rdb.Get(ctx, getUserCachedKeyById(id)).Bytes()
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bs, user)
+	return user, err
+}
+
+// getCachedUserByUsername 根据username来获取缓存的User信息
+// error 可能是key不存在
+func (r *userRepo) getCachedUserByUsername(ctx context.Context, username string) (*User, error) {
+	user := new(User)
+	bs, err := r.rdb.Get(ctx, getUserCachedKeyByUsername(username)).Bytes()
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bs, user)
+	return user, err
+}
+
+// getUserCachedKeyById 获取根据id拼接成用于缓存User的key
+func getUserCachedKeyById(id uint32) string {
+	return fmt.Sprintf("user:id:%d", id)
+}
+
+// getUserCachedKeyByUsername 获取根据username拼接成用于缓存User的key
+func getUserCachedKeyByUsername(username string) string {
+	return fmt.Sprintf("user:username:%s", username)
+}
+
+// addUint32int32 计算uint32数字与int32数字的和，结果为uint32
+// 若uint32数字的值小于int32数字的值，则返回结果为0
+func addUint32int32(src uint32, mod int32) uint32 {
 	if mod < 0 {
 		mod = -mod
 		if src < uint32(mod) {

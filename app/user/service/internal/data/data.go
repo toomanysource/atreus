@@ -1,17 +1,22 @@
 package data
 
 import (
+	"context"
+
+	"gorm.io/gorm/logger"
+
+	"github.com/go-redis/redis/v8"
+
 	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewGormDb, NewUserRepo)
+var ProviderSet = wire.NewSet(NewData, NewGormDb, NewRedisConn, NewUserRepo)
 
 var (
 	maxOpenConnection = 100
@@ -21,40 +26,62 @@ var (
 // Data .
 type Data struct {
 	db  *gorm.DB
+	rdb *redis.Client
 	log *log.Helper
 }
 
 // NewData .
-func NewData(db *gorm.DB, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, rdb *redis.Client, logger log.Logger) (*Data, func(), error) {
+	logs := log.NewHelper(log.With(logger, "resources", "data"))
 	cleanup := func() {
-		log.NewHelper(logger).Info("closing the data resources")
+		logs.Info("closing the data resources")
+		if err := rdb.Close(); err != nil {
+			logs.Errorf("close redis connection failed: %w", err)
+			return
+		}
+		logs.Infof("close redis connection successfully")
 	}
 	data := &Data{
-		db:  db.Model(&User{}),
+		db:  db,
+		rdb: rdb,
 		log: log.NewHelper(logger),
 	}
 	return data, cleanup, nil
 }
 
 // NewGormDb .
-func NewGormDb(c *conf.Data) *gorm.DB {
+func NewGormDb(c *conf.Data, l log.Logger) *gorm.DB {
+	logs := log.NewHelper(log.With(l, "resources", "data/mysql"))
 	dsn := c.Database.Source
 	open, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		panic("database connect failed, error: " + err.Error())
+		logs.Fatalf("database connect failed, error: %v", err.Error())
 	}
 	db, _ := open.DB()
 	// 连接池配置
 	db.SetMaxOpenConns(maxOpenConnection)
 	db.SetMaxIdleConns(maxIdleConnecton)
-	InitDB(open)
 	return open
 }
 
-func InitDB(conn *gorm.DB) {
-	if err := conn.AutoMigrate(&User{}); err != nil {
-		log.Fatalf("Database %s initialization error, err : %s", userTableName, err.Error())
+// NewRedisConn .
+func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
+	logs := log.NewHelper(log.With(l, "resources", "data/redis"))
+	client := redis.NewClient(&redis.Options{
+		DB:           int(c.Redis.Db),
+		Addr:         c.Redis.Addr,
+		Username:     c.Redis.Username,
+		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
+		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
+		Password:     c.Redis.Password,
+	})
+	// ping Redis客户端
+	_, err := client.Ping(context.Background()).Result()
+	if err != nil {
+		logs.Fatalf("ping redis failure, err: %v", err)
 	}
+	logs.Info("redis run successfully!")
+	return client
 }
