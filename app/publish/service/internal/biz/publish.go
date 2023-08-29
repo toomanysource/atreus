@@ -3,8 +3,6 @@ package biz
 import (
 	"context"
 
-	"github.com/toomanysource/atreus/app/publish/service/internal/conf"
-
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -47,16 +45,15 @@ type PublishRepo interface {
 
 // PublishUsecase is a publishing usecase.
 type PublishUsecase struct {
-	repo   PublishRepo
-	config *conf.JWT
-	log    *log.Helper
+	repo PublishRepo
+	log  *log.Helper
 }
 
 // NewPublishUsecase new a publishing usecase.
-func NewPublishUsecase(repo PublishRepo, JWTConf *conf.JWT, logger log.Logger) *PublishUsecase {
+func NewPublishUsecase(repo PublishRepo, logger log.Logger) *PublishUsecase {
 	go repo.InitUpdateCommentQueue()
 	go repo.InitUpdateFavoriteQueue()
-	return &PublishUsecase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
+	return &PublishUsecase{repo: repo, log: log.NewHelper(logger)}
 }
 
 func (u *PublishUsecase) GetPublishList(

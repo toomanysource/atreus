@@ -31,7 +31,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, jwt *conf.JWT, logger
 		return nil, nil, err
 	}
 	messageRepo := data.NewMessageRepo(dataData, logger)
-	messageUsecase := biz.NewMessageUsecase(messageRepo, jwt, logger)
+	messageUsecase := biz.NewMessageUsecase(messageRepo, logger)
 	messageService := service.NewMessageService(messageUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, messageService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, messageService, logger)

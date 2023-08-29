@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
-
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -38,13 +36,12 @@ type CommentRepo interface {
 
 type CommentUsecase struct {
 	commentRepo CommentRepo
-	config      *conf.JWT
 	log         *log.Helper
 }
 
-func NewCommentUsecase(conf *conf.JWT, cr CommentRepo, logger log.Logger) *CommentUsecase {
+func NewCommentUsecase(cr CommentRepo, logger log.Logger) *CommentUsecase {
 	return &CommentUsecase{
-		config: conf, commentRepo: cr, log: log.NewHelper(log.With(logger, "model", "usecase/comment")),
+		commentRepo: cr, log: log.NewHelper(log.With(logger, "model", "usecase/comment")),
 	}
 }
 

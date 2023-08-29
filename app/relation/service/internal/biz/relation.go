@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
-
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -32,13 +30,12 @@ type RelationRepo interface {
 }
 
 type RelationUseCase struct {
-	repo   RelationRepo
-	config *conf.JWT
-	log    *log.Helper
+	repo RelationRepo
+	log  *log.Helper
 }
 
-func NewRelationUseCase(repo RelationRepo, JWTConf *conf.JWT, logger log.Logger) *RelationUseCase {
-	return &RelationUseCase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
+func NewRelationUseCase(repo RelationRepo, logger log.Logger) *RelationUseCase {
+	return &RelationUseCase{repo: repo, log: log.NewHelper(logger)}
 }
 
 // GetFollowList 获取关注列表

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/toomanysource/atreus/app/favorite/service/internal/conf"
-
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -52,12 +50,11 @@ type PublishRepo interface {
 
 type FavoriteUseCase struct {
 	favoriteRepo FavoriteRepo
-	config       *conf.JWT
 	log          *log.Helper
 }
 
-func NewFavoriteUseCase(conf *conf.JWT, repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
-	return &FavoriteUseCase{config: conf, favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
+func NewFavoriteUseCase(repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
+	return &FavoriteUseCase{favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
 }
 
 func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
