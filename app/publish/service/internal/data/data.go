@@ -20,7 +20,7 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewPublishRepo, NewMysqlConn, NewRedisConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
+var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewKafkaWriter, NewPublishRepo, NewMysqlConn, NewRedisConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
 
 type KfkReader struct {
 	comment  *kafka.Reader
@@ -32,12 +32,13 @@ type Data struct {
 	db        *gorm.DB
 	oss       *minioX.Client
 	kfkReader KfkReader
+	kfkWriter *kafka.Writer
 	cache     *redis.Client
 	log       *log.Helper
 }
 
 // NewData .
-func NewData(db *gorm.DB, minioClient *minioX.Client, kfkReader KfkReader, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, minioClient *minioX.Client, kfkWriter *kafka.Writer, kfkReader KfkReader, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
 	cleanup := func() {
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -53,6 +54,12 @@ func NewData(db *gorm.DB, minioClient *minioX.Client, kfkReader KfkReader, cache
 				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
+		wg.Add(1)
+		go func() {
+			if err := kfkWriter.Close(); err != nil {
+				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+			}
+		}()
 		wg.Wait()
 		log.NewHelper(logger).Info("Successfully close the Kafka connection")
 	}
@@ -60,6 +67,7 @@ func NewData(db *gorm.DB, minioClient *minioX.Client, kfkReader KfkReader, cache
 		db:        db.Model(&Video{}),
 		oss:       minioClient,
 		kfkReader: kfkReader,
+		kfkWriter: kfkWriter,
 		cache:     cacheClient,
 		log:       log.NewHelper(logger),
 	}
@@ -152,6 +160,17 @@ func NewKafkaReader(c *conf.Data) KfkReader {
 	return KfkReader{
 		comment:  commentReader,
 		favorite: favoriteReader,
+	}
+}
+
+func NewKafkaWriter(c *conf.Data) *kafka.Writer {
+	return &kafka.Writer{
+		Addr:                   kafka.TCP(c.Kafka.Addr),
+		Topic:                  c.Kafka.PublishTopic,
+		Balancer:               &kafka.LeastBytes{},
+		WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
+		ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),
+		AllowAutoTopicCreation: true,
 	}
 }
 

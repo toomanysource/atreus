@@ -20,10 +20,13 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationPublishServiceFeedList = "/publish.service.v1.PublishService/FeedList"
 const OperationPublishServiceGetPublishList = "/publish.service.v1.PublishService/GetPublishList"
 const OperationPublishServicePublishAction = "/publish.service.v1.PublishService/PublishAction"
 
 type PublishServiceHTTPServer interface {
+	// FeedList 请求 Feed List
+	FeedList(context.Context, *ListFeedRequest) (*ListFeedReply, error)
 	// GetPublishList 获取用户投稿视频列表
 	GetPublishList(context.Context, *PublishListRequest) (*PublishListReply, error)
 	// PublishAction 用户上传视频
@@ -34,6 +37,7 @@ func RegisterPublishServiceHTTPServer(s *http.Server, srv PublishServiceHTTPServ
 	r := s.Route("/")
 	r.GET("/douyin/publish/list", _PublishService_GetPublishList0_HTTP_Handler(srv))
 	r.POST("/douyin/publish/action", _PublishService_PublishAction0_HTTP_Handler(srv))
+	r.GET("/douyin/feed", _PublishService_FeedList0_HTTP_Handler(srv))
 }
 
 func _PublishService_GetPublishList0_HTTP_Handler(srv PublishServiceHTTPServer) func(ctx http.Context) error {
@@ -77,7 +81,27 @@ func _PublishService_PublishAction0_HTTP_Handler(srv PublishServiceHTTPServer) f
 	}
 }
 
+func _PublishService_FeedList0_HTTP_Handler(srv PublishServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListFeedRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationPublishServiceFeedList)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.FeedList(ctx, req.(*ListFeedRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListFeedReply)
+		return ctx.Result(200, reply)
+	}
+}
+
 type PublishServiceHTTPClient interface {
+	FeedList(ctx context.Context, req *ListFeedRequest, opts ...http.CallOption) (rsp *ListFeedReply, err error)
 	GetPublishList(ctx context.Context, req *PublishListRequest, opts ...http.CallOption) (rsp *PublishListReply, err error)
 	PublishAction(ctx context.Context, req *PublishActionRequest, opts ...http.CallOption) (rsp *PublishActionReply, err error)
 }
@@ -88,6 +112,19 @@ type PublishServiceHTTPClientImpl struct {
 
 func NewPublishServiceHTTPClient(client *http.Client) PublishServiceHTTPClient {
 	return &PublishServiceHTTPClientImpl{client}
+}
+
+func (c *PublishServiceHTTPClientImpl) FeedList(ctx context.Context, in *ListFeedRequest, opts ...http.CallOption) (*ListFeedReply, error) {
+	var out ListFeedReply
+	pattern := "/douyin/feed"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationPublishServiceFeedList))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, err
 }
 
 func (c *PublishServiceHTTPClientImpl) GetPublishList(ctx context.Context, in *PublishListRequest, opts ...http.CallOption) (*PublishListReply, error) {
