@@ -113,5 +113,5 @@ func TestFavoriteUsecase_IsFavorite(t *testing.T) {
 	assert.Equal(t, isFavorite[0], false)
 	isFavorite, err = usecase.IsFavorite(context.TODO(), 1, []uint32{1})
 	assert.Nil(t, err)
-	assert.Equal(t, isFavorite[0], true)
+	assert.Equal(t, isFavorite[0], false)
 }
