@@ -37,7 +37,7 @@ func wireApp(confServer *conf.Server, client *conf.Client, minio *conf.Minio, jw
 	userConn := server.NewUserClient(client, logger)
 	favoriteConn := server.NewFavoriteClient(client, logger)
 	publishRepo := data.NewPublishRepo(dataData, userConn, favoriteConn, logger)
-	publishUsecase := biz.NewPublishUsecase(publishRepo, jwt, logger)
+	publishUsecase := biz.NewPublishUsecase(publishRepo, logger)
 	publishService := service.NewPublishService(publishUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, publishService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, publishService, logger)

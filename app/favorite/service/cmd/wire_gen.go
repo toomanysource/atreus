@@ -32,7 +32,7 @@ func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, 
 	}
 	publishConn := server.NewPublishClient(client, logger)
 	favoriteRepo := data.NewFavoriteRepo(dataData, publishConn, logger)
-	favoriteUseCase := biz.NewFavoriteUseCase(jwt, favoriteRepo, logger)
+	favoriteUseCase := biz.NewFavoriteUseCase(favoriteRepo, logger)
 	favoriteService := service.NewFavoriteService(favoriteUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, favoriteService, logger)
 	httpServer := server.NewHTTPServer(confServer, favoriteService, logger)

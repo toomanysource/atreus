@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/toomanysource/atreus/app/favorite/service/internal/conf"
+	"github.com/toomanysource/atreus/middleware"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -52,16 +52,15 @@ type PublishRepo interface {
 
 type FavoriteUseCase struct {
 	favoriteRepo FavoriteRepo
-	config       *conf.JWT
 	log          *log.Helper
 }
 
-func NewFavoriteUseCase(conf *conf.JWT, repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
-	return &FavoriteUseCase{config: conf, favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
+func NewFavoriteUseCase(repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
+	return &FavoriteUseCase{favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
 }
 
 func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	switch actionType {
 	case actionFavorite:
 		return uc.favoriteRepo.CreateFavorite(ctx, userId, videoId)
@@ -73,12 +72,6 @@ func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionTy
 }
 
 func (uc *FavoriteUseCase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
-	userIdFromToken := ctx.Value("user_id").(uint32)
-	if userIdFromToken != userID {
-		uc.log.Errorf(
-			"GetFavoriteList: userID not correspond to token,token: %d, param:%d", userIdFromToken, userID)
-		return nil, fmt.Errorf("invalid token")
-	}
 	return uc.favoriteRepo.GetFavoriteList(ctx, userID)
 }
 
