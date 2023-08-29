@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/jinzhu/copier"
+
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -36,12 +38,12 @@ func (s *UserService) UserRegister(ctx context.Context, req *pb.UserRegisterRequ
 			StatusMsg:  err.Error(),
 		}, nil
 	}
-	return &pb.UserRegisterReply{
+	reply := &pb.UserRegisterReply{
 		StatusCode: CodeSuccess,
 		StatusMsg:  "success",
-		UserId:     user.Id,
-		Token:      user.Token,
-	}, nil
+	}
+	copier.Copy(reply, user)
+	return reply, nil
 }
 
 func (s *UserService) UserLogin(ctx context.Context, req *pb.UserLoginRequest) (*pb.UserLoginReply, error) {
@@ -52,12 +54,12 @@ func (s *UserService) UserLogin(ctx context.Context, req *pb.UserLoginRequest) (
 			StatusMsg:  err.Error(),
 		}, nil
 	}
-	return &pb.UserLoginReply{
+	reply := &pb.UserLoginReply{
 		StatusCode: CodeSuccess,
 		StatusMsg:  "success",
-		UserId:     user.Id,
-		Token:      user.Token,
-	}, nil
+	}
+	copier.Copy(reply, user)
+	return reply, nil
 }
 
 func (s *UserService) GetUserInfo(ctx context.Context, req *pb.UserInfoRequest) (*pb.UserInfoReply, error) {
@@ -71,20 +73,9 @@ func (s *UserService) GetUserInfo(ctx context.Context, req *pb.UserInfoRequest) 
 	reply := &pb.UserInfoReply{
 		StatusCode: CodeSuccess,
 		StatusMsg:  "success",
+		User:       new(pb.User),
 	}
-	// no need IsFollow
-	reply.User = &pb.User{
-		Id:              user.Id,
-		Name:            user.Name,
-		FollowCount:     user.FollowCount,
-		FollowerCount:   user.FollowerCount,
-		Avatar:          user.Avatar,
-		BackgroundImage: user.BackgroundImage,
-		Signature:       user.Signature,
-		TotalFavorited:  user.TotalFavorited,
-		WorkCount:       user.WorkCount,
-		FavoriteCount:   user.FavoriteCount,
-	}
+	copier.Copy(reply.User, user)
 	return reply, nil
 }
 
@@ -93,23 +84,10 @@ func (s *UserService) GetUserInfos(ctx context.Context, req *pb.UserInfosRequest
 	if err != nil {
 		return nil, err
 	}
-	reply := &pb.UserInfosReply{}
-	reply.Users = make([]*pb.User, len(users))
-	for i, user := range users {
-		reply.Users[i] = &pb.User{
-			Id:              user.Id,
-			Name:            user.Name,
-			FollowCount:     user.FollowCount,
-			FollowerCount:   user.FollowerCount,
-			Avatar:          user.Avatar,
-			BackgroundImage: user.BackgroundImage,
-			Signature:       user.Signature,
-			TotalFavorited:  user.TotalFavorited,
-			IsFollow:        user.IsFollow,
-			WorkCount:       user.WorkCount,
-			FavoriteCount:   user.FavoriteCount,
-		}
+	reply := &pb.UserInfosReply{
+		Users: make([]*pb.User, len(users)),
 	}
+	copier.Copy(&reply.Users, &users)
 	return reply, nil
 }
 

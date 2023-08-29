@@ -9,6 +9,13 @@ data:
   database:
     driver: mysql
     source: root:toomanysource@tcp(127.0.0.1:33069)/atreus?charset=utf8mb4&parseTime=True&loc=Local
+  redis:
+    db: 1
+    addr: 127.0.0.1:16379
+    password: "atreus"
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+    TTL: 1000
 jwt:
   http:
     token_key: "AtReUs"
