@@ -112,6 +112,7 @@ var mockRepo = &MockCommentRepo{}
 var useCase *CommentUsecase
 
 func TestMain(m *testing.M) {
+	ctx = context.WithValue(ctx, middleware.UserIdKey("user_id"), uint32(1))
 	useCase = NewCommentUsecase(mockRepo, log.DefaultLogger)
 	r := m.Run()
 	os.Exit(r)

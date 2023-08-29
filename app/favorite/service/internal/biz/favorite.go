@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/toomanysource/atreus/middleware"
+
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -58,7 +60,7 @@ func NewFavoriteUseCase(repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
 }
 
 func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	switch actionType {
 	case actionFavorite:
 		return uc.favoriteRepo.CreateFavorite(ctx, userId, videoId)
