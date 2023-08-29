@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/toomanysource/atreus/pkg/kafkaX"
+
 	"github.com/segmentio/kafka-go"
 
 	"github.com/go-redis/redis/v8"
@@ -46,6 +48,7 @@ type UserRepo interface {
 
 type commentRepo struct {
 	data     *Data
+	kfk      *kafka.Writer
 	userRepo UserRepo
 	log      *log.Helper
 }
@@ -55,6 +58,7 @@ func NewCommentRepo(
 ) biz.CommentRepo {
 	return &commentRepo{
 		data:     data,
+		kfk:      data.kfk,
 		userRepo: NewUserRepo(userConn),
 		log:      log.NewHelper(log.With(logger, "model", "comment/repo")),
 	}
@@ -263,7 +267,7 @@ func (r *commentRepo) DelComment(
 		if err := tx.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
 			return fmt.Errorf("mysql delete error %w", err)
 		}
-		if err := r.UpdateComment(videoId, -1); err != nil {
+		if err := kafkaX.Update(r.kfk, videoId, -1); err != nil {
 			return fmt.Errorf("publish update data error %w", err)
 		}
 		return nil
@@ -272,14 +276,6 @@ func (r *commentRepo) DelComment(
 		return fmt.Errorf("mysql transaction error %w", err)
 	}
 	return nil
-}
-
-func (r *commentRepo) UpdateComment(videoId uint32, change int32) error {
-	return r.data.kfk.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(videoId))),
-		Value:     []byte(strconv.Itoa(int(change))),
-	})
 }
 
 // InsertComment 数据库插入评论
@@ -299,7 +295,7 @@ func (r *commentRepo) InsertComment(
 		if err := tx.WithContext(ctx).Create(comment).Error; err != nil {
 			return fmt.Errorf("mysql create error %w", err)
 		}
-		if err := r.UpdateComment(videoId, 1); err != nil {
+		if err := kafkaX.Update(r.kfk, videoId, 1); err != nil {
 			return fmt.Errorf("publish update data error %w", err)
 		}
 		return nil
