@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/toomanysource/atreus/app/message/service/internal/conf"
-
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -25,15 +23,14 @@ type MessageRepo interface {
 
 type MessageUsecase struct {
 	repo MessageRepo
-	conf *conf.JWT
 	log  *log.Helper
 }
 
-func NewMessageUsecase(repo MessageRepo, conf *conf.JWT, logger log.Logger) *MessageUsecase {
+func NewMessageUsecase(repo MessageRepo, logger log.Logger) *MessageUsecase {
 	go repo.InitStoreMessageQueue()
 	return &MessageUsecase{
-		repo: repo, conf: conf,
-		log: log.NewHelper(log.With(logger, "model", "usecase/message")),
+		repo: repo,
+		log:  log.NewHelper(log.With(logger, "model", "usecase/message")),
 	}
 }
 

@@ -11,6 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/toomanysource/atreus/pkg/kafkaX"
+
+	"github.com/segmentio/kafka-go"
+
 	"github.com/go-redis/redis/v8"
 
 	"github.com/toomanysource/atreus/middleware"
@@ -38,29 +42,25 @@ func (Comment) TableName() string {
 	return "comments"
 }
 
-type PublishRepo interface {
-	UpdateComment(context.Context, uint32, int32) error
-}
-
 type UserRepo interface {
 	GetUserInfos(context.Context, uint32, []uint32) ([]*biz.User, error)
 }
 
 type commentRepo struct {
-	data        *Data
-	publishRepo PublishRepo
-	userRepo    UserRepo
-	log         *log.Helper
+	data     *Data
+	kfk      *kafka.Writer
+	userRepo UserRepo
+	log      *log.Helper
 }
 
 func NewCommentRepo(
-	data *Data, userConn server.UserConn, publishConn server.PublishConn, logger log.Logger,
+	data *Data, userConn server.UserConn, logger log.Logger,
 ) biz.CommentRepo {
 	return &commentRepo{
-		data:        data,
-		publishRepo: NewPublishRepo(publishConn),
-		userRepo:    NewUserRepo(userConn),
-		log:         log.NewHelper(log.With(logger, "model", "comment/repo")),
+		data:     data,
+		kfk:      data.kfk,
+		userRepo: NewUserRepo(userConn),
+		log:      log.NewHelper(log.With(logger, "model", "comment/repo")),
 	}
 }
 
@@ -248,8 +248,8 @@ func (r *commentRepo) DelComment(
 	ctx context.Context, videoId, commentId uint32, userId uint32,
 ) error {
 	comment := &Comment{}
-	err := r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		result := tx.First(comment, commentId)
+	err := r.data.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.WithContext(ctx).First(comment, commentId)
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil
 		}
@@ -264,10 +264,10 @@ func (r *commentRepo) DelComment(
 		if comment.VideoId != videoId {
 			return errors.New("comment video conflict")
 		}
-		if err := tx.Select("id").Delete(&Comment{}, commentId).Error; err != nil {
+		if err := tx.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
 			return fmt.Errorf("mysql delete error %w", err)
 		}
-		if err := r.publishRepo.UpdateComment(ctx, videoId, -1); err != nil {
+		if err := kafkaX.Update(r.kfk, videoId, -1); err != nil {
 			return fmt.Errorf("publish update data error %w", err)
 		}
 		return nil
@@ -291,11 +291,11 @@ func (r *commentRepo) InsertComment(
 		Content:  commentText,
 		CreateAt: time.Now().Format("01-02"),
 	}
-	err := r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(comment).Error; err != nil {
+	err := r.data.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.WithContext(ctx).Create(comment).Error; err != nil {
 			return fmt.Errorf("mysql create error %w", err)
 		}
-		if err := r.publishRepo.UpdateComment(ctx, videoId, 1); err != nil {
+		if err := kafkaX.Update(r.kfk, videoId, 1); err != nil {
 			return fmt.Errorf("publish update data error %w", err)
 		}
 		return nil

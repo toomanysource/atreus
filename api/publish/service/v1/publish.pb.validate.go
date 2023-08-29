@@ -296,112 +296,6 @@ var _ interface {
 	ErrorName() string
 } = UserValidationError{}
 
-// Validate checks the field values on VideoListRequest with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// first error encountered is returned, or nil if there are no violations.
-func (m *VideoListRequest) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on VideoListRequest with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// VideoListRequestMultiError, or nil if none found.
-func (m *VideoListRequest) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *VideoListRequest) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for LatestTime
-
-	// no validation rules for UserId
-
-	// no validation rules for Number
-
-	if len(errors) > 0 {
-		return VideoListRequestMultiError(errors)
-	}
-
-	return nil
-}
-
-// VideoListRequestMultiError is an error wrapping multiple validation errors
-// returned by VideoListRequest.ValidateAll() if the designated constraints
-// aren't met.
-type VideoListRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m VideoListRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m VideoListRequestMultiError) AllErrors() []error { return m }
-
-// VideoListRequestValidationError is the validation error returned by
-// VideoListRequest.Validate if the designated constraints aren't met.
-type VideoListRequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e VideoListRequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e VideoListRequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e VideoListRequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e VideoListRequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e VideoListRequestValidationError) ErrorName() string { return "VideoListRequestValidationError" }
-
-// Error satisfies the builtin error interface
-func (e VideoListRequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sVideoListRequest.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = VideoListRequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = VideoListRequestValidationError{}
-
 // Validate checks the field values on VideoListReply with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -423,8 +317,6 @@ func (m *VideoListReply) validate(all bool) error {
 	}
 
 	var errors []error
-
-	// no validation rules for NextTime
 
 	for idx, item := range m.GetVideoList() {
 		_, _ = idx, item
@@ -642,218 +534,6 @@ var _ interface {
 	ErrorName() string
 } = VideoListByVideoIdsRequestValidationError{}
 
-// Validate checks the field values on UpdateFavoriteCountRequest with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateFavoriteCountRequest) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateFavoriteCountRequest with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateFavoriteCountRequestMultiError, or nil if none found.
-func (m *UpdateFavoriteCountRequest) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateFavoriteCountRequest) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for VideoId
-
-	// no validation rules for FavoriteChange
-
-	if len(errors) > 0 {
-		return UpdateFavoriteCountRequestMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateFavoriteCountRequestMultiError is an error wrapping multiple
-// validation errors returned by UpdateFavoriteCountRequest.ValidateAll() if
-// the designated constraints aren't met.
-type UpdateFavoriteCountRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateFavoriteCountRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateFavoriteCountRequestMultiError) AllErrors() []error { return m }
-
-// UpdateFavoriteCountRequestValidationError is the validation error returned
-// by UpdateFavoriteCountRequest.Validate if the designated constraints aren't met.
-type UpdateFavoriteCountRequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateFavoriteCountRequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateFavoriteCountRequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateFavoriteCountRequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateFavoriteCountRequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateFavoriteCountRequestValidationError) ErrorName() string {
-	return "UpdateFavoriteCountRequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateFavoriteCountRequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateFavoriteCountRequest.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateFavoriteCountRequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateFavoriteCountRequestValidationError{}
-
-// Validate checks the field values on UpdateCommentCountRequest with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, the first error encountered is returned, or nil if there are no violations.
-func (m *UpdateCommentCountRequest) Validate() error {
-	return m.validate(false)
-}
-
-// ValidateAll checks the field values on UpdateCommentCountRequest with the
-// rules defined in the proto definition for this message. If any rules are
-// violated, the result is a list of violation errors wrapped in
-// UpdateCommentCountRequestMultiError, or nil if none found.
-func (m *UpdateCommentCountRequest) ValidateAll() error {
-	return m.validate(true)
-}
-
-func (m *UpdateCommentCountRequest) validate(all bool) error {
-	if m == nil {
-		return nil
-	}
-
-	var errors []error
-
-	// no validation rules for VideoId
-
-	// no validation rules for CommentChange
-
-	if len(errors) > 0 {
-		return UpdateCommentCountRequestMultiError(errors)
-	}
-
-	return nil
-}
-
-// UpdateCommentCountRequestMultiError is an error wrapping multiple validation
-// errors returned by UpdateCommentCountRequest.ValidateAll() if the
-// designated constraints aren't met.
-type UpdateCommentCountRequestMultiError []error
-
-// Error returns a concatenation of all the error messages it wraps.
-func (m UpdateCommentCountRequestMultiError) Error() string {
-	var msgs []string
-	for _, err := range m {
-		msgs = append(msgs, err.Error())
-	}
-	return strings.Join(msgs, "; ")
-}
-
-// AllErrors returns a list of validation violation errors.
-func (m UpdateCommentCountRequestMultiError) AllErrors() []error { return m }
-
-// UpdateCommentCountRequestValidationError is the validation error returned by
-// UpdateCommentCountRequest.Validate if the designated constraints aren't met.
-type UpdateCommentCountRequestValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e UpdateCommentCountRequestValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e UpdateCommentCountRequestValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e UpdateCommentCountRequestValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e UpdateCommentCountRequestValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e UpdateCommentCountRequestValidationError) ErrorName() string {
-	return "UpdateCommentCountRequestValidationError"
-}
-
-// Error satisfies the builtin error interface
-func (e UpdateCommentCountRequestValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sUpdateCommentCountRequest.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = UpdateCommentCountRequestValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = UpdateCommentCountRequestValidationError{}
-
 // Validate checks the field values on PublishActionRequest with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
@@ -970,6 +650,250 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = PublishActionRequestValidationError{}
+
+// Validate checks the field values on ListFeedRequest with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ListFeedRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListFeedRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ListFeedRequestMultiError, or nil if none found.
+func (m *ListFeedRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListFeedRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for LatestTime
+
+	// no validation rules for Token
+
+	if len(errors) > 0 {
+		return ListFeedRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListFeedRequestMultiError is an error wrapping multiple validation errors
+// returned by ListFeedRequest.ValidateAll() if the designated constraints
+// aren't met.
+type ListFeedRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListFeedRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListFeedRequestMultiError) AllErrors() []error { return m }
+
+// ListFeedRequestValidationError is the validation error returned by
+// ListFeedRequest.Validate if the designated constraints aren't met.
+type ListFeedRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListFeedRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListFeedRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListFeedRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListFeedRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListFeedRequestValidationError) ErrorName() string { return "ListFeedRequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ListFeedRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListFeedRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListFeedRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListFeedRequestValidationError{}
+
+// Validate checks the field values on ListFeedReply with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ListFeedReply) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ListFeedReply with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ListFeedReplyMultiError, or
+// nil if none found.
+func (m *ListFeedReply) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ListFeedReply) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for StatusCode
+
+	// no validation rules for StatusMsg
+
+	for idx, item := range m.GetVideoList() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ListFeedReplyValidationError{
+						field:  fmt.Sprintf("VideoList[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ListFeedReplyValidationError{
+						field:  fmt.Sprintf("VideoList[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListFeedReplyValidationError{
+					field:  fmt.Sprintf("VideoList[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	// no validation rules for NextTime
+
+	if len(errors) > 0 {
+		return ListFeedReplyMultiError(errors)
+	}
+
+	return nil
+}
+
+// ListFeedReplyMultiError is an error wrapping multiple validation errors
+// returned by ListFeedReply.ValidateAll() if the designated constraints
+// aren't met.
+type ListFeedReplyMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ListFeedReplyMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ListFeedReplyMultiError) AllErrors() []error { return m }
+
+// ListFeedReplyValidationError is the validation error returned by
+// ListFeedReply.Validate if the designated constraints aren't met.
+type ListFeedReplyValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ListFeedReplyValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ListFeedReplyValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ListFeedReplyValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ListFeedReplyValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ListFeedReplyValidationError) ErrorName() string { return "ListFeedReplyValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ListFeedReplyValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sListFeedReply.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ListFeedReplyValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ListFeedReplyValidationError{}
 
 // Validate checks the field values on PublishActionReply with the rules
 // defined in the proto definition for this message. If any rules are

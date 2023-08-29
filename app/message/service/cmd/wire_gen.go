@@ -7,14 +7,14 @@
 package main
 
 import (
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
+
 	"github.com/toomanysource/atreus/app/message/service/internal/biz"
 	"github.com/toomanysource/atreus/app/message/service/internal/conf"
 	"github.com/toomanysource/atreus/app/message/service/internal/data"
 	"github.com/toomanysource/atreus/app/message/service/internal/server"
 	"github.com/toomanysource/atreus/app/message/service/internal/service"
-
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
 
 	_ "go.uber.org/automaxprocs"
 )
@@ -31,7 +31,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, jwt *conf.JWT, logger
 		return nil, nil, err
 	}
 	messageRepo := data.NewMessageRepo(dataData, logger)
-	messageUsecase := biz.NewMessageUsecase(messageRepo, jwt, logger)
+	messageUsecase := biz.NewMessageUsecase(messageRepo, logger)
 	messageService := service.NewMessageService(messageUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, messageService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, messageService, logger)

@@ -1,16 +1,15 @@
 syntax = "proto3";
-
-package favorite.service.internal.conf;
-
-import "google/protobuf/duration.proto";
+package kratos.api;
 
 option go_package = "github.com/toomanysource/atreus/app/favorite/service/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
 
 message Bootstrap {
   Server server = 1;
   Client client = 2;
-  JWT jwt = 3;
-  //  Data data = 4;
+  Data data = 3;
+  JWT jwt = 4;
 }
 
 message Server {
@@ -18,6 +17,7 @@ message Server {
     string network = 1;
     string addr = 2;
     google.protobuf.Duration timeout = 3;
+
   }
   message GRPC {
     string network = 1;
@@ -30,7 +30,7 @@ message Server {
 
 message Client {
   message User {
-    string to =1;
+    string to = 1;
   }
   message Publish {
     string to = 1;
@@ -45,14 +45,25 @@ message Data {
     string dsn = 2;
   }
   message Redis {
-    int32 db = 1;
+    int32 favorite_db = 1;
     string addr = 2;
     string password = 3;
-    google.protobuf.Duration read_timeout = 4;
-    google.protobuf.Duration write_timeout = 5;
+    string username = 4;
+    google.protobuf.Duration read_timeout = 5;
+    google.protobuf.Duration write_timeout = 6;
+  }
+  message Kafka {
+    string addr = 1;
+    string video_favorite_topic = 2;
+    string user_favorite_topic = 3;
+    string author_favorite_topic = 4;
+    int32 partition = 5;
+    google.protobuf.Duration read_timeout = 6;
+    google.protobuf.Duration write_timeout = 7;
   }
   Mysql mysql = 1;
   Redis redis = 2;
+  Kafka kafka = 3;
 }
 
 message JWT {
