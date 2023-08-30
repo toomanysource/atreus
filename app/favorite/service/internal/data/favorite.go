@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/segmentio/kafka-go"
+	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/go-redis/redis/v8"
 
@@ -32,18 +32,18 @@ func (Favorite) TableName() string {
 
 type favoriteRepo struct {
 	data        *Data
+	kfk         KfkWriter
 	publishRepo biz.PublishRepo
-	userRepo    biz.UserRepo
 	log         *log.Helper
 }
 
 func NewFavoriteRepo(
-	data *Data, publishConn server.PublishConn, userConn server.UserConn, logger log.Logger,
+	data *Data, publishConn server.PublishConn, logger log.Logger,
 ) biz.FavoriteRepo {
 	return &favoriteRepo{
 		data:        data,
 		publishRepo: NewPublishRepo(publishConn),
-		userRepo:    NewUserRepo(userConn),
+		kfk:         data.kfk,
 		log:         log.NewHelper(log.With(logger, "module", "favorite-service/repo")),
 	}
 }
@@ -183,14 +183,6 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 	return r.CheckFavorite(ctx, userId, videoIds)
 }
 
-func (r *favoriteRepo) UpdateVideoFavorite(videoId uint32, change int32) error {
-	return r.data.kfk.WriteMessages(context.TODO(), kafka.Message{
-		Partition: 0,
-		Key:       []byte(strconv.Itoa(int(videoId))),
-		Value:     []byte(strconv.Itoa(int(change))),
-	})
-}
-
 func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint32) error {
 	isFavorite, err := r.CheckFavorite(ctx, userId, []uint32{videoId})
 	if err != nil {
@@ -213,13 +205,13 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 			return err
 		}
 
-		if err = r.userRepo.UpdateFavorited(ctx, authorId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.authorFavorite, authorId, 1); err != nil {
 			return fmt.Errorf("updateFavorited err: %w", err)
 		}
-		if err = r.userRepo.UpdateFavorite(ctx, userId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.userFavorite, userId, 1); err != nil {
 			return fmt.Errorf("updateFavorite err: %w", err)
 		}
-		if err = r.UpdateVideoFavorite(videoId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, 1); err != nil {
 			return fmt.Errorf("updateFavoriteCount err: %w", err)
 		}
 		return nil
@@ -250,15 +242,15 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 			return fmt.Errorf("failed to delete favorite: %w", err)
 		}
 
-		err = r.userRepo.UpdateFavorited(ctx, authorId, -1)
+		err = kafkaX.Update(r.kfk.authorFavorite, authorId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorited: %w", err)
 		}
-		err = r.userRepo.UpdateFavorite(ctx, userId, -1)
+		err = kafkaX.Update(r.kfk.userFavorite, userId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite: %w", err)
 		}
-		err = r.UpdateVideoFavorite(videoId, -1)
+		err = kafkaX.Update(r.kfk.videoFavorite, videoId, -1)
 		if err != nil {
 			return fmt.Errorf("failed to update favorite count: %w", err)
 		}

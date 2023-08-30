@@ -32,7 +32,7 @@ func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, 
 	}
 	userConn := server.NewUserClient(client, logger)
 	commentRepo := data.NewCommentRepo(dataData, userConn, logger)
-	commentUsecase := biz.NewCommentUsecase(jwt, commentRepo, logger)
+	commentUsecase := biz.NewCommentUsecase(commentRepo, logger)
 	commentService := service.NewCommentService(commentUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, commentService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, commentService, logger)

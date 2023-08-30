@@ -3,8 +3,6 @@ package biz
 import (
 	"context"
 
-	"github.com/toomanysource/atreus/app/publish/service/internal/conf"
-
 	"github.com/go-kratos/kratos/v2/log"
 )
 
@@ -39,7 +37,7 @@ type User struct {
 type PublishRepo interface {
 	FindVideoListByUserId(context.Context, uint32) ([]*Video, error)
 	UploadVideo(context.Context, []byte, string) error
-	FindVideoListByTime(context.Context, string, uint32, uint32) (int64, []*Video, error)
+	GetFeedList(context.Context, string) (int64, []*Video, error)
 	FindVideoListByVideoIds(context.Context, uint32, []uint32) ([]*Video, error)
 	InitUpdateFavoriteQueue()
 	InitUpdateCommentQueue()
@@ -47,16 +45,15 @@ type PublishRepo interface {
 
 // PublishUsecase is a publishing usecase.
 type PublishUsecase struct {
-	repo   PublishRepo
-	config *conf.JWT
-	log    *log.Helper
+	repo PublishRepo
+	log  *log.Helper
 }
 
 // NewPublishUsecase new a publishing usecase.
-func NewPublishUsecase(repo PublishRepo, JWTConf *conf.JWT, logger log.Logger) *PublishUsecase {
+func NewPublishUsecase(repo PublishRepo, logger log.Logger) *PublishUsecase {
 	go repo.InitUpdateCommentQueue()
 	go repo.InitUpdateFavoriteQueue()
-	return &PublishUsecase{repo: repo, config: JWTConf, log: log.NewHelper(logger)}
+	return &PublishUsecase{repo: repo, log: log.NewHelper(logger)}
 }
 
 func (u *PublishUsecase) GetPublishList(
@@ -76,8 +73,6 @@ func (u *PublishUsecase) GetVideoListByVideoIds(ctx context.Context, userId uint
 	return videoList, err
 }
 
-func (u *PublishUsecase) GetVideoList(
-	ctx context.Context, latestTime string, userId uint32, number uint32,
-) (int64, []*Video, error) {
-	return u.repo.FindVideoListByTime(ctx, latestTime, userId, number)
+func (u *PublishUsecase) FeedList(ctx context.Context, latestTime string) (int64, []*Video, error) {
+	return u.repo.GetFeedList(ctx, latestTime)
 }

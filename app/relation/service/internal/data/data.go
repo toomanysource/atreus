@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"github.com/segmentio/kafka-go"
+
 	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -14,7 +16,12 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var ProviderSet = wire.NewSet(NewData, NewRelationRepo, NewUserRepo, NewMysqlConn, NewRedisConn)
+var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewRelationRepo, NewUserRepo, NewMysqlConn, NewRedisConn)
+
+type KfkWriter struct {
+	follow   *kafka.Writer
+	follower *kafka.Writer
+}
 
 // CacheClient relation 服务的 Redis 缓存客户端
 type CacheClient struct {
@@ -25,10 +32,11 @@ type CacheClient struct {
 type Data struct {
 	db    *gorm.DB
 	cache *CacheClient
+	kfk   KfkWriter
 	log   *log.Helper
 }
 
-func NewData(db *gorm.DB, cache *CacheClient, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, cache *CacheClient, kfk KfkWriter, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data/comment"))
 	// 关闭Redis连接
 	cleanup := func() {
@@ -55,13 +63,28 @@ func NewData(db *gorm.DB, cache *CacheClient, logger log.Logger) (*Data, func(),
 				logHelper.Errorf("Redis connection closure failed, err: %w", err)
 			}
 		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.follow.Close(); err != nil {
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.follower.Close(); err != nil {
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
+			}
+		}()
 		wg.Wait()
-		logHelper.Info("Successfully close the Redis connection")
+		logHelper.Info("Successfully close the Redis and KafkaWriter connection")
 	}
 
 	data := &Data{
 		db:    db.Model(&Followers{}),
 		cache: cache,
+		kfk:   kfk,
 		log:   logHelper,
 	}
 	return data, cleanup, nil
@@ -123,6 +146,23 @@ func NewRedisConn(c *conf.Data) (cache *CacheClient) {
 	wg.Wait()
 	log.Info("Cache enabled successfully!")
 	return
+}
+
+func NewKafkaWriter(c *conf.Data) KfkWriter {
+	writer := func(topic string) *kafka.Writer {
+		return &kafka.Writer{
+			Addr:                   kafka.TCP(c.Kafka.Addr),
+			Topic:                  topic,
+			Balancer:               &kafka.LeastBytes{},
+			WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
+			ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),
+			AllowAutoTopicCreation: true,
+		}
+	}
+	return KfkWriter{
+		follow:   writer(c.Kafka.FollowTopic),
+		follower: writer(c.Kafka.FollowerTopic),
+	}
 }
 
 // InitDB 创建followers数据表，并自动迁移

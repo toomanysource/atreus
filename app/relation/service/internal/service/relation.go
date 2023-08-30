@@ -12,10 +12,10 @@ import (
 type RelationService struct {
 	pb.UnimplementedRelationServiceServer
 	log     *log.Helper
-	usecase *biz.RelationUsecase
+	usecase *biz.RelationUseCase
 }
 
-func NewRelationService(uc *biz.RelationUsecase, logger log.Logger) *RelationService {
+func NewRelationService(uc *biz.RelationUseCase, logger log.Logger) *RelationService {
 	return &RelationService{usecase: uc, log: log.NewHelper(logger)}
 }
 

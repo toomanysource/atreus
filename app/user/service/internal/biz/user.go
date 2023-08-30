@@ -11,29 +11,32 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-var ErrInternal = errors.New("internal error")
+var (
+	ErrUserNotFound = errors.New("user not found")
+	ErrInternal     = errors.New("internal error")
+)
 
 // User is a user model.
 type User struct {
-	Id              uint32 `gorm:"primary_key"`
-	Username        string `gorm:"column:username;not null"`
-	Password        string `gorm:"column:password;not null"`
-	Name            string `gorm:"column:name;not null"`
-	FollowCount     uint32 `gorm:"column:follow_count;not null;default:0"`
-	FollowerCount   uint32 `gorm:"column:follower_count;not null;default:0"`
-	Avatar          string `gorm:"column:avatar_url;not null;default:''"`
-	BackgroundImage string `gorm:"column:background_image_url;not null;default:''"`
-	Signature       string `gorm:"column:signature;not null;default:''"`
-	TotalFavorited  uint32 `gorm:"column:total_favorited;not null;default:0"`
-	WorkCount       uint32 `gorm:"column:work_count;not null;default:0"`
-	FavoriteCount   uint32 `grom:"column:favorite_count;not null;default:0"`
-	IsFollow        bool   `gorm:"-"`
-	Token           string `gorm:"-"`
+	Id              uint32
+	Username        string
+	Password        string
+	Name            string
+	FollowCount     uint32
+	FollowerCount   uint32
+	Avatar          string
+	BackgroundImage string
+	Signature       string
+	TotalFavorited  uint32
+	WorkCount       uint32
+	FavoriteCount   uint32
+	IsFollow        bool
+	Token           string
 }
 
 // UserRepo is a user repo.
 type UserRepo interface {
-	Save(context.Context, *User) (*User, error)
+	Create(context.Context, *User) (*User, error)
 	FindById(context.Context, uint32) (*User, error)
 	FindByIds(context.Context, uint32, []uint32) ([]*User, error)
 	FindByUsername(context.Context, string) (*User, error)
@@ -58,24 +61,23 @@ func NewUserUsecase(repo UserRepo, conf *conf.JWT, logger log.Logger) *UserUseca
 
 // Register .
 func (uc *UserUsecase) Register(ctx context.Context, username, password string) (*User, error) {
-	user, err := uc.repo.FindByUsername(ctx, username)
-	if err != nil {
-		return nil, ErrInternal
-	}
-	if user.Username != "" {
+	_, err := uc.repo.FindByUsername(ctx, username)
+	if err == nil {
 		return nil, errors.New("the username has been registered")
+	}
+	if !errors.Is(err, ErrUserNotFound) {
+		return nil, ErrInternal
 	}
 
 	password = common.GenSaltPassword(username, password)
 
-	// save user
 	regUser := &User{
 		Username: username,
 		Password: password,
-		// Name is same as username
+		// Name与Username相同
 		Name: username,
 	}
-	user, err = uc.repo.Save(ctx, regUser)
+	user, err := uc.repo.Create(ctx, regUser)
 	if err != nil {
 		return nil, ErrInternal
 	}
@@ -92,12 +94,13 @@ func (uc *UserUsecase) Register(ctx context.Context, username, password string) 
 // Login .
 func (uc *UserUsecase) Login(ctx context.Context, username, password string) (*User, error) {
 	user, err := uc.repo.FindByUsername(ctx, username)
+	if errors.Is(err, ErrUserNotFound) {
+		return nil, errors.New("can not find registered user")
+	}
 	if err != nil {
 		return nil, ErrInternal
 	}
-	if user.Username == "" {
-		return nil, errors.New("can not find registered user")
-	}
+
 	password = common.GenSaltPassword(username, password)
 	if user.Password != password {
 		return nil, errors.New("incorrect password")

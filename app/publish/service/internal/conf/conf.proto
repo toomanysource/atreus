@@ -56,9 +56,10 @@ message Data {
     string addr = 1;
     string comment_topic = 2;
     string favorite_topic = 3;
-    int32 partition = 4;
-    google.protobuf.Duration read_timeout = 5;
-    google.protobuf.Duration write_timeout = 6;
+    string publish_topic = 4;
+    int32 partition = 5;
+    google.protobuf.Duration read_timeout = 6;
+    google.protobuf.Duration write_timeout = 7;
   }
   Mysql mysql = 1;
   Redis redis = 2;

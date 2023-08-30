@@ -3,16 +3,17 @@ package data
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
-	"os/signal"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
+
+	"github.com/segmentio/kafka-go"
+
+	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
 	"github.com/toomanysource/atreus/app/publish/service/internal/server"
@@ -22,6 +23,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	"gorm.io/gorm"
 )
+
+var VideoCount = 30
 
 // Video Database Model
 type Video struct {
@@ -37,7 +40,6 @@ type Video struct {
 
 type UserRepo interface {
 	GetUserInfos(context.Context, uint32, []uint32) ([]*biz.User, error)
-	UpdateVideoCount(context.Context, uint32, int32) error
 }
 type FavoriteRepo interface {
 	IsFavorite(context.Context, uint32, []uint32) ([]bool, error)
@@ -45,6 +47,7 @@ type FavoriteRepo interface {
 
 type publishRepo struct {
 	data         *Data
+	kfk          KfkReader
 	favoriteRepo FavoriteRepo
 	userRepo     UserRepo
 	log          *log.Helper
@@ -55,6 +58,7 @@ func NewPublishRepo(
 ) biz.PublishRepo {
 	return &publishRepo{
 		data:         data,
+		kfk:          data.kfkReader,
 		favoriteRepo: NewFavoriteRepo(favoriteConn),
 		userRepo:     NewUserRepo(userConn),
 		log:          log.NewHelper(logger),
@@ -133,7 +137,7 @@ func (r *publishRepo) UploadVideo(ctx context.Context, fileBytes []byte, title s
 				return fmt.Errorf("create video error: %w", err)
 			}
 		}
-		err = r.userRepo.UpdateVideoCount(ctx, userId, 1)
+		err = kafkaX.Update(r.data.kfkWriter, userId, 1)
 		if err != nil {
 			return fmt.Errorf("update user video count error: %w", err)
 		}
@@ -232,16 +236,20 @@ func (r *publishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32
 	return r.GetVideoAuthor(ctx, userId, videoList)
 }
 
-func (r *publishRepo) FindVideoListByTime(
-	ctx context.Context, latestTime string, userId uint32, number uint32,
+func (r *publishRepo) GetFeedList(
+	ctx context.Context, latestTime string,
 ) (int64, []*biz.Video, error) {
+	userId := ctx.Value("user_id").(uint32)
+	if latestTime == "0" {
+		latestTime = strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
 	var videoList []*Video
 	times, err := strconv.Atoi(latestTime)
 	if err != nil {
 		return 0, nil, fmt.Errorf("strconv.Atoi error: %w", err)
 	}
 	err = r.data.db.WithContext(ctx).Where("created_at < ?", int64(times)).
-		Order("created_at desc").Limit(int(number)).Find(&videoList).Error
+		Order("created_at desc").Limit(VideoCount).Find(&videoList).Error
 	if err != nil {
 		return 0, nil, fmt.Errorf("find video list error: %w", err)
 	}
@@ -308,52 +316,6 @@ func (r *publishRepo) GetVideoAuthor(ctx context.Context, userId uint32, videoLi
 	return vl, nil
 }
 
-func (r *publishRepo) InitUpdateFavoriteQueue() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	// 监听Ctrl+C退出信号
-	signChan := make(chan os.Signal, 1)
-	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-signChan
-		cancel()
-	}()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			msg, err := r.data.kfkReader.favorite.ReadMessage(ctx)
-			if errors.Is(err, context.Canceled) {
-				return
-			}
-			if err != nil {
-				r.log.Errorf("read message error, err: %v", err)
-			}
-			videoId, err := strconv.Atoi(string(msg.Key))
-			if err != nil {
-				r.log.Errorf("strconv.Atoi error, err: %v", err)
-				return
-			}
-			change, err := strconv.Atoi(string(msg.Value))
-			if err != nil {
-				r.log.Errorf("strconv.Atoi error, err: %v", err)
-				return
-			}
-			err = r.UpdateFavoriteCount(ctx, uint32(videoId), int32(change))
-			if err != nil {
-				r.log.Errorf("update favorite count error, err: %v", err)
-				return
-			}
-			err = r.data.kfkReader.favorite.CommitMessages(ctx, msg)
-			if err != nil {
-				r.log.Errorf("commit message error, err: %v", err)
-				return
-			}
-		}
-	}
-}
-
 func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, favoriteChange int32) error {
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
@@ -366,52 +328,6 @@ func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, f
 		return err
 	}
 	return err
-}
-
-func (r *publishRepo) InitUpdateCommentQueue() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	// 监听Ctrl+C退出信号
-	signChan := make(chan os.Signal, 1)
-	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-signChan
-		cancel()
-	}()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			msg, err := r.data.kfkReader.comment.ReadMessage(ctx)
-			if errors.Is(err, context.Canceled) {
-				return
-			}
-			if err != nil {
-				r.log.Errorf("read message error, err: %v", err)
-			}
-			videoId, err := strconv.Atoi(string(msg.Key))
-			if err != nil {
-				r.log.Errorf("strconv.Atoi error, err: %v", err)
-				return
-			}
-			change, err := strconv.Atoi(string(msg.Value))
-			if err != nil {
-				r.log.Errorf("strconv.Atoi error, err: %v", err)
-				return
-			}
-			err = r.UpdateCommentCount(ctx, uint32(videoId), int32(change))
-			if err != nil {
-				r.log.Errorf("update comment count error, err: %v", err)
-				return
-			}
-			err = r.data.kfkReader.comment.CommitMessages(ctx, msg)
-			if err != nil {
-				r.log.Errorf("commit message error, err: %v", err)
-				return
-			}
-		}
-	}
 }
 
 func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, change int32) error {
@@ -478,6 +394,48 @@ func (r *publishRepo) UpdateDatabaseUrl(ctx context.Context, videoId uint32, pla
 		return fmt.Errorf("update database url error: %w", err)
 	}
 	return nil
+}
+
+// InitUpdateFavoriteQueue 初始化更新点赞数队列
+func (r *publishRepo) InitUpdateFavoriteQueue() {
+	kafkaX.Reader(r.kfk.favorite, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		videoId, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateFavoriteCount(ctx, uint32(videoId), int32(change))
+		if err != nil {
+			r.log.Errorf("update favorite count error, err: %v", err)
+			return
+		}
+	})
+}
+
+// InitUpdateCommentQueue 初始化更新评论数队列
+func (r *publishRepo) InitUpdateCommentQueue() {
+	kafkaX.Reader(r.kfk.comment, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		videoId, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateCommentCount(ctx, uint32(videoId), int32(change))
+		if err != nil {
+			r.log.Errorf("update comment count error, err: %v", err)
+			return
+		}
+	})
 }
 
 func calculateValidUint32(src uint32, mod int32) uint32 {

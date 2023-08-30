@@ -7,14 +7,14 @@
 package main
 
 import (
+	"github.com/go-kratos/kratos/v2"
+	"github.com/go-kratos/kratos/v2/log"
+
 	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
 	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
 	"github.com/toomanysource/atreus/app/relation/service/internal/data"
 	"github.com/toomanysource/atreus/app/relation/service/internal/server"
 	"github.com/toomanysource/atreus/app/relation/service/internal/service"
-
-	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/log"
 )
 
 // Injectors from wire.go:
@@ -23,14 +23,15 @@ import (
 func wireApp(confServer *conf.Server, client *conf.Client, jwt *conf.JWT, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData)
 	cacheClient := data.NewRedisConn(confData)
-	dataData, cleanup, err := data.NewData(db, cacheClient, logger)
+	kfkWriter := data.NewKafkaWriter(confData)
+	dataData, cleanup, err := data.NewData(db, cacheClient, kfkWriter, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	clientConn := server.NewUserClient(client, logger)
 	relationRepo := data.NewRelationRepo(dataData, clientConn, logger)
-	relationUsecase := biz.NewRelationUsecase(relationRepo, jwt, logger)
-	relationService := service.NewRelationService(relationUsecase, logger)
+	relationUseCase := biz.NewRelationUseCase(relationRepo, logger)
+	relationService := service.NewRelationService(relationUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, relationService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, relationService, logger)
 	app := newApp(logger, grpcServer, httpServer)
