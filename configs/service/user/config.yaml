@@ -10,12 +10,22 @@ data:
     driver: mysql
     source: root:toomanysource@tcp(mysql:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local
   redis:
-    db: 1
+    user_db: 1
     addr: redis:6379
     password: "atreus"
     read_timeout: 0.2s
     write_timeout: 0.2s
     TTL: 1000
+  kafka:
+    addr: kafka:9092
+    favorite_topic: "favorite"
+    favored_topic: "favored"
+    follow_topic: "follow"
+    follower_topic: "follower"
+    publish_topic: "publish"
+    partition: 0
+    read_timeout: 0.2s
+    write_timeout: 0.2s
 jwt:
   http:
     token_key: "AtReUs"
