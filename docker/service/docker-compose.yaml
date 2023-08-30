@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   mysql:
     image: mysql/mysql-server:8.0.32
@@ -14,8 +14,7 @@ services:
       MYSQL_ROOT_HOST: "%"
     volumes:
       - ../../_data/mysql/data:/var/lib/mysql:rw
-    command:
-      --default-authentication-plugin=mysql_native_password
+    command: --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_general_ci
       --explicit_defaults_for_timestamp=true
@@ -38,6 +37,57 @@ services:
     networks:
       - atreus_net
 
+  minio:
+    image: "minio/minio:latest"
+    ports:
+      - "19000:9000"
+      - "19090:9090"
+    environment:
+      # 要超过八位字符
+      - MINIO_ROOT_USER=toomanysource
+      - MINIO_ROOT_PASSWORD=toomanysource
+    command: server /data --console-address ":9090"
+    volumes:
+      - ../../_data/minio/data:/data:rw
+    networks:
+      - atreus_net
+
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.8
+    user: root
+    container_name: zookeeper
+    ports:
+      - "12181:2181"
+    volumes:
+      - ../../_data/kafka/zookeeper:/bitnami/zookeeper:rw #持久化数据
+    environment:
+      - TZ=Asia/Shanghai
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+      - atreus_net
+
+  kafka:
+    restart: always
+    user: root
+    image: docker.io/bitnami/kafka:3.4
+    container_name: kafka
+    ports:
+      - "19092:9092"
+    volumes:
+      - ../../_data/kafka:/bitnami/kafka:rw #持久化数据
+    environment:
+      - TZ=Asia/Shanghai
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://0.0.0.0:9092 #替换成你自己的IP
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - ALLOW_AUTO_CREATE_TOPICS=yes
+    networks:
+      - atreus_net
+    depends_on:
+      - zookeeper
+
   user-service:
     build:
       context: ../../
@@ -48,8 +98,8 @@ services:
     privileged: true
     restart: always
     ports:
-      - "8000:8000"
-      - "9000:9000"
+      - "18001:8001"
+      - "19001:9001"
     networks:
       - atreus_net
     depends_on:
@@ -57,6 +107,120 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      kafka:
+        condition: service_completed_successfully
+
+  publish-service:
+    build:
+      context: ../../
+      dockerfile: docker/build/Dockerfile
+      args:
+        - SERVICE_NAME=publish
+    container_name: publish-service
+    privileged: true
+    restart: always
+    ports:
+      - "18002:8002"
+      - "19002:9002"
+    networks:
+      - atreus_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      kafka:
+        condition: service_completed_successfully
+
+  comment-service:
+    build:
+      context: ../../
+      dockerfile: docker/build/Dockerfile
+      args:
+        - SERVICE_NAME=comment
+    container_name: comment-service
+    privileged: true
+    restart: always
+    ports:
+      - "18003:8003"
+      - "19003:9003"
+    networks:
+      - atreus_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_completed_successfully
+
+  favorite-service:
+    build:
+      context: ../../
+      dockerfile: docker/build/Dockerfile
+      args:
+        - SERVICE_NAME=favorite
+    container_name: favorite-service
+    privileged: true
+    restart: always
+    ports:
+      - "18004:8004"
+      - "19004:9004"
+    networks:
+      - atreus_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_completed_successfully
+
+  relation-service:
+    build:
+      context: ../../
+      dockerfile: docker/build/Dockerfile
+      args:
+        - SERVICE_NAME=relation
+    container_name: relation-service
+    privileged: true
+    restart: always
+    ports:
+      - "18005:8005"
+      - "19005:9005"
+    networks:
+      - atreus_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_completed_successfully
+
+  message-service:
+    build:
+      context: ../../
+      dockerfile: docker/build/Dockerfile
+      args:
+        - SERVICE_NAME=message
+    container_name: message-service
+    privileged: true
+    restart: always
+    ports:
+      - "18006:8006"
+      - "19006:9006"
+    networks:
+      - atreus_net
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_completed_successfully
 
 networks:
   atreus_net:
