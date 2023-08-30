@@ -62,6 +62,9 @@ func TestPublishUsecase_GetPublishList(t *testing.T) {
 	videos, err := useCase.GetPublishList(ctx, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(videos))
+	videos, err = useCase.GetPublishList(ctx, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(videos))
 }
 
 func TestPublishUsecase_GetVideoListByVideoIds(t *testing.T) {
