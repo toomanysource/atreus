@@ -18,7 +18,7 @@ var (
 
 // User is a user model.
 type User struct {
-	Id              uint32
+	Id              uint32 `copier:"UserId"`
 	Username        string
 	Password        string
 	Name            string
@@ -40,11 +40,11 @@ type UserRepo interface {
 	FindById(context.Context, uint32) (*User, error)
 	FindByIds(context.Context, uint32, []uint32) ([]*User, error)
 	FindByUsername(context.Context, string) (*User, error)
-	UpdateFollow(context.Context, uint32, int32) error
-	UpdateFollower(context.Context, uint32, int32) error
-	UpdateFavorited(context.Context, uint32, int32) error
-	UpdateWork(context.Context, uint32, int32) error
-	UpdateFavorite(context.Context, uint32, int32) error
+	InitUpdateFollowQueue()
+	InitUpdateFollowerQueue()
+	InitUpdateFavoredQueue()
+	InitUpdatePublishQueue()
+	InitUpdateFavoriteQueue()
 }
 
 // UserUsecase is a user usecase.
@@ -56,6 +56,11 @@ type UserUsecase struct {
 
 // NewUserUsecase new a user usecase.
 func NewUserUsecase(repo UserRepo, conf *conf.JWT, logger log.Logger) *UserUsecase {
+	go repo.InitUpdateFavoredQueue()
+	go repo.InitUpdateFollowQueue()
+	go repo.InitUpdateFollowerQueue()
+	go repo.InitUpdatePublishQueue()
+	go repo.InitUpdateFavoriteQueue()
 	return &UserUsecase{repo: repo, conf: conf, log: log.NewHelper(logger)}
 }
 
@@ -139,54 +144,4 @@ func (uc *UserUsecase) GetInfos(ctx context.Context, userId uint32, userIds []ui
 	}
 
 	return users, nil
-}
-
-// UpdateFollow .
-func (uc *UserUsecase) UpdateFollow(ctx context.Context, userId uint32, followChange int32) error {
-	err := uc.repo.UpdateFollow(ctx, userId, followChange)
-	if err != nil {
-		return ErrInternal
-	}
-
-	return nil
-}
-
-// UpdateFollower .
-func (uc *UserUsecase) UpdateFollower(ctx context.Context, userId uint32, followerChange int32) error {
-	err := uc.repo.UpdateFollower(ctx, userId, followerChange)
-	if err != nil {
-		return ErrInternal
-	}
-
-	return nil
-}
-
-// UpdateFavorited .
-func (uc *UserUsecase) UpdateFavorited(ctx context.Context, userId uint32, favoritedChange int32) error {
-	err := uc.repo.UpdateFavorited(ctx, userId, favoritedChange)
-	if err != nil {
-		return ErrInternal
-	}
-
-	return nil
-}
-
-// UpdateWork .
-func (uc *UserUsecase) UpdateWork(ctx context.Context, userId uint32, workChange int32) error {
-	err := uc.repo.UpdateWork(ctx, userId, workChange)
-	if err != nil {
-		return ErrInternal
-	}
-
-	return nil
-}
-
-// UpdateFavorite .
-func (uc *UserUsecase) UpdateFavorite(ctx context.Context, userId uint32, favoriteChange int32) error {
-	err := uc.repo.UpdateFavorite(ctx, userId, favoriteChange)
-	if err != nil {
-		return ErrInternal
-	}
-
-	return nil
 }

@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/go-kratos/kratos/v2/middleware/validate"
+
 	"github.com/toomanysource/atreus/middleware"
 	"github.com/toomanysource/atreus/pkg/errorX"
 
@@ -27,6 +29,7 @@ func NewHTTPServer(c *conf.Server, t *conf.JWT, publish *service.PublishService,
 		http.ErrorEncoder(errorX.ErrorEncoder),
 		http.RequestDecoder(MultipartFormDataDecoder),
 		http.Middleware(
+			validate.Validator(),
 			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {
 				return []byte(t.Http.TokenKey), nil
 			}),

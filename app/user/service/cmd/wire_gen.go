@@ -25,7 +25,8 @@ import (
 func wireApp(confServer *conf.Server, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewGormDb(confData, logger)
 	client := data.NewRedisConn(confData, logger)
-	dataData, cleanup, err := data.NewData(db, client, logger)
+	kfkReader := data.NewKafkaReader(confData)
+	dataData, cleanup, err := data.NewData(db, client, kfkReader, logger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -33,7 +34,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, jwt *conf.JWT, logger
 	userUsecase := biz.NewUserUsecase(userRepo, jwt, logger)
 	userService := service.NewUserService(userUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)
-	httpServer := server.NewHTTPServer(confServer, userService, logger)
+	httpServer := server.NewHTTPServer(confServer, jwt, userService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 		cleanup()
