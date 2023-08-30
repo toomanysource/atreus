@@ -38,6 +38,7 @@ func Reader(reader *kafka.Reader, log *log.Helper,
 			}
 			if err != nil {
 				log.Errorf("read message error, err: %v", err)
+				return
 			}
 			f(ctx, reader, msg)
 			err = reader.CommitMessages(ctx, msg)

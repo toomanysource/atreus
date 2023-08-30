@@ -21,11 +21,16 @@ func TokenParseAll(keyFunc jwt.Keyfunc) middleware.Middleware {
 				if hr, ok := tr.(*http.Transport); ok {
 					// 使用自定义的key，避免和其他包冲突
 					key := UserIdKey("user_id")
-					values := hr.Request().URL.Query()
-					tokenString := values.Get("token")
-					if tokenString == "" {
-						ctx = context.WithValue(ctx, key, uint32(0))
-						return handler(ctx, req)
+					var tokenString string
+					if hr.Request().Method == "POST" && hr.Request().Header.Get("Content-Type") != "application/json" {
+						tokenString = hr.Request().Form.Get("token")
+					} else {
+						values := hr.Request().URL.Query()
+						tokenString = values.Get("token")
+						if tokenString == "" {
+							ctx = context.WithValue(ctx, key, uint32(0))
+							return handler(ctx, req)
+						}
 					}
 					token, err := jwt.Parse(tokenString, keyFunc)
 					if err != nil {
