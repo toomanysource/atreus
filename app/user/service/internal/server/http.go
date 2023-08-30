@@ -2,19 +2,30 @@ package server
 
 import (
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	"github.com/go-kratos/kratos/v2/middleware/validate"
 	"github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/golang-jwt/jwt/v4"
 
 	v1 "github.com/toomanysource/atreus/api/user/service/v1"
 	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 	"github.com/toomanysource/atreus/app/user/service/internal/service"
+	"github.com/toomanysource/atreus/middleware"
+	"github.com/toomanysource/atreus/pkg/errorX"
 )
 
 // NewHTTPServer new a user service HTTP server.
-func NewHTTPServer(c *conf.Server, user *service.UserService, logger log.Logger) *http.Server {
+func NewHTTPServer(c *conf.Server, t *conf.JWT, user *service.UserService, logger log.Logger) *http.Server {
 	opts := []http.ServerOption{
+		http.ErrorEncoder(errorX.ErrorEncoder),
 		http.Middleware(
+			validate.Validator(),
+			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {
+				return []byte(t.Http.TokenKey), nil
+			}),
 			recovery.Recovery(),
+			logging.Server(logger),
 		),
 	}
 	if c.Http.Network != "" {
