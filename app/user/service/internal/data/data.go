@@ -2,7 +2,9 @@ package data
 
 import (
 	"context"
+	"sync"
 
+	"github.com/segmentio/kafka-go"
 	"gorm.io/gorm/logger"
 
 	"github.com/go-redis/redis/v8"
@@ -16,34 +18,91 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewGormDb, NewRedisConn, NewUserRepo)
+var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewGormDb, NewRedisConn, NewUserRepo)
 
 var (
 	maxOpenConnection = 100
 	maxIdleConnecton  = 10
 )
 
+type KfkReader struct {
+	follow   *kafka.Reader
+	follower *kafka.Reader
+	favorite *kafka.Reader
+	favored  *kafka.Reader
+	publish  *kafka.Reader
+}
+
 // Data .
 type Data struct {
 	db  *gorm.DB
+	kfk KfkReader
 	rdb *redis.Client
 	log *log.Helper
 }
 
 // NewData .
-func NewData(db *gorm.DB, rdb *redis.Client, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, rdb *redis.Client, kfk KfkReader, logger log.Logger) (*Data, func(), error) {
 	logs := log.NewHelper(log.With(logger, "resources", "data"))
 	cleanup := func() {
+		var wg sync.WaitGroup
 		logs.Info("closing the data resources")
-		if err := rdb.Close(); err != nil {
-			logs.Errorf("close redis connection failed: %w", err)
-			return
-		}
-		logs.Infof("close redis connection successfully")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := rdb.Close(); err != nil {
+				logs.Errorf("close redis connection failed: %w", err)
+				return
+			}
+			logs.Infof("close redis connection successfully")
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.publish.Close(); err != nil {
+				logs.Errorf("close kafka connection failed: %w", err)
+				return
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.follow.Close(); err != nil {
+				logs.Errorf("close kafka connection failed: %w", err)
+				return
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.follower.Close(); err != nil {
+				logs.Errorf("close kafka connection failed: %w", err)
+				return
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.favorite.Close(); err != nil {
+				logs.Errorf("close kafka connection failed: %w", err)
+				return
+			}
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := kfk.favored.Close(); err != nil {
+				logs.Errorf("close kafka connection failed: %w", err)
+				return
+			}
+		}()
+		wg.Wait()
+		logs.Info("Successfully close the data resources")
 	}
 	data := &Data{
 		db:  db,
 		rdb: rdb,
+		kfk: kfk,
 		log: log.NewHelper(logger),
 	}
 	return data, cleanup, nil
@@ -84,4 +143,24 @@ func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
 	}
 	logs.Info("redis run successfully!")
 	return client
+}
+
+func NewKafkaReader(c *conf.Data) KfkReader {
+	var maxBytes int = 10e6
+	writer := func(topic string) *kafka.Reader {
+		return kafka.NewReader(kafka.ReaderConfig{
+			Brokers:   []string{c.Kafka.Addr},
+			Topic:     topic,
+			Partition: int(c.Kafka.Partition),
+			GroupID:   topic,
+			MaxBytes:  maxBytes, // 10MB
+		})
+	}
+	return KfkReader{
+		follow:   writer(c.Kafka.FollowTopic),
+		follower: writer(c.Kafka.FollowerTopic),
+		favorite: writer(c.Kafka.FavoriteTopic),
+		favored:  writer(c.Kafka.FavoredTopic),
+		publish:  writer(c.Kafka.PublishTopic),
+	}
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	pb "github.com/toomanysource/atreus/api/user/service/v1"
 )
@@ -89,29 +88,4 @@ func (s *UserService) GetUserInfos(ctx context.Context, req *pb.UserInfosRequest
 	}
 	copier.Copy(&reply.Users, &users)
 	return reply, nil
-}
-
-func (s *UserService) UpdateFollow(ctx context.Context, req *pb.UpdateFollowRequest) (*emptypb.Empty, error) {
-	err := s.uc.UpdateFollow(ctx, req.UserId, req.FollowChange)
-	return &emptypb.Empty{}, err
-}
-
-func (s *UserService) UpdateFollower(ctx context.Context, req *pb.UpdateFollowerRequest) (*emptypb.Empty, error) {
-	err := s.uc.UpdateFollower(ctx, req.UserId, req.FollowerChange)
-	return &emptypb.Empty{}, err
-}
-
-func (s *UserService) UpdateFavorited(ctx context.Context, req *pb.UpdateFavoritedRequest) (*emptypb.Empty, error) {
-	err := s.uc.UpdateFavorited(ctx, req.UserId, req.FavoritedChange)
-	return &emptypb.Empty{}, err
-}
-
-func (s *UserService) UpdateWork(ctx context.Context, req *pb.UpdateWorkRequest) (*emptypb.Empty, error) {
-	err := s.uc.UpdateWork(ctx, req.UserId, req.WorkChange)
-	return &emptypb.Empty{}, err
-}
-
-func (s *UserService) UpdateFavorite(ctx context.Context, req *pb.UpdateFavoriteRequest) (*emptypb.Empty, error) {
-	err := s.uc.UpdateFavorite(ctx, req.UserId, req.FavoriteChange)
-	return &emptypb.Empty{}, err
 }
