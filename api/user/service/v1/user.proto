@@ -3,7 +3,6 @@ syntax = "proto3";
 package user.service.v1;
 
 import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
 import "validate/validate.proto";
 
 option go_package = "github.com/toomanysource/atreus/api/user/service/v1;v1";
@@ -35,21 +34,6 @@ service UserService {
 
 	// 其他服务请求批量获取用户信息
 	rpc GetUserInfos(UserInfosRequest) returns (UserInfosReply);
-
-	// 其他服务请求更新某一用户的关注数
-	rpc UpdateFollow(UpdateFollowRequest) returns (google.protobuf.Empty);
-
-	// 其他服务请求更新某一用户的粉丝数
-	rpc UpdateFollower(UpdateFollowerRequest) returns (google.protobuf.Empty);
-
-	// 其他服务请求更新某一用户的获赞数
-	rpc UpdateFavorited(UpdateFavoritedRequest) returns (google.protobuf.Empty);
-
-	// 其他服务请求更新某一用户的作品数
-	rpc UpdateWork(UpdateWorkRequest) returns (google.protobuf.Empty);
-
-	// 其他服务请求更新某一用户的点赞数
-	rpc UpdateFavorite(UpdateFavoriteRequest) returns (google.protobuf.Empty);
 }
 
 // 用户信息
@@ -140,39 +124,4 @@ message UserInfosRequest {
 message UserInfosReply {
 	// 用户信息列表
 	repeated User users = 1;
-}
-
-message UpdateFollowRequest {
-	// 用户id
-	uint32 user_id = 1;
-	// 关注数变化值
-	int32 follow_change = 2;
-}
-
-message UpdateFollowerRequest {
-	// 用户id
-	uint32 user_id = 1;
-	// 粉丝数变化值
-	int32 follower_change = 2;
-}
-
-message UpdateFavoritedRequest {
-	// 用户id
-	uint32 user_id = 1;
-	// 获赞数变化值
-	int32 favorited_change = 2;
-}
-
-message UpdateWorkRequest {
-	// 用户id
-	uint32 user_id = 1;
-	// 作品数变化值
-	int32 work_change = 2;
-}
-
-message UpdateFavoriteRequest {
-	// 用户id
-	uint32 user_id = 1;
-	// 点赞数变化值
-	int32 favorite_change = 2;
 }

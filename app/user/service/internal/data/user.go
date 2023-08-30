@@ -2,11 +2,15 @@ package data
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
+
+	"github.com/segmentio/kafka-go"
+
+	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis/v8"
@@ -23,21 +27,19 @@ var FixedCacheExpire = 720
 var userTableName = "users"
 
 type User struct {
-	Id              uint32       `gorm:"primary_key" json:"id"`
-	Username        string       `gorm:"column:username;not null" json:"username"`
-	Password        string       `gorm:"column:password;not null" json:"password"`
-	Name            string       `gorm:"column:name;not null" json:"name"`
-	FollowCount     uint32       `gorm:"column:follow_count;not null;default:0" json:"follow_count"`
-	FollowerCount   uint32       `gorm:"column:follower_count;not null;default:0" json:"follower_count"`
-	Avatar          string       `gorm:"column:avatar_url;not null;default:''" json:"avatar"`
-	BackgroundImage string       `gorm:"column:background_image_url;not null;default:''" json:"background_image"`
-	Signature       string       `gorm:"column:signature;not null;default:''" json:"signature"`
-	TotalFavorited  uint32       `gorm:"column:total_favorited;not null;default:0" json:"total_favorited"`
-	WorkCount       uint32       `gorm:"column:work_count;not null;default:0" json:"work_count"`
-	FavoriteCount   uint32       `grom:"column:favorite_count;not null;default:0" json:"favorite_count"`
-	CreatedAt       time.Time    `gorm:"column:created_at;not null" json:"-"`
-	UpdatedAt       time.Time    `gorm:"column:updated_at;not null" json:"-"`
-	DeletedAt       sql.NullTime `gorm:"column:deleted_at" json:"-"`
+	Id              uint32         `gorm:"primary_key" json:"id" copier:"UserId"`
+	Username        string         `gorm:"column:username;not null" json:"username"`
+	Password        string         `gorm:"column:password;not null" json:"password"`
+	Name            string         `gorm:"column:name;not null" json:"name"`
+	FollowCount     uint32         `gorm:"column:follow_count;not null;default:0" json:"follow_count"`
+	FollowerCount   uint32         `gorm:"column:follower_count;not null;default:0" json:"follower_count"`
+	Avatar          string         `gorm:"column:avatar_url;type:longtext;not null" json:"avatar"`
+	BackgroundImage string         `gorm:"column:background_image_url;type:longtext;not null" json:"background_image"`
+	Signature       string         `gorm:"column:signature;not null;type:longtext" json:"signature"`
+	TotalFavorited  uint32         `gorm:"column:total_favorited;not null;default:0" json:"total_favorited"`
+	WorkCount       uint32         `gorm:"column:work_count;not null;default:0" json:"work_count"`
+	FavoriteCount   uint32         `grom:"column:favorite_count;not null;default:0" json:"favorite_count"`
+	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at" json:"-"`
 }
 
 func (User) TableName() string {
@@ -46,6 +48,7 @@ func (User) TableName() string {
 
 type userRepo struct {
 	db  *gorm.DB
+	kfk KfkReader
 	rdb *redis.Client
 	log *log.Helper
 }
@@ -55,6 +58,7 @@ func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
 	logs := log.NewHelper(log.With(logger, "data", "user_repo"))
 	r := &userRepo{
 		db:  data.db,
+		kfk: data.kfk,
 		rdb: data.rdb,
 		log: logs,
 	}
@@ -214,6 +218,106 @@ func (r *userRepo) findByUsername(ctx context.Context, username string) (*User, 
 		}
 	}()
 	return u, nil
+}
+
+func (r *userRepo) InitUpdateFollowQueue() {
+	kafkaX.Reader(r.kfk.follow, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		userId, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateFollow(ctx, uint32(userId), int32(change))
+		if err != nil {
+			r.log.Errorf("update favorite count error, err: %v", err)
+			return
+		}
+	})
+}
+
+func (r *userRepo) InitUpdateFollowerQueue() {
+	kafkaX.Reader(r.kfk.follower, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		userId, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateFollower(ctx, uint32(userId), int32(change))
+		if err != nil {
+			r.log.Errorf("update favorite count error, err: %v", err)
+			return
+		}
+	})
+}
+
+func (r *userRepo) InitUpdateFavoriteQueue() {
+	kafkaX.Reader(r.kfk.favorite, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		id, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateFavorite(ctx, uint32(id), int32(change))
+		if err != nil {
+			r.log.Errorf("update favorite count error, err: %v", err)
+			return
+		}
+	})
+}
+
+func (r *userRepo) InitUpdateFavoredQueue() {
+	kafkaX.Reader(r.kfk.favored, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		id, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateFavorited(ctx, uint32(id), int32(change))
+		if err != nil {
+			r.log.Errorf("update favorite count error, err: %v", err)
+			return
+		}
+	})
+}
+
+func (r *userRepo) InitUpdatePublishQueue() {
+	kafkaX.Reader(r.kfk.publish, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
+		id, err := strconv.Atoi(string(msg.Key))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		change, err := strconv.Atoi(string(msg.Value))
+		if err != nil {
+			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			return
+		}
+		err = r.UpdateWork(ctx, uint32(id), int32(change))
+		if err != nil {
+			r.log.Errorf("update favorite count error, err: %v", err)
+			return
+		}
+	})
 }
 
 // UpdateFollow .

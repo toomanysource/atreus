@@ -40,8 +40,20 @@ message Data {
     google.protobuf.Duration read_timeout = 5;
     google.protobuf.Duration write_timeout = 6;
   }
+  message Kafka {
+    string addr = 1;
+    string favorite_topic = 2;
+    string favored_topic = 3;
+    string follow_topic = 4;
+    string follower_topic = 5;
+    string publish_topic = 6;
+    int32 partition = 7;
+    google.protobuf.Duration read_timeout = 8;
+    google.protobuf.Duration write_timeout = 9;
+  }
   Database database = 1;
   Redis redis = 2;
+  Kafka kafka = 3;
 }
 
 message JWT {
