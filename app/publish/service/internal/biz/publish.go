@@ -36,7 +36,7 @@ type User struct {
 // PublishRepo is a publishing repo.
 type PublishRepo interface {
 	FindVideoListByUserId(context.Context, uint32) ([]*Video, error)
-	UploadVideo(context.Context, []byte, string) error
+	UploadAll(context.Context, []byte, string) error
 	GetFeedList(context.Context, string) (int64, []*Video, error)
 	FindVideoListByVideoIds(context.Context, uint32, []uint32) ([]*Video, error)
 	InitUpdateFavoriteQueue()
@@ -59,13 +59,16 @@ func NewPublishUsecase(repo PublishRepo, logger log.Logger) *PublishUsecase {
 func (u *PublishUsecase) GetPublishList(
 	ctx context.Context, userId uint32,
 ) ([]*Video, error) {
+	if userId == 0 {
+		return nil, nil
+	}
 	return u.repo.FindVideoListByUserId(ctx, userId)
 }
 
 func (u *PublishUsecase) PublishAction(
 	ctx context.Context, fileBytes []byte, title string,
 ) error {
-	return u.repo.UploadVideo(ctx, fileBytes, title)
+	return u.repo.UploadAll(ctx, fileBytes, title)
 }
 
 func (u *PublishUsecase) GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {

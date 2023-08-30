@@ -50,12 +50,14 @@ func NewData(db *gorm.DB, minioClient *minioX.Client, kfkWriter *kafka.Writer, k
 		}()
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			if err := kfkReader.favorite.Close(); err != nil {
 				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
 		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			if err := kfkWriter.Close(); err != nil {
 				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
 			}
@@ -148,7 +150,6 @@ func NewKafkaReader(c *conf.Data) KfkReader {
 		Topic:     c.Kafka.CommentTopic,
 		MaxBytes:  maxBytes, // 10MB
 	})
-	log.Info("Kafka enabled successfully!")
 	favoriteReader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:   []string{c.Kafka.Addr},
 		Partition: int(c.Kafka.Partition),

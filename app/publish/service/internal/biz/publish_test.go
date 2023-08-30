@@ -22,7 +22,7 @@ func (m *MockPublishRepo) FindVideoListByUserId(ctx context.Context, userId uint
 	return
 }
 
-func (m *MockPublishRepo) UploadVideo(ctx context.Context, video []byte, title string) error {
+func (m *MockPublishRepo) UploadAll(ctx context.Context, video []byte, title string) error {
 	return nil
 }
 
