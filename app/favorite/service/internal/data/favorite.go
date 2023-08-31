@@ -16,7 +16,6 @@ import (
 	"github.com/toomanysource/atreus/app/favorite/service/internal/server"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"gorm.io/gorm"
 )
 
 type Favorite struct {
@@ -184,81 +183,58 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 }
 
 func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint32) error {
-	isFavorite, err := r.CheckFavorite(ctx, userId, []uint32{videoId})
-	if err != nil {
-		return fmt.Errorf("favorite query error: %w", err)
-	}
-	if isFavorite != nil {
-		return nil
-	}
-
 	authorId, err := r.GetAuthorId(ctx, userId, videoId)
 	if err != nil {
 		return fmt.Errorf("failed to fetch video author: %w", err)
 	}
-
-	err = r.data.db.Transaction(func(tx *gorm.DB) error {
-		if err = tx.WithContext(ctx).Create(&Favorite{
-			VideoID: videoId,
-			UserID:  userId,
-		}).Error; err != nil {
-			return err
-		}
-
-		if err = kafkaX.Update(r.kfk.authorFavorite, authorId, 1); err != nil {
-			return fmt.Errorf("updateFavorited err: %w", err)
-		}
-		if err = kafkaX.Update(r.kfk.userFavorite, userId, 1); err != nil {
-			return fmt.Errorf("updateFavorite err: %w", err)
-		}
-		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, 1); err != nil {
-			return fmt.Errorf("updateFavoriteCount err: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create favorite: %w", err)
+	if err = r.data.db.WithContext(ctx).Create(&Favorite{
+		VideoID: videoId,
+		UserID:  userId,
+	}).Error; err != nil {
+		return err
 	}
+	go func() {
+		if err = kafkaX.Update(r.kfk.Favored, authorId, 1); err != nil {
+			r.log.Errorf("updateFavorited err: %w", err)
+		}
+	}()
+	go func() {
+		if err = kafkaX.Update(r.kfk.Favorite, userId, 1); err != nil {
+			r.log.Errorf("updateFavorite err: %w", err)
+		}
+	}()
+	go func() {
+		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, 1); err != nil {
+			r.log.Errorf("updateFavoriteCount err: %w", err)
+		}
+	}()
 	return nil
 }
 
 func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) error {
-	isFavorite, err := r.CheckFavorite(ctx, userId, []uint32{videoId})
-	if err != nil {
-		return fmt.Errorf("favorite query error: %w", err)
-	}
-	if isFavorite == nil {
-		return nil
-	}
-
 	authorId, err := r.GetAuthorId(ctx, userId, videoId)
 	if err != nil {
 		return errors.New("failed to fetch video author")
 	}
-
-	result := r.data.db.Transaction(func(tx *gorm.DB) error {
-		err = tx.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{}).Error
-		if err != nil {
-			return fmt.Errorf("failed to delete favorite: %w", err)
-		}
-
-		err = kafkaX.Update(r.kfk.authorFavorite, authorId, -1)
-		if err != nil {
-			return fmt.Errorf("failed to update favorited: %w", err)
-		}
-		err = kafkaX.Update(r.kfk.userFavorite, userId, -1)
-		if err != nil {
-			return fmt.Errorf("failed to update favorite: %w", err)
-		}
-		err = kafkaX.Update(r.kfk.videoFavorite, videoId, -1)
-		if err != nil {
-			return fmt.Errorf("failed to update favorite count: %w", err)
-		}
-		return nil
-	})
-	if result != nil {
-		return errors.New("failed to delete favorite")
+	err = r.data.db.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete favorite: %w", err)
 	}
+	go func() {
+		if err = kafkaX.Update(r.kfk.Favored, authorId, -1); err != nil {
+			r.log.Errorf("failed to update favored: %w", err)
+		}
+	}()
+	go func() {
+		if err = kafkaX.Update(r.kfk.Favorite, userId, -1); err != nil {
+			r.log.Errorf("failed to update favorite: %w", err)
+		}
+	}()
+	go func() {
+		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, -1); err != nil {
+			r.log.Errorf("failed to update favorite count: %w", err)
+		}
+	}()
 	return nil
 }
 

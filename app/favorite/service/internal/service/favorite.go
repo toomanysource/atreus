@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/jinzhu/copier"
+
 	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
 
 	pb "github.com/toomanysource/atreus/api/favorite/service/v1"
@@ -26,36 +28,20 @@ func NewFavoriteService(fu *biz.FavoriteUseCase, logger log.Logger) *FavoriteSer
 func (s *FavoriteService) GetFavoriteList(
 	ctx context.Context, req *pb.FavoriteListRequest,
 ) (*pb.FavoriteListReply, error) {
-	reply := &pb.FavoriteListReply{StatusCode: 0, StatusMsg: "success"}
+	reply := &pb.FavoriteListReply{StatusCode: 0, StatusMsg: "success", VideoList: make([]*pb.Video, 0)}
 	videos, err := s.fu.GetFavoriteList(ctx, req.UserId)
 	if err != nil {
 		reply.StatusCode = -1
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
-	for _, video := range videos {
-		reply.VideoList = append(reply.VideoList, &pb.Video{
-			Id:    video.Id,
-			Title: video.Title,
-			Author: &pb.User{
-				Id:              video.Author.Id,
-				Name:            video.Author.Name,
-				FollowCount:     video.Author.FollowCount,
-				FollowerCount:   video.Author.FollowerCount,
-				IsFollow:        video.Author.IsFollow,
-				Avatar:          video.Author.Avatar,
-				BackgroundImage: video.Author.BackgroundImage,
-				Signature:       video.Author.Signature,
-				TotalFavorited:  video.Author.TotalFavorited,
-				WorkCount:       video.Author.WorkCount,
-				FavoriteCount:   video.Author.FavoriteCount,
-			},
-			PlayUrl:       video.PlayUrl,
-			CoverUrl:      video.CoverUrl,
-			FavoriteCount: video.FavoriteCount,
-			CommentCount:  video.CommentCount,
-			IsFavorite:    video.IsFavorite,
-		})
+	err = copier.CopyWithOption(&reply.VideoList, &videos, copier.Option{
+		DeepCopy: true,
+	})
+	if err != nil {
+		reply.StatusCode = -1
+		reply.StatusMsg = err.Error()
+		return reply, nil
 	}
 	return reply, nil
 }
