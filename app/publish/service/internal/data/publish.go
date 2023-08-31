@@ -199,7 +199,7 @@ func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
 		return nil, fmt.Errorf("write temp file error: %w", err)
 	}
 	// 调用ffmpeg 生成封面
-	frameNum := 10
+	frameNum := 60
 	return ffmpegX.ReadFrameAsImage(tempFile.Name(), frameNum)
 }
 
@@ -316,19 +316,15 @@ func (r *publishRepo) GetVideoAuthor(ctx context.Context, userId uint32, videoLi
 	for _, video := range videoList {
 		userIds = append(userIds, video.AuthorID)
 	}
-	userMap := make(map[uint32]*biz.User)
 	users, err := r.userRepo.GetUserInfos(ctx, userId, userIds)
 	if err != nil {
 		return nil, err
 	}
-	for _, user := range users {
-		userMap[user.ID] = user
-	}
 	vl := make([]*biz.Video, 0, len(videoList))
-	for _, video := range videoList {
+	for i, video := range videoList {
 		vl = append(vl, &biz.Video{
 			ID:            video.Id,
-			Author:        userMap[video.AuthorID],
+			Author:        users[i],
 			PlayUrl:       video.PlayUrl,
 			CoverUrl:      video.CoverUrl,
 			FavoriteCount: video.FavoriteCount,
