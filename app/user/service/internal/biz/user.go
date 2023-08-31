@@ -18,7 +18,7 @@ var (
 
 // User is a user model.
 type User struct {
-	Id              uint32 `copier:"UserId"`
+	Id              uint32
 	Username        string
 	Password        string
 	Name            string
