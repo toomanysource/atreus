@@ -2,10 +2,11 @@ package biz
 
 import (
 	"context"
-	"github.com/toomanysource/atreus/pkg/common"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/toomanysource/atreus/pkg/common"
 
 	"github.com/toomanysource/atreus/middleware"
 
