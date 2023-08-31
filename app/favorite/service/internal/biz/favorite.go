@@ -72,6 +72,10 @@ func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionTy
 }
 
 func (uc *FavoriteUseCase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
+	if userID == 0 {
+		userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+		return uc.favoriteRepo.GetFavoriteList(ctx, userId)
+	}
 	return uc.favoriteRepo.GetFavoriteList(ctx, userID)
 }
 
