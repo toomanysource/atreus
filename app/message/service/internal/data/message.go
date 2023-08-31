@@ -25,8 +25,8 @@ import (
 
 type Message struct {
 	UId        uint64 `gorm:"column:uid;not null;default:0"`
-	FromUserId uint32 `gorm:"column:from_user_id;not null"`
-	ToUserId   uint32 `gorm:"column:to_user_id;not null"`
+	FromUserId uint32 `gorm:"column:from_user_id;not null;index"`
+	ToUserId   uint32 `gorm:"column:to_user_id;not null;index"`
 	Content    string `gorm:"column:content;not null"`
 	CreateTime int64  `gorm:"column:created_at"`
 }
