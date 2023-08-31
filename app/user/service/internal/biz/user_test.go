@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"github.com/toomanysource/atreus/pkg/common"
 	"os"
 	"strconv"
 	"testing"
@@ -48,6 +49,10 @@ func (m *MockUserRepo) FindByIds(ctx context.Context, userId uint32, ids []uint3
 func (m *MockUserRepo) FindByUsername(ctx context.Context, username string) (*User, error) {
 	if username == "foo" {
 		return &User{}, ErrUserNotFound
+	}
+	if username == "xx" {
+		password := common.GenSaltPassword(username, username)
+		return &User{Username: username, Password: password}, nil
 	}
 	return &User{Username: username, Password: username}, nil
 }
@@ -96,9 +101,9 @@ func TestUserLogin(t *testing.T) {
 	_, err = usecase.Login(ctx, "bar", "foo")
 	assert.Error(t, err)
 	// login success
-	user, err := usecase.Login(ctx, "xxx", "xxx")
+	user, err := usecase.Login(ctx, "xx", "xx")
 	assert.NoError(t, err)
-	assert.Equal(t, user.Username, "xxx")
+	assert.Equal(t, user.Username, "xx")
 }
 
 func TestGetInfo(t *testing.T) {
