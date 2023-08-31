@@ -61,11 +61,8 @@ func NewPublishUsecase(repo PublishRepo, logger log.Logger) *PublishUsecase {
 func (u *PublishUsecase) GetPublishList(
 	ctx context.Context, userId uint32,
 ) ([]*Video, error) {
-	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	if userId == 0 {
-		if userID == 0 {
-			return nil, nil
-		}
+		userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 		return u.repo.FindVideoListByUserId(ctx, userID)
 	}
 	return u.repo.FindVideoListByUserId(ctx, userId)
