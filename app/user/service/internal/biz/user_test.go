@@ -2,7 +2,6 @@ package biz
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strconv"
 	"testing"
@@ -48,9 +47,9 @@ func (m *MockUserRepo) FindByIds(ctx context.Context, userId uint32, ids []uint3
 
 func (m *MockUserRepo) FindByUsername(ctx context.Context, username string) (*User, error) {
 	if username == "foo" {
-		return &User{Username: username, Password: username}, errors.New("no find")
+		return &User{}, ErrUserNotFound
 	}
-	return &User{}, nil
+	return &User{Username: username, Password: username}, nil
 }
 
 func (m *MockUserRepo) InitUpdateFollowQueue()   {}
@@ -60,7 +59,7 @@ func (m *MockUserRepo) InitUpdatePublishQueue()  {}
 func (m *MockUserRepo) InitUpdateFavoriteQueue() {}
 
 func (m *MockUserRepo) Create(ctx context.Context, user *User) (*User, error) {
-	return &User{}, nil
+	return user, nil
 }
 
 var testConfig = &conf.JWT{
@@ -82,10 +81,10 @@ func TestMain(m *testing.M) {
 func TestUserRegister(t *testing.T) {
 	// user has been registered
 	_, err := usecase.Register(ctx, "xxx", "xxx")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	// user can register
 	user, err := usecase.Register(ctx, "foo", "bar")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, user.Username, "foo")
 }
 
