@@ -40,8 +40,9 @@ func (s *UserService) UserRegister(ctx context.Context, req *pb.UserRegisterRequ
 	reply := &pb.UserRegisterReply{
 		StatusCode: CodeSuccess,
 		StatusMsg:  "success",
+		UserId:     user.Id,
+		Token:      user.Token,
 	}
-	copier.Copy(reply, user)
 	return reply, nil
 }
 
@@ -56,8 +57,9 @@ func (s *UserService) UserLogin(ctx context.Context, req *pb.UserLoginRequest) (
 	reply := &pb.UserLoginReply{
 		StatusCode: CodeSuccess,
 		StatusMsg:  "success",
+		UserId:     user.Id,
+		Token:      user.Token,
 	}
-	copier.Copy(reply, user)
 	return reply, nil
 }
 
