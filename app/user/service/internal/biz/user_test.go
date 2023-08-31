@@ -106,7 +106,8 @@ func TestUserRegister(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, user.Username, "foo")
 	_, err = usecase.Register(ctx, "vvv", "vvv")
-	assert.Error(t, ErrInternal)
+	assert.Error(t, err)
+	assert.Equal(t, err, ErrInternal)
 }
 
 func TestUserLogin(t *testing.T) {
@@ -121,7 +122,8 @@ func TestUserLogin(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, user.Username, "xx")
 	_, err = usecase.Login(ctx, "vvv", "vvv")
-	assert.Error(t, ErrInternal)
+	assert.Error(t, err)
+	assert.Equal(t, err, ErrInternal)
 }
 
 func TestGetInfo(t *testing.T) {
