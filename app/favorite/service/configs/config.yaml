@@ -25,8 +25,8 @@ data:
   kafka:
     addr: 127.0.0.1:9092
     video_favorite_topic: "video_favorite"
-    user_favorite_topic: "user_favorite"
-    author_favorite_topic: "author_favorite"
+    favorite_topic: "favorite"
+    favored_topic: "favored"
     partition: 0
     read_timeout: 0.2s
     write_timeout: 0.2s
