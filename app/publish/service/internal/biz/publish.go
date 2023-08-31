@@ -3,12 +3,14 @@ package biz
 import (
 	"context"
 
+	"github.com/toomanysource/atreus/middleware"
+
 	"github.com/go-kratos/kratos/v2/log"
 )
 
 // Video is a video model
 type Video struct {
-	ID            uint32
+	ID            uint32 `copier:"Id"`
 	Author        *User
 	PlayUrl       string
 	CoverUrl      string
@@ -20,7 +22,7 @@ type Video struct {
 
 // User is a user model.
 type User struct {
-	ID              uint32
+	ID              uint32 `copier:"Id"`
 	Name            string
 	FollowCount     uint32
 	FollowerCount   uint32
@@ -59,8 +61,12 @@ func NewPublishUsecase(repo PublishRepo, logger log.Logger) *PublishUsecase {
 func (u *PublishUsecase) GetPublishList(
 	ctx context.Context, userId uint32,
 ) ([]*Video, error) {
+	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	if userId == 0 {
-		return nil, nil
+		if userID == 0 {
+			return nil, nil
+		}
+		return u.repo.FindVideoListByUserId(ctx, userID)
 	}
 	return u.repo.FindVideoListByUserId(ctx, userId)
 }
