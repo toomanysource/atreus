@@ -100,7 +100,12 @@ func TestFavoriteUsecase_FavoriteAction(t *testing.T) {
 }
 
 func TestFavoriteUsecase_GetFavoriteList(t *testing.T) {
-	favorites, err := usecase.GetFavoriteList(context.TODO(), 1)
+	favorites, err := usecase.GetFavoriteList(ctx, 1)
+	assert.Nil(t, err)
+	for _, v := range favorites {
+		assert.Equal(t, v.IsFavorite, true)
+	}
+	favorites, err = usecase.GetFavoriteList(ctx, 0)
 	assert.Nil(t, err)
 	for _, v := range favorites {
 		assert.Equal(t, v.IsFavorite, true)
@@ -108,10 +113,10 @@ func TestFavoriteUsecase_GetFavoriteList(t *testing.T) {
 }
 
 func TestFavoriteUsecase_IsFavorite(t *testing.T) {
-	isFavorite, err := usecase.IsFavorite(context.TODO(), 1, []uint32{6})
+	isFavorite, err := usecase.IsFavorite(ctx, 1, []uint32{6})
 	assert.Nil(t, err)
 	assert.Equal(t, isFavorite[0], false)
-	isFavorite, err = usecase.IsFavorite(context.TODO(), 1, []uint32{1})
+	isFavorite, err = usecase.IsFavorite(ctx, 1, []uint32{1})
 	assert.Nil(t, err)
 	assert.Equal(t, isFavorite[0], false)
 }
