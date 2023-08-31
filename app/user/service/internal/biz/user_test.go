@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strconv"
 	"testing"
@@ -28,6 +29,9 @@ func (m *MockUserRepo) Save(ctx context.Context, user *User) (*User, error) {
 }
 
 func (m *MockUserRepo) FindById(ctx context.Context, id uint32) (*User, error) {
+	if id == 9 {
+		return &User{}, errors.New("error")
+	}
 	if id < 3 {
 		return &User{Id: id}, nil
 	}
@@ -36,6 +40,12 @@ func (m *MockUserRepo) FindById(ctx context.Context, id uint32) (*User, error) {
 }
 
 func (m *MockUserRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) ([]*User, error) {
+	if userId == 9 {
+		return []*User{}, nil
+	}
+	if userId == 3 {
+		return nil, errors.New("error")
+	}
 	var us []*User
 	for _, id := range ids {
 		u, _ := m.FindById(context.Background(), id)
@@ -50,6 +60,9 @@ func (m *MockUserRepo) FindByIds(ctx context.Context, userId uint32, ids []uint3
 func (m *MockUserRepo) FindByUsername(ctx context.Context, username string) (*User, error) {
 	if username == "foo" {
 		return &User{}, ErrUserNotFound
+	}
+	if username == "vvv" {
+		return &User{}, ErrInternal
 	}
 	if username == "xx" {
 		password := common.GenSaltPassword(username, username)
@@ -92,6 +105,8 @@ func TestUserRegister(t *testing.T) {
 	user, err := usecase.Register(ctx, "foo", "bar")
 	assert.NoError(t, err)
 	assert.Equal(t, user.Username, "foo")
+	_, err = usecase.Register(ctx, "vvv", "vvv")
+	assert.Error(t, ErrInternal)
 }
 
 func TestUserLogin(t *testing.T) {
@@ -105,6 +120,8 @@ func TestUserLogin(t *testing.T) {
 	user, err := usecase.Login(ctx, "xx", "xx")
 	assert.NoError(t, err)
 	assert.Equal(t, user.Username, "xx")
+	_, err = usecase.Login(ctx, "vvv", "vvv")
+	assert.Error(t, ErrInternal)
 }
 
 func TestGetInfo(t *testing.T) {
@@ -115,6 +132,9 @@ func TestGetInfo(t *testing.T) {
 	user, err := usecase.GetInfo(ctx, 4)
 	assert.NoError(t, err)
 	assert.Equal(t, user.Username, "4")
+	_, err = usecase.GetInfo(ctx, 9)
+	assert.Error(t, err)
+	assert.Equal(t, err, ErrInternal)
 }
 
 func TestGetInfos(t *testing.T) {
@@ -127,4 +147,10 @@ func TestGetInfos(t *testing.T) {
 	ids = []uint32{2, 3, 4, 5, 6}
 	users, _ = usecase.GetInfos(ctx, userId, ids)
 	assert.Equal(t, len(users), len(ids)-1)
+	users, err := usecase.GetInfos(ctx, 9, ids)
+	assert.Nil(t, err)
+	assert.Equal(t, len(users), 0)
+	_, err = usecase.GetInfos(ctx, 3, ids)
+	assert.Error(t, err)
+	assert.Equal(t, err, ErrInternal)
 }
