@@ -18,7 +18,6 @@ data:
     relation_db: 4
     addr: redis:6379
     password: "atreus"
-    username: "atreus"
     read_timeout: 0.2s
     write_timeout: 0.2s
     TTL: 1000
