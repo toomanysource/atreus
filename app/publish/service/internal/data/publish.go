@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/toomanysource/atreus/middleware"
+
 	"github.com/segmentio/kafka-go"
 
 	"github.com/toomanysource/atreus/pkg/kafkaX"
@@ -21,7 +23,6 @@ import (
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/minio/minio-go/v7"
-	"gorm.io/gorm"
 )
 
 var VideoCount = 30
@@ -65,84 +66,73 @@ func NewPublishRepo(
 	}
 }
 
-// UploadVideo 上传视频
-func (r *publishRepo) UploadVideo(ctx context.Context, fileBytes []byte, title string) error {
-	return r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		userId := ctx.Value("user_id").(uint32)
-		err := tx.Where("author_id = ? AND title = ?", userId, title).First(&Video{}).Error
-		if err == nil {
-			return fmt.Errorf("video already exists")
+// UploadAll 上传视频和封面
+func (r *publishRepo) UploadAll(ctx context.Context, fileBytes []byte, title string) error {
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	var wg sync.WaitGroup
+	errChan := make(chan error)
+	// 生成封面
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := r.UploadCoverImage(ctx, fileBytes, title)
+		if err != nil {
+			errChan <- fmt.Errorf("upload cover image error: %w", err)
+			return
 		}
-		var wg sync.WaitGroup
-		errChan := make(chan error)
-		// 生成封面
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			coverReader, err := r.GenerateCoverImage(fileBytes)
-			if err != nil {
-				errChan <- fmt.Errorf("generate cover image error: %w", err)
-				return
-			}
-			data, err := io.ReadAll(coverReader)
-			if err != nil {
-				errChan <- fmt.Errorf("read cover image error: %w", err)
-				return
-			}
-			coverBytes := bytes.NewReader(data)
-			// 上传封面
-			err = r.data.oss.UploadSizeFile(
-				ctx, "oss", "images/"+title+".png", coverBytes, coverBytes.Size(), minio.PutObjectOptions{
-					ContentType: "image/png",
-				})
-			if err != nil {
-				errChan <- fmt.Errorf("upload cover image error: %w", err)
-				return
-			}
-		}()
-		wg.Add(1)
-		// 上传视频
-		go func() {
-			defer wg.Done()
-			reader := bytes.NewReader(fileBytes)
-			err = r.data.oss.UploadSizeFile(
-				ctx, "oss", "videos/"+title+".mp4", reader, reader.Size(), minio.PutObjectOptions{
-					ContentType: "video/mp4",
-				})
-			if err != nil {
-				errChan <- fmt.Errorf("upload video error: %w", err)
-				return
-			}
-		}()
-		wg.Wait()
-		select {
-		case err = <-errChan:
-			return err
-		default:
-			// 获取视频和封面的url
-			playUrl, coverUrl, err := r.GetRemoteVideoInfo(ctx, title)
-			if err != nil {
-				return fmt.Errorf("get remote video info error: %w", err)
-			}
-			v := &Video{
-				AuthorID:      userId,
-				Title:         title,
-				PlayUrl:       playUrl,
-				CoverUrl:      coverUrl,
-				FavoriteCount: 0,
-				CommentCount:  0,
-				CreatedAt:     time.Now().UnixMilli(),
-			}
-			if err := tx.Create(v).Error; err != nil {
-				return fmt.Errorf("create video error: %w", err)
-			}
+	}()
+	wg.Add(1)
+	// 上传视频
+	go func() {
+		defer wg.Done()
+		err := r.UploadVideo(ctx, fileBytes, title)
+		if err != nil {
+			errChan <- fmt.Errorf("upload video error: %w", err)
+			return
+		}
+	}()
+	wg.Wait()
+	select {
+	case err := <-errChan:
+		return err
+	default:
+	}
+	go func() {
+		// 获取视频和封面的url
+		ctx = context.Background()
+		err := r.SaveVideoInfo(ctx, title, userId)
+		if err != nil {
+			r.log.Errorf("save video info error: %w", err)
+			return
 		}
 		err = kafkaX.Update(r.data.kfkWriter, userId, 1)
 		if err != nil {
-			return fmt.Errorf("update user video count error: %w", err)
+			r.log.Errorf("update user video count error: %w", err)
+			return
 		}
-		return nil
-	})
+	}()
+	return nil
+}
+
+// SaveVideoInfo 保存视频信息
+func (r *publishRepo) SaveVideoInfo(ctx context.Context, title string, userId uint32) error {
+	playUrl, coverUrl, err := r.GetRemoteVideoInfo(ctx, title)
+	if err != nil {
+		return fmt.Errorf("get remote video info error: %w", err)
+	}
+	v := &Video{
+		AuthorID:      userId,
+		Title:         title,
+		PlayUrl:       playUrl,
+		CoverUrl:      coverUrl,
+		FavoriteCount: 0,
+		CommentCount:  0,
+		CreatedAt:     time.Now().UnixMilli(),
+	}
+	if err = r.data.db.WithContext(ctx).Create(v).Error; err != nil {
+		return fmt.Errorf("create video error: %w", err)
+	}
+	return nil
 }
 
 // GetRemoteVideoInfo 获取远程视频信息
@@ -163,6 +153,40 @@ func (r *publishRepo) GetRemoteVideoInfo(ctx context.Context, title string) (pla
 	return
 }
 
+// UploadVideo 上传视频
+func (r *publishRepo) UploadVideo(ctx context.Context, fileBytes []byte, title string) error {
+	reader := bytes.NewReader(fileBytes)
+	err := r.data.oss.UploadSizeFile(
+		ctx, "oss", "videos/"+title+".mp4", reader, reader.Size(), minio.PutObjectOptions{
+			ContentType: "video/mp4",
+		})
+	if err != nil {
+		return fmt.Errorf("upload video error: %w", err)
+	}
+	return nil
+}
+
+// UploadCoverImage 上传封面
+func (r *publishRepo) UploadCoverImage(ctx context.Context, fileBytes []byte, title string) error {
+	coverReader, err := r.GenerateCoverImage(fileBytes)
+	if err != nil {
+		return fmt.Errorf("generate cover image error: %w", err)
+	}
+	data, err := io.ReadAll(coverReader)
+	if err != nil {
+		return fmt.Errorf("read cover image error: %w", err)
+	}
+	coverBytes := bytes.NewReader(data)
+	err = r.data.oss.UploadSizeFile(
+		ctx, "oss", "images/"+title+".png", coverBytes, coverBytes.Size(), minio.PutObjectOptions{
+			ContentType: "image/png",
+		})
+	if err != nil {
+		return fmt.Errorf("upload cover image error: %w", err)
+	}
+	return nil
+}
+
 // GenerateCoverImage 生成封面
 func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
 	// 创建临时文件
@@ -175,7 +199,7 @@ func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
 		return nil, fmt.Errorf("write temp file error: %w", err)
 	}
 	// 调用ffmpeg 生成封面
-	frameNum := 60
+	frameNum := 10
 	return ffmpegX.ReadFrameAsImage(tempFile.Name(), frameNum)
 }
 
@@ -239,7 +263,7 @@ func (r *publishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32
 func (r *publishRepo) GetFeedList(
 	ctx context.Context, latestTime string,
 ) (int64, []*biz.Video, error) {
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	if latestTime == "0" {
 		latestTime = strconv.FormatInt(time.Now().UnixMilli(), 10)
 	}
