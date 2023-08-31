@@ -143,24 +143,19 @@ func NewMinioIntraConn(c *conf.Minio) minioX.IntraConn {
 
 func NewKafkaReader(c *conf.Data) KfkReader {
 	var maxBytes int = 10e6
-	commentReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:   []string{c.Kafka.Addr},
-		Partition: int(c.Kafka.Partition),
-		GroupID:   "comment",
-		Topic:     c.Kafka.CommentTopic,
-		MaxBytes:  maxBytes, // 10MB
-	})
-	favoriteReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:   []string{c.Kafka.Addr},
-		Partition: int(c.Kafka.Partition),
-		GroupID:   "favorite",
-		Topic:     c.Kafka.FavoriteTopic,
-		MaxBytes:  maxBytes, // 10MB
-	})
+	reader := func(topic string) *kafka.Reader {
+		return kafka.NewReader(kafka.ReaderConfig{
+			Brokers:   []string{c.Kafka.Addr},
+			Topic:     topic,
+			Partition: int(c.Kafka.Partition),
+			GroupID:   topic,
+			MaxBytes:  maxBytes, // 10MB
+		})
+	}
 	log.Info("Kafka enabled successfully!")
 	return KfkReader{
-		comment:  commentReader,
-		favorite: favoriteReader,
+		comment:  reader(c.Kafka.CommentTopic),
+		favorite: reader(c.Kafka.FavoriteTopic),
 	}
 }
 

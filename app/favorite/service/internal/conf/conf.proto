@@ -55,8 +55,8 @@ message Data {
   message Kafka {
     string addr = 1;
     string video_favorite_topic = 2;
-    string user_favorite_topic = 3;
-    string author_favorite_topic = 4;
+    string favorite_topic = 3;
+    string favored_topic = 4;
     int32 partition = 5;
     google.protobuf.Duration read_timeout = 6;
     google.protobuf.Duration write_timeout = 7;

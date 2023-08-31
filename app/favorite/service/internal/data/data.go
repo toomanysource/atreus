@@ -20,9 +20,9 @@ import (
 var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewFavoriteRepo, NewPublishRepo, NewMysqlConn, NewRedisConn)
 
 type KfkWriter struct {
-	userFavorite   *kafka.Writer
-	authorFavorite *kafka.Writer
-	videoFavorite  *kafka.Writer
+	Favorite      *kafka.Writer
+	Favored       *kafka.Writer
+	videoFavorite *kafka.Writer
 }
 
 type Data struct {
@@ -53,14 +53,14 @@ func NewData(db *gorm.DB, cache *redis.Client, kfk KfkWriter, logger log.Logger)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := kfk.authorFavorite.Close(); err != nil {
+			if err := kfk.Favored.Close(); err != nil {
 				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := kfk.userFavorite.Close(); err != nil {
+			if err := kfk.Favorite.Close(); err != nil {
 				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
@@ -131,9 +131,9 @@ func NewKafkaWriter(c *conf.Data) KfkWriter {
 		}
 	}
 	return KfkWriter{
-		userFavorite:   writer(c.Kafka.UserFavoriteTopic),
-		authorFavorite: writer(c.Kafka.AuthorFavoriteTopic),
-		videoFavorite:  writer(c.Kafka.VideoFavoriteTopic),
+		Favorite:      writer(c.Kafka.FavoriteTopic),
+		Favored:       writer(c.Kafka.FavoredTopic),
+		videoFavorite: writer(c.Kafka.VideoFavoriteTopic),
 	}
 }
 

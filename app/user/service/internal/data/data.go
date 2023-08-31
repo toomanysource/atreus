@@ -147,7 +147,7 @@ func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
 
 func NewKafkaReader(c *conf.Data) KfkReader {
 	var maxBytes int = 10e6
-	writer := func(topic string) *kafka.Reader {
+	reader := func(topic string) *kafka.Reader {
 		return kafka.NewReader(kafka.ReaderConfig{
 			Brokers:   []string{c.Kafka.Addr},
 			Topic:     topic,
@@ -157,10 +157,10 @@ func NewKafkaReader(c *conf.Data) KfkReader {
 		})
 	}
 	return KfkReader{
-		follow:   writer(c.Kafka.FollowTopic),
-		follower: writer(c.Kafka.FollowerTopic),
-		favorite: writer(c.Kafka.FavoriteTopic),
-		favored:  writer(c.Kafka.FavoredTopic),
-		publish:  writer(c.Kafka.PublishTopic),
+		follow:   reader(c.Kafka.FollowTopic),
+		follower: reader(c.Kafka.FollowerTopic),
+		favorite: reader(c.Kafka.FavoriteTopic),
+		favored:  reader(c.Kafka.FavoredTopic),
+		publish:  reader(c.Kafka.PublishTopic),
 	}
 }

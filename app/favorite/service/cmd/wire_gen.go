@@ -35,7 +35,7 @@ func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, 
 	favoriteUseCase := biz.NewFavoriteUseCase(favoriteRepo, logger)
 	favoriteService := service.NewFavoriteService(favoriteUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, favoriteService, logger)
-	httpServer := server.NewHTTPServer(confServer, favoriteService, logger)
+	httpServer := server.NewHTTPServer(confServer, jwt, favoriteService, logger)
 	app := newApp(logger, grpcServer, httpServer)
 	return app, func() {
 		cleanup()

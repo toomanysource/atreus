@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/jinzhu/copier"
+
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -36,75 +38,47 @@ func (s *PublishService) PublishAction(ctx context.Context, req *pb.PublishActio
 }
 
 func (s *PublishService) GetPublishList(ctx context.Context, req *pb.PublishListRequest) (*pb.PublishListReply, error) {
+	reply := &pb.PublishListReply{StatusCode: 0, StatusMsg: "Success", VideoList: make([]*pb.Video, 0)}
 	videoList, err := s.usecase.GetPublishList(ctx, req.UserId)
-	pbVideoList := changeList(videoList)
 	if err != nil {
-		return &pb.PublishListReply{
-			StatusCode: -1,
-			StatusMsg:  err.Error(),
-			VideoList:  nil,
-		}, nil
+		reply.StatusCode = -1
+		reply.StatusMsg = err.Error()
 	}
-	return &pb.PublishListReply{
-		StatusCode: 0,
-		StatusMsg:  "Return video list.",
-		VideoList:  pbVideoList,
-	}, nil
+	err = copier.CopyWithOption(&reply.VideoList, &videoList, copier.Option{DeepCopy: true})
+	if err != nil {
+		reply.StatusCode = -1
+		reply.StatusMsg = err.Error()
+	}
+	return reply, nil
 }
 
 func (s *PublishService) GetVideoListByVideoIds(ctx context.Context, req *pb.VideoListByVideoIdsRequest) (*pb.VideoListReply, error) {
+	reply := &pb.VideoListReply{VideoList: make([]*pb.Video, 0)}
 	videoList, err := s.usecase.GetVideoListByVideoIds(ctx, req.UserId, req.VideoIds)
 	if err != nil {
 		return nil, err
 	}
-	pbVideoList := changeList(videoList)
-	return &pb.VideoListReply{
-		VideoList: pbVideoList,
-	}, nil
+	if err = copier.CopyWithOption(&reply.VideoList, &videoList, copier.Option{DeepCopy: true}); err != nil {
+		return nil, err
+	}
+	return reply, nil
 }
 
 // FeedList 返回一个按照投稿时间倒序的视频列表，单次最多30个视频
 func (s *PublishService) FeedList(ctx context.Context, req *pb.ListFeedRequest) (*pb.ListFeedReply, error) {
-	var nextTime int64
-	reply := &pb.ListFeedReply{StatusCode: 0, StatusMsg: "Success", VideoList: make([]*pb.Video, 0), NextTime: 0}
-
+	reply := &pb.ListFeedReply{StatusCode: 0, StatusMsg: "Success", VideoList: make([]*pb.Video, 0)}
 	nextTime, videos, err := s.usecase.FeedList(ctx, req.LatestTime)
 	if err != nil {
 		reply.StatusCode = -1
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
-	reply.VideoList = changeList(videos)
-	reply.NextTime = nextTime
-
-	return reply, nil
-}
-
-func changeList(bizVideoList []*biz.Video) (pbVideoList []*pb.Video) {
-	for _, video := range bizVideoList {
-		pbVideoList = append(pbVideoList, &pb.Video{
-			Id: video.ID,
-			Author: &pb.User{
-				Id:              video.Author.ID,
-				Name:            video.Author.Name,
-				FollowCount:     video.Author.FollowCount,
-				FollowerCount:   video.Author.FollowerCount,
-				IsFollow:        video.Author.IsFollow,
-				Avatar:          video.Author.Avatar,
-				BackgroundImage: video.Author.BackgroundImage,
-				Signature:       video.Author.Signature,
-				TotalFavorited:  video.Author.TotalFavorited,
-				WorkCount:       video.Author.WorkCount,
-				FavoriteCount:   video.Author.FavoriteCount,
-			},
-			PlayUrl:       video.PlayUrl,
-			CoverUrl:      video.CoverUrl,
-			FavoriteCount: video.FavoriteCount,
-			CommentCount:  video.CommentCount,
-			IsFavorite:    video.IsFavorite,
-			Title:         video.Title,
-		})
+	err = copier.CopyWithOption(&reply.VideoList, &videos, copier.Option{DeepCopy: true})
+	if err != nil {
+		reply.StatusCode = -1
+		reply.StatusMsg = err.Error()
+		return reply, nil
 	}
-
-	return pbVideoList
+	reply.NextTime = nextTime
+	return reply, nil
 }

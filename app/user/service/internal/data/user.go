@@ -27,7 +27,7 @@ var FixedCacheExpire = 720
 var userTableName = "users"
 
 type User struct {
-	Id              uint32         `gorm:"primary_key" json:"id" copier:"UserId"`
+	Id              uint32         `gorm:"primary_key" json:"id"`
 	Username        string         `gorm:"column:username;not null" json:"username"`
 	Password        string         `gorm:"column:password;not null" json:"password"`
 	Name            string         `gorm:"column:name;not null" json:"name"`
@@ -320,6 +320,18 @@ func (r *userRepo) InitUpdatePublishQueue() {
 	})
 }
 
+func (r *userRepo) updateCache(user *User) error {
+	err := r.cacheUserById(user)
+	if err != nil {
+		r.log.Errorf("cache user by id %d failed: %s", user.Id, err.Error())
+	}
+	err = r.cacheUserByUsername(user)
+	if err != nil {
+		r.log.Errorf("cache user by username %s failed: %s", user.Username, err.Error())
+	}
+	return nil
+}
+
 // UpdateFollow .
 func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, followChange int32) error {
 	user, err := r.findById(ctx, id)
@@ -327,6 +339,11 @@ func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, followChange int
 		return err
 	}
 	newValue := addUint32int32(user.FollowCount, followChange)
+	user.FollowCount = newValue
+	err = r.updateCache(user)
+	if err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Model(user).
 		Update("follow_count", newValue).Error
 }
@@ -338,6 +355,11 @@ func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, followerChange
 		return err
 	}
 	newValue := addUint32int32(user.FollowerCount, followerChange)
+	user.FollowerCount = newValue
+	err = r.updateCache(user)
+	if err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Model(user).
 		Update("follower_count", newValue).Error
 }
@@ -349,6 +371,11 @@ func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, favoritedChan
 		return err
 	}
 	newValue := addUint32int32(user.TotalFavorited, favoritedChange)
+	user.TotalFavorited = newValue
+	err = r.updateCache(user)
+	if err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Model(user).
 		Update("total_favorited", newValue).Error
 }
@@ -360,6 +387,11 @@ func (r *userRepo) UpdateWork(ctx context.Context, id uint32, workChange int32) 
 		return err
 	}
 	newValue := addUint32int32(user.WorkCount, workChange)
+	user.WorkCount = newValue
+	err = r.updateCache(user)
+	if err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Model(user).
 		Update("work_count", newValue).Error
 }
@@ -371,6 +403,11 @@ func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, favoriteChange
 		return err
 	}
 	newValue := addUint32int32(user.FavoriteCount, favoriteChange)
+	user.FavoriteCount = newValue
+	err = r.updateCache(user)
+	if err != nil {
+		return err
+	}
 	return r.db.WithContext(ctx).Model(user).
 		Update("favorite_count", newValue).Error
 }
