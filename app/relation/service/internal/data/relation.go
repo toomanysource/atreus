@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/toomanysource/atreus/middleware"
+
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
@@ -14,7 +16,6 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis/v8"
 	"google.golang.org/grpc"
-	"gorm.io/gorm"
 )
 
 type UserRepo interface {
@@ -145,7 +146,7 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 }
 
 func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	if userId == toUserId {
 		return fmt.Errorf("can't follow yourself")
 	}
@@ -226,7 +227,7 @@ func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
 }
 
 func (r *relationRepo) UnFollow(ctx context.Context, toUserId uint32) error {
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	err := r.DelFollow(ctx, userId, toUserId)
 	if err != nil {
 		return err
@@ -321,61 +322,49 @@ func (r *relationRepo) GetFlrList(ctx context.Context, userId uint32) ([]uint32,
 
 // AddFollow 添加关注
 func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId uint32) error {
-	err := r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		relation, err := r.SearchRelation(ctx, userId, []uint32{toUserId})
-		if err != nil {
-			return fmt.Errorf("failed to search relation: %w", err)
-		}
-		if relation != nil {
-			return nil
-		}
-		follow := &Followers{
-			UserId:     toUserId,
-			FollowerId: userId,
-		}
-		err = tx.Create(&follow).Error
-		if err != nil {
-			return fmt.Errorf("failed to create relation: %w", err)
-		}
+	follow := &Followers{
+		UserId:     toUserId,
+		FollowerId: userId,
+	}
+	err := r.data.db.WithContext(ctx).Create(&follow).Error
+	if err != nil {
+		return fmt.Errorf("failed to create relation: %w", err)
+	}
+	go func() {
 		err = kafkaX.Update(r.kfk.follow, userId, 1)
 		if err != nil {
-			return fmt.Errorf("failed to update follow: %w", err)
+			r.log.Errorf("failed to update follow: %w", err)
 		}
+	}()
+	go func() {
 		err = kafkaX.Update(r.kfk.follower, toUserId, 1)
 		if err != nil {
-			return fmt.Errorf("failed to update follower: %w", err)
+			r.log.Errorf("failed to update follower: %w", err)
 		}
-		return nil
-	})
-	return err
+	}()
+	return nil
 }
 
 // DelFollow 取消关注
 func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId uint32) error {
-	err := r.data.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		relation, err := r.SearchRelation(ctx, userId, []uint32{toUserId})
-		if err != nil {
-			return err
-		}
-		if relation == nil {
-			return nil
-		}
-		err = tx.Where(
-			"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&relation[0]).Error
-		if err != nil {
-			return err
-		}
+	err := r.data.db.WithContext(ctx).Where(
+		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{}).Error
+	if err != nil {
+		return err
+	}
+	go func() {
 		err = kafkaX.Update(r.kfk.follow, userId, -1)
 		if err != nil {
-			return err
+			r.log.Error(err)
 		}
+	}()
+	go func() {
 		err = kafkaX.Update(r.kfk.follower, toUserId, -1)
 		if err != nil {
-			return err
+			r.log.Error(err)
 		}
-		return nil
-	})
-	return err
+	}()
+	return nil
 }
 
 // SearchRelation 查询关注关系

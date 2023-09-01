@@ -4,7 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/toomanysource/atreus/middleware"
+
 	"github.com/go-kratos/kratos/v2/log"
+)
+
+const (
+	FollowType   uint32 = 1
+	UnfollowType uint32 = 2
 )
 
 type User struct {
@@ -40,27 +47,33 @@ func NewRelationUseCase(repo RelationRepo, logger log.Logger) *RelationUseCase {
 
 // GetFollowList 获取关注列表
 func (uc *RelationUseCase) GetFollowList(ctx context.Context, userId uint32) ([]*User, error) {
+	if userId == 0 {
+		userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+		return uc.repo.GetFollowList(ctx, userID)
+	}
 	return uc.repo.GetFollowList(ctx, userId)
 }
 
 // GetFollowerList 获取粉丝列表
 func (uc *RelationUseCase) GetFollowerList(ctx context.Context, userId uint32) ([]*User, error) {
+	if userId == 0 {
+		userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+		return uc.repo.GetFollowerList(ctx, userID)
+	}
 	return uc.repo.GetFollowerList(ctx, userId)
 }
 
 // Action 关注和取消关注
 func (uc *RelationUseCase) Action(ctx context.Context, toUserId uint32, actionType uint32) error {
-	var followType uint32 = 1
-	var unfollowType uint32 = 2
 	switch actionType {
 	// 1为关注
-	case followType:
+	case FollowType:
 		err := uc.repo.Follow(ctx, toUserId)
 		if err != nil {
 			return fmt.Errorf("failed to follow: %w", err)
 		}
 	// 2为取消关注
-	case unfollowType:
+	case UnfollowType:
 		err := uc.repo.UnFollow(ctx, toUserId)
 		if err != nil {
 			return fmt.Errorf("failed to unfollow: %w", err)
