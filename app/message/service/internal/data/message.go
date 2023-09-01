@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/toomanysource/atreus/middleware"
+
 	"github.com/toomanysource/atreus/pkg/common"
 
 	"github.com/toomanysource/atreus/app/message/service/internal/biz"
@@ -49,7 +51,7 @@ func NewMessageRepo(data *Data, logger log.Logger) biz.MessageRepo {
 
 func (r *messageRepo) GetMessageList(ctx context.Context, toUserId uint32, preMsgTime int64) ([]*biz.Message, error) {
 	// 先在redis缓存中查询是否存在聊天记录列表
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	key := setKey(userId, toUserId)
 	ok, msgList, err := r.CheckCacheExist(ctx, key, preMsgTime)
 	if err != nil {
@@ -131,7 +133,7 @@ func (r *messageRepo) CheckCacheExist(ctx context.Context, key string, preMsgTim
 
 // PublishMessage 发送消息
 func (r *messageRepo) PublishMessage(ctx context.Context, toUserId uint32, content string) error {
-	userId := ctx.Value("user_id").(uint32)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	if userId == toUserId {
 		return errors.New("can't send message to yourself")
 	}
