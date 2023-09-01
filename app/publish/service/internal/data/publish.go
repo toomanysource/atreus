@@ -135,7 +135,7 @@ func (r *publishRepo) SaveVideoInfo(ctx context.Context, title string, userId ui
 	return nil
 }
 
-// GetRemoteVideoInfo 获取远程视频信息
+// GetRemoteVideoInfo 获取远程视频及封面url
 func (r *publishRepo) GetRemoteVideoInfo(ctx context.Context, title string) (playURL, coverURL string, err error) {
 	hours, days := 24, 7
 	urls, err := r.data.oss.GetFileURL(
@@ -244,6 +244,7 @@ func (r *publishRepo) FindVideoListByUserId(ctx context.Context, userId uint32) 
 	return vl, nil
 }
 
+// FindVideoListByVideoIds 根据视频id列表获取视频列表
 func (r *publishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*biz.Video, error) {
 	if len(videoIds) == 0 {
 		return nil, nil
@@ -260,6 +261,7 @@ func (r *publishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32
 	return r.GetVideoAuthor(ctx, userId, videoList)
 }
 
+// GetFeedList 获取视频列表
 func (r *publishRepo) GetFeedList(
 	ctx context.Context, latestTime string,
 ) (int64, []*biz.Video, error) {
@@ -311,6 +313,7 @@ func (r *publishRepo) GetFeedList(
 	return nextTime, vl, err
 }
 
+// GetVideoAuthor 获取视频作者
 func (r *publishRepo) GetVideoAuthor(ctx context.Context, userId uint32, videoList []*Video) ([]*biz.Video, error) {
 	userIds := make([]uint32, 0, len(videoList))
 	for _, video := range videoList {
@@ -336,6 +339,7 @@ func (r *publishRepo) GetVideoAuthor(ctx context.Context, userId uint32, videoLi
 	return vl, nil
 }
 
+// UpdateFavoriteCount 更新点赞数
 func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, favoriteChange int32) error {
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
@@ -350,13 +354,14 @@ func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, f
 	return err
 }
 
+// UpdateCommentCount 更新评论数
 func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, change int32) error {
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
 	if err != nil {
 		return err
 	}
-	newCount := calculateValidUint32(video.FavoriteCount, change)
+	newCount := calculateValidUint32(video.CommentCount, change)
 	err = r.data.db.Model(&Video{}).Where("id = ?", videoId).
 		Update("comment_count", newCount).Error
 	if err != nil {

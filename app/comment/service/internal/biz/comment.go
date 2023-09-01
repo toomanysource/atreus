@@ -7,6 +7,11 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+const (
+	CreateType uint32 = 1
+	DeleteType uint32 = 2
+)
+
 type Comment struct {
 	Id         uint32
 	User       *User
@@ -56,12 +61,10 @@ func (uc *CommentUsecase) CommentAction(
 	actionType uint32, commentText string,
 ) (*Comment, error) {
 	// 判断actionType是否在指定范围内
-	var createType uint32 = 1
-	var deleteType uint32 = 2
 	switch actionType {
-	case createType:
+	case CreateType:
 		return uc.commentRepo.CreateComment(ctx, videoId, commentText)
-	case deleteType:
+	case DeleteType:
 		return uc.commentRepo.DeleteComment(ctx, videoId, commentId)
 	default:
 		return nil, errors.New("the value of action_type is not in the specified range")

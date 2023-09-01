@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/go-kratos/kratos/v2/middleware/validate"
+
 	v1 "github.com/toomanysource/atreus/api/relation/service/v1"
 	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
 	"github.com/toomanysource/atreus/app/relation/service/internal/service"
@@ -21,6 +23,7 @@ func NewHTTPServer(c *conf.Server, t *conf.JWT, relation *service.RelationServic
 	opts := []http.ServerOption{
 		http.ErrorEncoder(errorX.ErrorEncoder),
 		http.Middleware(
+			validate.Validator(),
 			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {
 				return []byte(t.Http.TokenKey), nil
 			}),
