@@ -1,7 +1,7 @@
 package server
 
 import (
-	"encoding/json"
+	"bytes"
 	"io"
 	"strings"
 
@@ -56,67 +56,38 @@ func NewHTTPServer(c *conf.Server, t *conf.JWT, publish *service.PublishService,
 func MultipartFormDataDecoder(r *http.Request, v interface{}) error {
 	// 从Request Header的Content-Type中提取出对应的解码器
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		paRequest := v.(*v1.PublishActionRequest)
 		var maxMemory int64 = 32 << 20
 		err := r.ParseMultipartForm(maxMemory)
 		if err != nil {
 			return errors.BadRequest("CODEC", err.Error())
 		}
-		title := r.FormValue("title")
-		token := r.FormValue("token")
+		paRequest.Title = r.FormValue("title")
+		paRequest.Token = r.FormValue("token")
 		file, _, err := r.FormFile("data")
 		if err != nil {
 			return errors.BadRequest("CODEC", err.Error())
 		}
-		defer file.Close()
-		dataChan := make(chan []byte)
-		errChan := make(chan error)
-
-		go ReadFile(file, dataChan, errChan)
-		var data []byte
-		for chunk := range dataChan {
-			data = append(data, chunk...)
-		}
-
-		select {
-		case err = <-errChan:
-			return errors.BadRequest("CODEC", err.Error())
-		default:
-			bytes, err := json.Marshal(&v1.PublishActionRequest{Data: data, Title: title, Token: token})
-			if err != nil {
-				return errors.BadRequest("CODEC", err.Error())
-			}
-			return json.Unmarshal(bytes, v)
-		}
-	} else {
-		codec, ok := http.CodecForRequest(r, "Content-Type")
-		// 如果找不到对应的解码器此时会报错
-		if !ok {
-			return errors.BadRequest("CODEC", r.Header.Get("Content-Type"))
-		}
-		data, err := io.ReadAll(r.Body)
+		var buf bytes.Buffer
+		_, err = io.Copy(&buf, file)
 		if err != nil {
 			return errors.BadRequest("CODEC", err.Error())
 		}
-		if err = codec.Unmarshal(data, v); err != nil {
-			return errors.BadRequest("CODEC", err.Error())
-		}
+		paRequest.Data = buf.Bytes()
+		log.Info("app upload success")
+		return nil
+	}
+	codec, ok := http.CodecForRequest(r, "Content-Type")
+	// 如果找不到对应的解码器此时会报错
+	if !ok {
+		return errors.BadRequest("CODEC", r.Header.Get("Content-Type"))
+	}
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		return errors.BadRequest("CODEC", err.Error())
+	}
+	if err = codec.Unmarshal(data, v); err != nil {
+		return errors.BadRequest("CODEC", err.Error())
 	}
 	return nil
-}
-
-func ReadFile(file io.Reader, dataChan chan<- []byte, errChan chan<- error) {
-	defer close(dataChan)
-	fig, mv := 32, 20
-	buffer := make([]byte, fig<<mv)
-	for {
-		n, err := file.Read(buffer)
-		if err != nil && err != io.EOF {
-			errChan <- err
-			return
-		}
-		if n == 0 {
-			break
-		}
-		dataChan <- buffer[:n]
-	}
 }
