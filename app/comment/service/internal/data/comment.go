@@ -171,7 +171,7 @@ func (r *commentRepo) GetCommentList(
 		return nil, errors.New("videoId is empty")
 	}
 	// 先在redis缓存中查询是否存在视频评论列表
-	comments, err := r.data.cache.HKeys(ctx, strconv.Itoa(int(videoId))).Result()
+	comments, err := r.data.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
 	if err != nil {
 		return nil, fmt.Errorf("redis query error %w", err)
 	}
@@ -197,8 +197,10 @@ func (r *commentRepo) GetCommentList(
 			}(v)
 		}
 		wg.Wait()
-		if err = <-errChan; err != nil {
+		select {
+		case err := <-errChan:
 			return nil, err
+		default:
 		}
 	} else {
 		cl, err = r.SearchCommentList(ctx, videoId)
@@ -248,33 +250,25 @@ func (r *commentRepo) DelComment(
 	ctx context.Context, videoId, commentId uint32, userId uint32,
 ) error {
 	comment := &Comment{}
-	err := r.data.db.Transaction(func(tx *gorm.DB) error {
-		result := tx.WithContext(ctx).First(comment, commentId)
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil
-		}
-		if result.Error != nil {
-			return fmt.Errorf("mysql query error %w", result.Error)
-		}
-		// 判断当前用户是否为评论用户
-		if comment.UserId != userId {
-			return errors.New("comment user conflict")
-		}
-		// 判断视频id是否为当前视频id
-		if comment.VideoId != videoId {
-			return errors.New("comment video conflict")
-		}
-		if err := tx.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
-			return fmt.Errorf("mysql delete error %w", err)
-		}
-		if err := kafkaX.Update(r.kfk, videoId, -1); err != nil {
-			return fmt.Errorf("publish update data error %w", err)
-		}
+	result := r.data.db.WithContext(ctx).First(comment, commentId)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("mysql transaction error %w", err)
 	}
+	if result.Error != nil {
+		return fmt.Errorf("mysql query error %w", result.Error)
+	}
+	// 判断当前用户是否为评论用户
+	if comment.UserId != userId {
+		return errors.New("comment user conflict")
+	}
+	if err := r.data.db.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
+		return fmt.Errorf("mysql delete error %w", err)
+	}
+	go func() {
+		if err := kafkaX.Update(r.kfk, videoId, -1); err != nil {
+			r.log.Errorf("publish update data error %w", err)
+		}
+	}()
 	return nil
 }
 
@@ -291,18 +285,14 @@ func (r *commentRepo) InsertComment(
 		Content:  commentText,
 		CreateAt: time.Now().Format("01-02"),
 	}
-	err := r.data.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.WithContext(ctx).Create(comment).Error; err != nil {
-			return fmt.Errorf("mysql create error %w", err)
-		}
-		if err := kafkaX.Update(r.kfk, videoId, 1); err != nil {
-			return fmt.Errorf("publish update data error %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("mysql transaction error %w", err)
+	if err := r.data.db.WithContext(ctx).Create(comment).Error; err != nil {
+		return nil, fmt.Errorf("mysql create error %w", err)
 	}
+	go func() {
+		if err := kafkaX.Update(r.kfk, videoId, 1); err != nil {
+			r.log.Errorf("publish update data error %w", err)
+		}
+	}()
 	return comment, nil
 }
 
@@ -357,8 +347,6 @@ func randomTime(timeType time.Duration, begin, end int) time.Duration {
 func sortComments(cl []*biz.Comment) {
 	// 对原始切片进行排序
 	sort.Slice(cl, func(i, j int) bool {
-		t1, _ := time.Parse("01-02", cl[i].CreateDate)
-		t2, _ := time.Parse("01-02", cl[j].CreateDate)
-		return t1.After(t2)
+		return cl[i].Id > cl[j].Id
 	})
 }
