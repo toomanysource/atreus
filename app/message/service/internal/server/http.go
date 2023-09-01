@@ -22,7 +22,6 @@ func NewHTTPServer(c *conf.Server, t *conf.JWT, greeter *service.MessageService,
 	opts := []http.ServerOption{
 		http.ErrorEncoder(errorX.ErrorEncoder),
 		http.Middleware(
-
 			validate.Validator(),
 			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {
 				return []byte(t.Http.TokenKey), nil
