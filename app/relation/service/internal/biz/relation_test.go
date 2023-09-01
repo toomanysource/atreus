@@ -87,7 +87,7 @@ func TestRelationService_GetFollowList(t *testing.T) {
 	users, err := useCase.GetFollowList(ctx, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(users))
-	users, err = useCase.GetFollowList(ctx, 0)
+	_, err = useCase.GetFollowList(ctx, 0)
 	assert.Nil(t, err)
 }
 
@@ -95,7 +95,7 @@ func TestRelationService_GetFollowerList(t *testing.T) {
 	users, err := useCase.GetFollowerList(ctx, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(users))
-	users, err = useCase.GetFollowerList(ctx, 0)
+	_, err = useCase.GetFollowerList(ctx, 0)
 	assert.Nil(t, err)
 }
 
