@@ -8,8 +8,9 @@ import "google/protobuf/duration.proto";
 
 message Bootstrap {
   Server server = 1;
-  Data data = 2;
-  JWT jwt = 3;
+  Client client = 2;
+  Data data = 3;
+  JWT jwt = 4;
 }
 
 message Server {
@@ -25,6 +26,13 @@ message Server {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+}
+
+message Client {
+  message Relation {
+    string to = 1;
+  }
+  Relation relation = 1;
 }
 
 message Data {
