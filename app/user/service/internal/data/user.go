@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/toomanysource/atreus/app/user/service/internal/server"
+
 	"github.com/segmentio/kafka-go"
 
 	"github.com/toomanysource/atreus/pkg/kafkaX"
@@ -46,21 +48,27 @@ func (User) TableName() string {
 	return userTableName
 }
 
+type RelationRepo interface {
+	IsFollow(ctx context.Context, userId uint32, toUserId []uint32) ([]bool, error)
+}
+
 type userRepo struct {
-	db  *gorm.DB
-	kfk KfkReader
-	rdb *redis.Client
-	log *log.Helper
+	db           *gorm.DB
+	kfk          KfkReader
+	relationRepo RelationRepo
+	rdb          *redis.Client
+	log          *log.Helper
 }
 
 // NewUserRepo .
-func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
+func NewUserRepo(data *Data, relationConn server.RelationConn, logger log.Logger) biz.UserRepo {
 	logs := log.NewHelper(log.With(logger, "data", "user_repo"))
 	r := &userRepo{
-		db:  data.db,
-		kfk: data.kfk,
-		rdb: data.rdb,
-		log: logs,
+		db:           data.db,
+		kfk:          data.kfk,
+		relationRepo: NewRelationRepo(relationConn),
+		rdb:          data.rdb,
+		log:          logs,
 	}
 	if err := r.db.AutoMigrate(&User{}); err != nil {
 		log.Fatalf("database %s initialize failed: %s", userTableName, err.Error())
@@ -131,12 +139,17 @@ func (r *userRepo) findById(ctx context.Context, id uint32) (*User, error) {
 // FindByIds .
 func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) ([]*biz.User, error) {
 	result := make([]*biz.User, 0, len(ids))
+	isFollow, err := r.relationRepo.IsFollow(ctx, userId, ids)
+	if err != nil {
+		return nil, err
+	}
 	// 记录查询过的id，避免出现查询重复的id
 	once := make(map[uint32]int)
 	session := r.db.WithContext(ctx)
-	for _, id := range ids {
+	for i, id := range ids {
 		// 重复id无需查询，从已查询的结果中获取
 		if idx, ok := once[id]; ok {
+			result[idx].IsFollow = isFollow[i]
 			result = append(result, result[idx])
 			continue
 		}
@@ -145,6 +158,7 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 		if err == nil {
 			user := new(biz.User)
 			copier.Copy(user, u)
+			user.IsFollow = isFollow[i]
 			result = append(result, user)
 			once[id] = len(result) - 1
 			continue
@@ -173,6 +187,7 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 		}(u.Id)
 		user := new(biz.User)
 		copier.Copy(user, u)
+		user.IsFollow = isFollow[i]
 		result = append(result, user)
 		once[id] = len(result) - 1
 	}
