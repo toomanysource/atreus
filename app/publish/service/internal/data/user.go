@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jinzhu/copier"
+
 	pb "github.com/toomanysource/atreus/api/user/service/v1"
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
 	"github.com/toomanysource/atreus/app/publish/service/internal/server"
@@ -31,21 +33,10 @@ func (u *userRepo) GetUserInfos(ctx context.Context, userId uint32, userIds []ui
 	if len(resp.Users) == 0 {
 		return nil, errors.New("the user service did not search for any information")
 	}
-	users := make([]*biz.User, 0, len(resp.Users)+1)
-	for _, user := range resp.Users {
-		users = append(users, &biz.User{
-			ID:              user.Id,
-			Name:            user.Name,
-			Avatar:          user.Avatar,
-			BackgroundImage: user.BackgroundImage,
-			Signature:       user.Signature,
-			IsFollow:        user.IsFollow,
-			FollowCount:     user.FollowCount,
-			FollowerCount:   user.FollowerCount,
-			TotalFavorited:  user.TotalFavorited,
-			WorkCount:       user.WorkCount,
-			FavoriteCount:   user.FavoriteCount,
-		})
+	users := make([]*biz.User, 0, len(resp.Users))
+	err = copier.Copy(&users, &resp.Users)
+	if err != nil {
+		return nil, fmt.Errorf("copier.Copy error: %v", err)
 	}
 	return users, nil
 }

@@ -18,14 +18,19 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	OccupyKey   = "-1"
+	OccupyValue = ""
+)
+
 type UserRepo interface {
 	GetUserInfos(ctx context.Context, userId uint32, userIds []uint32) ([]*biz.User, error)
 }
 
 type Followers struct {
 	Id         uint32 `gorm:"primary_key"`
-	UserId     uint32 `gorm:"column:user_id;not null"`
-	FollowerId uint32 `gorm:"column:follower_id;not null"`
+	UserId     uint32 `gorm:"column:user_id;not null;index:idx_user_id"`
+	FollowerId uint32 `gorm:"column:follower_id;not null;index:idx_follower_id"`
 }
 
 func (Followers) TableName() string {
@@ -57,6 +62,9 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 	fl := make([]uint32, 0, len(follows))
 	if len(follows) > 0 {
 		for _, v := range follows {
+			if v == OccupyKey {
+				continue
+			}
 			vc, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, fmt.Errorf("strconv error %w", err)
@@ -68,10 +76,6 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 		fl, err = r.GetFlList(ctx, userId)
 		if err != nil {
 			return nil, err
-		}
-		// 没有关注列表则不创建
-		if len(fl) == 0 {
-			return nil, nil
 		}
 		// 将关注列表存入redis缓存
 		go func(l []uint32) {
@@ -103,6 +107,9 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 	fl := make([]uint32, 0, len(followers))
 	if len(followers) > 0 {
 		for _, v := range followers {
+			if v == OccupyKey {
+				continue
+			}
 			vc, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, fmt.Errorf("strconv error %w", err)
@@ -114,10 +121,6 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 		fl, err = r.GetFlrList(ctx, userId)
 		if err != nil {
 			return nil, err
-		}
-		// 没有粉丝列表则不创建
-		if len(fl) == 0 {
-			return nil, nil
 		}
 		// 将关注列表存入redis缓存
 		go func(l []uint32) {
@@ -203,10 +206,6 @@ func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
 				r.log.Errorf("mysql query error %w", err)
 				return
 			}
-			// 没有粉丝列表则不创建
-			if len(cl) == 0 {
-				return
-			}
 			if err = CacheCreateRelationTransaction(ctx, r.data.cache.followedRelation, cl, toUserId); err != nil {
 				r.log.Errorf("redis transaction error %w", err)
 				return
@@ -275,15 +274,34 @@ func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, toUserId []u
 		return nil, fmt.Errorf("redis query error %w", err)
 	}
 	if count > 0 {
+		once := make(map[uint32]bool)
 		for _, v := range toUserId {
+			if _, ok := once[v]; ok {
+				oks = append(oks, once[v])
+				continue
+			}
 			ok, err := r.data.cache.followRelation.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(v))).Result()
 			if err != nil {
 				return nil, fmt.Errorf("redis query error %w", err)
 			}
+			once[v] = ok
 			oks = append(oks, ok)
 		}
 		return oks, nil
 	}
+	go func() {
+		// 如果不存在则创建
+		cl, err := r.GetFlList(ctx, userId)
+		if err != nil {
+			r.log.Errorf("mysql query error %w", err)
+			return
+		}
+		if err = CacheCreateRelationTransaction(ctx, r.data.cache.followRelation, cl, userId); err != nil {
+			r.log.Errorf("redis transaction error %w", err)
+			return
+		}
+		r.log.Info("redis transaction success")
+	}()
 	return r.SearchRelation(ctx, userId, toUserId)
 }
 
@@ -394,9 +412,10 @@ func CacheCreateRelationTransaction(ctx context.Context, cache *redis.Client, ul
 	// 使用事务将列表存入redis缓存
 	_, err := cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		insertMap := make(map[string]interface{}, len(ul))
+		insertMap[OccupyKey] = OccupyValue
 		for _, v := range ul {
 			vs := strconv.Itoa(int(v))
-			insertMap[vs] = ""
+			insertMap[vs] = OccupyValue
 		}
 		err := pipe.HMSet(ctx, strconv.Itoa(int(userId)), insertMap).Err()
 		if err != nil {

@@ -75,8 +75,7 @@ func (u *PublishUsecase) PublishAction(
 }
 
 func (u *PublishUsecase) GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {
-	videoList, err := u.repo.FindVideoListByVideoIds(ctx, userId, videoIds)
-	return videoList, err
+	return u.repo.FindVideoListByVideoIds(ctx, userId, videoIds)
 }
 
 func (u *PublishUsecase) FeedList(ctx context.Context, latestTime string) (int64, []*Video, error) {
