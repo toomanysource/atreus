@@ -33,3 +33,4 @@ include make/cli.mk
 include make/help.mk
 include make/proto.mk
 include make/golang.mk
+include make/docker.mk
