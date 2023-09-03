@@ -10,7 +10,6 @@ import (
 	"github.com/toomanysource/atreus/pkg/minioX"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-redis/redis/v8"
 	"github.com/google/wire"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -20,7 +19,7 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewKafkaWriter, NewPublishRepo, NewMysqlConn, NewRedisConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
+var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewKafkaWriter, NewPublishRepo, NewMysqlConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
 
 type KfkReader struct {
 	comment  *kafka.Reader
@@ -33,45 +32,46 @@ type Data struct {
 	oss       *minioX.Client
 	kfkReader KfkReader
 	kfkWriter *kafka.Writer
-	cache     *redis.Client
-	log       *log.Helper
+	// cache     *redis.Client
+	log *log.Helper
 }
 
 // NewData .
-func NewData(db *gorm.DB, minioClient *minioX.Client, kfkWriter *kafka.Writer, kfkReader KfkReader, cacheClient *redis.Client, logger log.Logger) (*Data, func(), error) {
+func NewData(db *gorm.DB, minioClient *minioX.Client, kfkWriter *kafka.Writer, kfkReader KfkReader, logger log.Logger) (*Data, func(), error) {
+	logHelper := log.NewHelper(log.With(logger, "module", "publish-service/data"))
 	cleanup := func() {
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if err := kfkReader.comment.Close(); err != nil {
-				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if err := kfkReader.favorite.Close(); err != nil {
-				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			if err := kfkWriter.Close(); err != nil {
-				log.NewHelper(logger).Errorf("Kafka connection closure failed, err: %w", err)
+				logHelper.Errorf("Kafka connection closure failed, err: %w", err)
 			}
 		}()
 		wg.Wait()
-		log.NewHelper(logger).Info("Successfully close the Kafka connection")
+		logHelper.Info("Successfully close the Kafka connection")
 	}
 	data := &Data{
 		db:        db.Model(&Video{}),
 		oss:       minioClient,
 		kfkReader: kfkReader,
 		kfkWriter: kfkWriter,
-		cache:     cacheClient,
-		log:       log.NewHelper(logger),
+		// cache:     cacheClient,
+		log: logHelper,
 	}
 	return data, cleanup, nil
 }
@@ -89,25 +89,26 @@ func NewMysqlConn(c *conf.Data) *gorm.DB {
 	return db
 }
 
-// NewRedisConn Redis数据库连接
-func NewRedisConn(c *conf.Data) *redis.Client {
-	client := redis.NewClient(&redis.Options{
-		DB:           int(c.Redis.Db),
-		Addr:         c.Redis.Addr,
-		Username:     "atreus",
-		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
-		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
-		Password:     c.Redis.Password,
-	})
+// // NewRedisConn Redis数据库连接
+// func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
+// 	logs := log.NewHelper(log.With(l, "module", "data/redis"))
+// 	client := redis.NewClient(&redis.Options{
+// 		DB:           int(c.Redis.Db),
+// 		Addr:         c.Redis.Addr,
+// 		Username:     c.Redis.Username,
+// 		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
+// 		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
+// 		Password:     c.Redis.Password,
+// 	})
 
-	// ping Redis客户端，判断连接是否存在
-	_, err := client.Ping(context.Background()).Result()
-	if err != nil {
-		log.Fatalf("Redis database connection failure, err : %v", err)
-	}
-	log.Info("Cache enabled successfully!")
-	return client
-}
+// 	// ping Redis客户端，判断连接是否存在
+// 	_, err := client.Ping(context.Background()).Result()
+// 	if err != nil {
+// 		logs.Fatalf("Redis database connection failure, err : %v", err)
+// 	}
+// 	logs.Info("Cache enabled successfully!")
+// 	return client
+// }
 
 func NewMinioConn(c *conf.Minio, extraConn minioX.ExtraConn, intraConn minioX.IntraConn) *minioX.Client {
 	client := minioX.NewClient(extraConn, intraConn)
