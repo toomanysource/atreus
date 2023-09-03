@@ -54,9 +54,10 @@ services:
       - atreus_net
 
   zookeeper:
-    image: docker.io/bitnami/zookeeper:3.8
-    user: root
+    image: docker.io/bitnami/zookeeper:3.8.2
     container_name: zookeeper
+    restart: always
+    user: root
     ports:
       - "12181:2181"
     volumes:
@@ -68,21 +69,23 @@ services:
       - atreus_net
 
   kafka:
+    image: docker.io/bitnami/kafka:3.5.1
     restart: always
     user: root
-    image: docker.io/bitnami/kafka:3.4
     container_name: kafka
     ports:
       - "19092:9092"
+      - "20222:20222"
     volumes:
       - ../../_data/kafka:/bitnami/kafka:rw #持久化数据
     environment:
       - TZ=Asia/Shanghai
       - KAFKA_BROKER_ID=1
       # - KAFKA_ADVERTISED_HOST_NAME=kafka # 用ifconfig查询，或者直接填写kafka
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092 #替换成你自己的IP
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://192.168.3.12:9092 #替换成你自己的IP
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - ALLOW_PLAINTEXT_LISTENER=yes
       - ALLOW_AUTO_CREATE_TOPICS=yes
     networks:
@@ -110,7 +113,7 @@ services:
       redis:
         condition: service_started
       kafka:
-        condition: service_completed_successfully
+        condition: service_started
   publish-service:
     build:
       context: ../../
@@ -129,7 +132,7 @@ services:
       mysql:
         condition: service_healthy
       kafka:
-        condition: service_completed_successfully
+        condition: service_started
       redis:
         condition: service_started
       minio:
@@ -154,7 +157,7 @@ services:
       redis:
         condition: service_started
       kafka:
-        condition: service_completed_successfully
+        condition: service_started
 
   favorite-service:
     build:
@@ -176,7 +179,7 @@ services:
       redis:
         condition: service_started
       kafka:
-        condition: service_completed_successfully
+        condition: service_started
 
   relation-service:
     build:
@@ -198,7 +201,7 @@ services:
       redis:
         condition: service_started
       kafka:
-        condition: service_completed_successfully
+        condition: service_started
 
   message-service:
     build:
@@ -220,7 +223,7 @@ services:
       redis:
         condition: service_started
       kafka:
-        condition: service_completed_successfully
+        condition: service_started
 
 networks:
   atreus_net:
