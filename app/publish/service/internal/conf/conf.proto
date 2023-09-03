@@ -45,13 +45,6 @@ message Data {
     string driver = 1;
     string dsn = 2;
   }
-  message Redis {
-    int32 db = 1;
-    string addr = 2;
-    string password = 3;
-    google.protobuf.Duration read_timeout = 4;
-    google.protobuf.Duration write_timeout = 5;
-  }
   message Kafka {
     string addr = 1;
     string comment_topic = 2;
@@ -62,8 +55,7 @@ message Data {
     google.protobuf.Duration write_timeout = 7;
   }
   Mysql mysql = 1;
-  Redis redis = 2;
-  Kafka kafka = 3;
+  Kafka kafka = 2;
 }
 
 message JWT {
