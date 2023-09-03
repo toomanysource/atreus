@@ -29,8 +29,7 @@ func wireApp(confServer *conf.Server, client *conf.Client, minio *conf.Minio, jw
 	minioXClient := data.NewMinioConn(minio, extraConn, intraConn)
 	writer := data.NewKafkaWriter(confData)
 	kfkReader := data.NewKafkaReader(confData)
-	redisClient := data.NewRedisConn(confData)
-	dataData, cleanup, err := data.NewData(db, minioXClient, writer, kfkReader, redisClient, logger)
+	dataData, cleanup, err := data.NewData(db, minioXClient, writer, kfkReader, logger)
 	if err != nil {
 		return nil, nil, err
 	}
