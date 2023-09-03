@@ -7,7 +7,7 @@ server:
     timeout: 1s
 client:
   relation:
-    to: 0.0.0.0:9005
+    to: 0.0.0.0:19005
 data:
   database:
     driver: mysql
