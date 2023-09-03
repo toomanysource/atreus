@@ -1,10 +1,13 @@
 server:
   http:
-    addr: 0.0.0.0:8000
+    addr: 0.0.0.0:8001
     timeout: 1s
   grpc:
-    addr: 0.0.0.0:9000
+    addr: 0.0.0.0:9001
     timeout: 1s
+client:
+  relation:
+    to: 0.0.0.0:19005
 data:
   database:
     driver: mysql
@@ -16,6 +19,16 @@ data:
     read_timeout: 0.2s
     write_timeout: 0.2s
     TTL: 1000
+  kafka:
+    addr: kafka:9092
+    favorite_topic: "favorite"
+    favored_topic: "favored"
+    follow_topic: "follow"
+    follower_topic: "follower"
+    publish_topic: "publish"
+    partition: 0
+    read_timeout: 0.2s
+    write_timeout: 0.2s
 jwt:
   http:
     token_key: "AtReUs"
