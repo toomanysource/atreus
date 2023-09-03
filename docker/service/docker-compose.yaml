@@ -79,8 +79,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - KAFKA_BROKER_ID=1
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://0.0.0.0:9092 #替换成你自己的IP
+      # - KAFKA_ADVERTISED_HOST_NAME=kafka # 用ifconfig查询，或者直接填写kafka
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092 #替换成你自己的IP
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
       - ALLOW_PLAINTEXT_LISTENER=yes
       - ALLOW_AUTO_CREATE_TOPICS=yes
@@ -110,7 +111,6 @@ services:
         condition: service_started
       kafka:
         condition: service_completed_successfully
-
   publish-service:
     build:
       context: ../../
@@ -128,13 +128,12 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      kafka:
+        condition: service_completed_successfully
       redis:
         condition: service_started
       minio:
         condition: service_started
-      kafka:
-        condition: service_completed_successfully
-
   comment-service:
     build:
       context: ../../

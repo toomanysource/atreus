@@ -37,8 +37,7 @@ jwt:
 minio:
   endpointExtra: minio:9000
   endpointIntra: minio:9000
-  # accessKeyId: "atreus"
-  # accessSecret: "atreus"
+  #  Need have 8 character
   accessKeyId: "toomanysource"
   accessSecret: "toomanysource"
   useSSL: false
