@@ -15,7 +15,7 @@ data:
     driver: mysql
     dsn: "root:toomanysource@tcp(127.0.0.1:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local"
   redis:
-    publish_db: 3
+    db: 3
     addr: 127.0.0.1:6379
     password: "atreus"
     read_timeout: 0.2s
