@@ -205,6 +205,7 @@ func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
 
 func (r *publishRepo) FindVideoListByUserId(ctx context.Context, userId uint32) ([]*biz.Video, error) {
 	var videoList []*Video
+	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	result := r.data.db.WithContext(ctx).Where("author_id = ?", userId).Find(&videoList)
 	if result.Error != nil {
 		return nil, result.Error
@@ -216,7 +217,7 @@ func (r *publishRepo) FindVideoListByUserId(ctx context.Context, userId uint32) 
 	if err != nil {
 		return nil, fmt.Errorf("update url error: %w", err)
 	}
-	users, err := r.userRepo.GetUserInfos(ctx, 0, []uint32{userId})
+	users, err := r.userRepo.GetUserInfos(ctx, userID, []uint32{userId})
 	if err != nil {
 		return nil, err
 	}
@@ -315,19 +316,30 @@ func (r *publishRepo) GetFeedList(
 
 // GetVideoAuthor 获取视频作者
 func (r *publishRepo) GetVideoAuthor(ctx context.Context, userId uint32, videoList []*Video) ([]*biz.Video, error) {
-	userIds := make([]uint32, 0, len(videoList))
+	userIdMap := make(map[uint32]*biz.User)
+	// 去重
 	for _, video := range videoList {
-		userIds = append(userIds, video.AuthorID)
+		if _, ok := userIdMap[video.AuthorID]; !ok {
+			userIdMap[video.AuthorID] = &biz.User{}
+			continue
+		}
+	}
+	var userIds []uint32
+	for k := range userIdMap {
+		userIds = append(userIds, k)
 	}
 	users, err := r.userRepo.GetUserInfos(ctx, userId, userIds)
 	if err != nil {
 		return nil, err
 	}
+	for _, user := range users {
+		userIdMap[user.ID] = user
+	}
 	vl := make([]*biz.Video, 0, len(videoList))
-	for i, video := range videoList {
+	for _, video := range videoList {
 		vl = append(vl, &biz.Video{
 			ID:            video.Id,
-			Author:        users[i],
+			Author:        userIdMap[video.AuthorID],
 			PlayUrl:       video.PlayUrl,
 			CoverUrl:      video.CoverUrl,
 			FavoriteCount: video.FavoriteCount,

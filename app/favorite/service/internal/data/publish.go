@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"errors"
 
 	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
 	"github.com/toomanysource/atreus/app/favorite/service/internal/server"
@@ -30,9 +29,6 @@ func (f *publishRepo) GetVideoListByVideoIds(
 	resp, err := f.client.GetVideoListByVideoIds(ctx, &pb.VideoListByVideoIdsRequest{UserId: userId, VideoIds: videoIds})
 	if err != nil {
 		return nil, err
-	}
-	if len(resp.VideoList) == 0 {
-		return nil, errors.New("video not found")
 	}
 	// convert pb.Video slice to biz.Video slice
 	videos := make([]biz.Video, len(resp.VideoList))

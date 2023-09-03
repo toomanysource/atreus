@@ -29,11 +29,17 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+const (
+	OccupyKey   = "-1"
+	OccupyValue = ""
+	CommentNil  = ""
+)
+
 // Comment Database Model
 type Comment struct {
 	Id       uint32 `gorm:"primary_key"`
-	UserId   uint32 `gorm:"column:user_id;not null;index"`
-	VideoId  uint32 `gorm:"column:video_id;not null;index"`
+	UserId   uint32 `gorm:"column:user_id;not null"`
+	VideoId  uint32 `gorm:"column:video_id;not null;index:idx_video_id"`
 	Content  string `gorm:"column:content;not null"`
 	CreateAt string `gorm:"column:created_at;default:''"`
 }
@@ -171,18 +177,24 @@ func (r *commentRepo) GetCommentList(
 		return nil, errors.New("videoId is empty")
 	}
 	// 先在redis缓存中查询是否存在视频评论列表
-	comments, err := r.data.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
+	count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(videoId))).Result()
 	if err != nil {
 		return nil, fmt.Errorf("redis query error %w", err)
 	}
-
-	cl := make([]*Comment, len(comments))
-	if len(comments) > 0 {
+	var cl []*Comment
+	if count > 0 {
+		comments, err := r.data.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
+		if err != nil {
+			return nil, fmt.Errorf("redis query error %w", err)
+		}
 		// 如果存在则直接返回
 		var wg sync.WaitGroup
 		var mutex sync.Mutex
 		errChan := make(chan error)
 		for _, v := range comments {
+			if v == OccupyValue {
+				continue
+			}
 			wg.Add(1)
 			go func(comment string) {
 				defer wg.Done()
@@ -208,9 +220,6 @@ func (r *commentRepo) GetCommentList(
 			return nil, err
 		}
 		// 没有列表则不创建
-		if len(cl) == 0 {
-			return nil, nil
-		}
 		go func(l []*Comment) {
 			if err = r.CacheCreateCommentTransaction(context.Background(), l, videoId); err != nil {
 				r.log.Errorf("redis transaction error %w", err)
@@ -218,6 +227,9 @@ func (r *commentRepo) GetCommentList(
 			}
 			r.log.Info("redis transaction success")
 		}(cl)
+	}
+	if len(cl) == 0 {
+		return nil, nil
 	}
 	// 获取评论列表中的所有用户id
 	userIds := make([]uint32, 0, len(cl))
@@ -276,7 +288,7 @@ func (r *commentRepo) DelComment(
 func (r *commentRepo) InsertComment(
 	ctx context.Context, videoId uint32, commentText string, userId uint32,
 ) (*Comment, error) {
-	if commentText == "" {
+	if commentText == CommentNil {
 		return nil, errors.New("comment text not exist")
 	}
 	comment := &Comment{
@@ -315,6 +327,7 @@ func (r *commentRepo) CacheCreateCommentTransaction(ctx context.Context, cl []*C
 	// 使用事务将评论列表存入redis缓存
 	_, err := r.data.cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		insertMap := make(map[string]interface{}, len(cl))
+		insertMap[OccupyKey] = OccupyValue
 		for _, v := range cl {
 			marc, err := json.Marshal(v)
 			if err != nil {
