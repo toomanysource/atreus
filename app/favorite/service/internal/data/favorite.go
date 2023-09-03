@@ -19,10 +19,9 @@ import (
 )
 
 type Favorite struct {
-	ID        uint32    `gorm:"column:id;primary_key;autoIncrement"`
-	VideoID   uint32    `gorm:"column:video_id"`
-	UserID    uint32    `gorm:"column:user_id"`
-	CreatedAt time.Time `gorm:"column:created_at"` // new add field; for backend use only
+	ID      uint32 `gorm:"column:id;primary_key;autoIncrement"`
+	UserID  uint32 `gorm:"column:user_id;index:idx_user_video"`
+	VideoID uint32 `gorm:"column:video_id;index:idx_user_video"`
 }
 
 func (Favorite) TableName() string {
@@ -56,20 +55,16 @@ func (r *favoriteRepo) CreateFavorite(ctx context.Context, userId, videoId uint3
 	go func() {
 		ctx := context.TODO()
 		// 在redis缓存中查询是否存在
-		ok, err := r.data.cache.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(videoId))).Result()
+		count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(userId))).Result()
 		if err != nil {
 			r.log.Errorf("redis query error %w", err)
 			return
 		}
-		if !ok {
+		if count == 0 {
 			// 如果不存在则创建
 			cl, err := r.GetFavorites(ctx, userId)
 			if err != nil {
 				r.log.Errorf("mysql query error %w", err)
-				return
-			}
-			// 没有喜爱列表则不创建
-			if len(cl) == 0 {
 				return
 			}
 			if err = CacheCreateFavoriteTransaction(ctx, r.data.cache, cl, userId); err != nil {
@@ -120,13 +115,20 @@ func (r *favoriteRepo) DeleteFavorite(ctx context.Context, userId, videoId uint3
 
 func (r *favoriteRepo) GetFavoriteList(ctx context.Context, userID uint32) ([]biz.Video, error) {
 	// 先在redis缓存中查询是否存在喜爱列表
-	favorites, err := r.data.cache.HKeys(ctx, strconv.Itoa(int(userID))).Result()
+	count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(userID))).Result()
 	if err != nil {
 		return nil, fmt.Errorf("redis query error %w", err)
 	}
-	fl := make([]uint32, 0, len(favorites))
-	if len(favorites) > 0 {
+	var fl []uint32
+	if count > 0 {
+		favorites, err := r.data.cache.HKeys(ctx, strconv.Itoa(int(userID))).Result()
+		if err != nil {
+			return nil, fmt.Errorf("redis query error %w", err)
+		}
 		for _, v := range favorites {
+			if v == "-1" {
+				continue
+			}
 			vc, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, fmt.Errorf("strconv error %w", err)
@@ -139,10 +141,6 @@ func (r *favoriteRepo) GetFavoriteList(ctx context.Context, userID uint32) ([]bi
 		if err != nil {
 			return nil, err
 		}
-		// 没有喜爱列表则不创建
-		if len(fl) == 0 {
-			return nil, nil
-		}
 		// 将喜爱列表存入redis缓存
 		go func(l []uint32) {
 			if err = CacheCreateFavoriteTransaction(context.Background(), r.data.cache, l, userID); err != nil {
@@ -151,6 +149,9 @@ func (r *favoriteRepo) GetFavoriteList(ctx context.Context, userID uint32) ([]bi
 			}
 			r.log.Info("redis transaction success")
 		}(fl)
+	}
+	if len(fl) == 0 {
+		return nil, nil
 	}
 	videos, err := r.publishRepo.GetVideoListByVideoIds(ctx, userID, fl)
 	if err != nil {
@@ -170,15 +171,35 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 		return nil, fmt.Errorf("redis query error %w", err)
 	}
 	if count > 0 {
+		once := make(map[uint32]bool)
 		for _, v := range videoIds {
+			if _, ok := once[v]; ok {
+				oks = append(oks, once[v])
+				continue
+			}
 			ok, err := r.data.cache.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(v))).Result()
 			if err != nil {
 				return nil, fmt.Errorf("redis query error %w", err)
 			}
+			once[v] = ok
 			oks = append(oks, ok)
 		}
 		return oks, nil
 	}
+	go func() {
+		// 如果不存在则创建
+		fl, err := r.GetFavorites(ctx, userId)
+		if err != nil {
+			r.log.Errorf("mysql query error %w", err)
+			return
+		}
+		// 将喜爱列表存入redis缓存
+		if err = CacheCreateFavoriteTransaction(context.Background(), r.data.cache, fl, userId); err != nil {
+			r.log.Errorf("redis transaction error %w", err)
+			return
+		}
+		r.log.Info("redis transaction success")
+	}()
 	return r.CheckFavorite(ctx, userId, videoIds)
 }
 
@@ -298,6 +319,8 @@ func CacheCreateFavoriteTransaction(ctx context.Context, cache *redis.Client, vl
 	// 使用事务将列表存入redis缓存
 	_, err := cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		insertMap := make(map[string]interface{}, len(vl))
+		// 如果喜爱列表为空则插入一个空值,防止缓存击穿
+		insertMap["-1"] = ""
 		for _, v := range vl {
 			vs := strconv.Itoa(int(v))
 			insertMap[vs] = ""
