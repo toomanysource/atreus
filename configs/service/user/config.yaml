@@ -13,7 +13,7 @@ data:
     driver: mysql
     source: root:toomanysource@tcp(mysql:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local
   redis:
-    user_db: 1
+    db: 1
     addr: redis:6379
     password: "atreus"
     read_timeout: 0.2s
