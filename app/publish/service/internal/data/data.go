@@ -32,8 +32,7 @@ type Data struct {
 	oss       *minioX.Client
 	kfkReader KfkReader
 	kfkWriter *kafka.Writer
-	// cache     *redis.Client
-	log *log.Helper
+	log       *log.Helper
 }
 
 // NewData .
@@ -88,27 +87,6 @@ func NewMysqlConn(c *conf.Data) *gorm.DB {
 	log.Info("Database enabled successfully!")
 	return db
 }
-
-// // NewRedisConn Redis数据库连接
-// func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
-// 	logs := log.NewHelper(log.With(l, "module", "data/redis"))
-// 	client := redis.NewClient(&redis.Options{
-// 		DB:           int(c.Redis.Db),
-// 		Addr:         c.Redis.Addr,
-// 		Username:     c.Redis.Username,
-// 		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
-// 		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
-// 		Password:     c.Redis.Password,
-// 	})
-
-// 	// ping Redis客户端，判断连接是否存在
-// 	_, err := client.Ping(context.Background()).Result()
-// 	if err != nil {
-// 		logs.Fatalf("Redis database connection failure, err : %v", err)
-// 	}
-// 	logs.Info("Cache enabled successfully!")
-// 	return client
-// }
 
 func NewMinioConn(c *conf.Minio, extraConn minioX.ExtraConn, intraConn minioX.IntraConn) *minioX.Client {
 	client := minioX.NewClient(extraConn, intraConn)
