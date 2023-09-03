@@ -37,7 +37,9 @@ jwt:
 minio:
   endpointExtra: minio:9000
   endpointIntra: minio:9000
-  accessKeyId: "atreus"
-  accessSecret: "atreus"
+  # accessKeyId: "atreus"
+  # accessSecret: "atreus"
+  accessKeyId: "toomanysource"
+  accessSecret: "toomanysource"
   useSSL: false
   bucketName: "oss"
