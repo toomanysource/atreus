@@ -69,8 +69,7 @@ func NewData(db *gorm.DB, minioClient *minioX.Client, kfkWriter *kafka.Writer, k
 		oss:       minioClient,
 		kfkReader: kfkReader,
 		kfkWriter: kfkWriter,
-		// cache:     cacheClient,
-		log: logHelper,
+		log:       logHelper,
 	}
 	return data, cleanup, nil
 }
