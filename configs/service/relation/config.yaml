@@ -1,19 +1,21 @@
 server:
   http:
-    addr: 0.0.0.0:8001
+    addr: 0.0.0.0:8005
     timeout: 1s
   grpc:
-    addr: 0.0.0.0:9001
+    addr: 0.0.0.0:9005
     timeout: 1s
 client:
-  relation:
-    to: 0.0.0.0:19005
+  user:
+    to: 0.0.0.0:19001
+  favorite:
+    to: 0.0.0.0:19004
 data:
-  database:
+  mysql:
     driver: mysql
-    source: root:toomanysource@tcp(mysql:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local
+    dsn: "root:toomanysource@tcp(mysql:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local"
   redis:
-    db: 1
+    db: 4
     addr: redis:6379
     password: "atreus"
     read_timeout: 0.2s
@@ -21,11 +23,8 @@ data:
     TTL: 1000
   kafka:
     addr: kafka:9092
-    favorite_topic: "favorite"
-    favored_topic: "favored"
     follow_topic: "follow"
     follower_topic: "follower"
-    publish_topic: "publish"
     partition: 0
     read_timeout: 0.2s
     write_timeout: 0.2s
