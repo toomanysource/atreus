@@ -17,9 +17,9 @@ var (
 
 func testCreate(t *testing.T) {
 	tests := []*biz.User{
-		{9, "dajun", "junda", "dajun", 0, 0, "", "", "", 0, 0, 0, false, ""},
-		{10, "mimi", "mimi", "mimi", 0, 0, "", "", "", 0, 0, 0, false, ""},
-		{11, "noname", "nameno", "noname", 0, 0, "", "", "", 0, 0, 0, false, ""},
+		{Id: 9, Username: "dajun", Password: "junda", Name: "dajun"},
+		{Id: 10, Username: "mimi", Password: "mimi", Name: "mimi"},
+		{Id: 11, Username: "noname", Password: "nameno", Name: "noname"},
 	}
 	rowsBeforeTest := mock.GetUserTableLength()
 	for _, tt := range tests {
