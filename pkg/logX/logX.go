@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
-	time2 "time"
+	"time"
 
 	nested "github.com/antonfisher/nested-logrus-formatter"
 	kralog "github.com/go-kratos/kratos/v2/log"
 	log "github.com/sirupsen/logrus"
 )
+
+type Option func(*Log)
 
 type Log struct {
 	Logger *log.Logger
@@ -19,7 +21,7 @@ func NewDefaultLogger() *Log {
 	logger := log.New()
 	logger.SetFormatter(&nested.Formatter{
 		HideKeys:        false,
-		NoColors:        true,
+		NoColors:        false,
 		ShowFullLevel:   true,
 		TimestampFormat: "2006-01-02 15:04:05",
 		FieldsOrder:     []string{"service", "caller", "module", "msg"},
@@ -66,9 +68,9 @@ func (l *Log) FilePath(path string) (*os.File, error) {
 }
 
 func (l *Log) SetTimeFileName(name string, flag bool) string {
-	time := time2.Now()
+	timeState := time.Now()
 	if flag {
-		return fmt.Sprint(name, time.Format("2006-01-02 15:04:05"), ".log")
+		return fmt.Sprint(name, timeState.Format("2006-01-02 15:04:05"), ".log")
 	}
-	return fmt.Sprint(name, time.Format("2006-01-02"), ".log")
+	return fmt.Sprint(name, timeState.Format("2006-01-02"), ".log")
 }
