@@ -5,7 +5,7 @@
 # ================================================
 
 .PHONY: docker-compose-up
-docker-compose-up: ## Run docker-compose up -d
+docker-compose-up: ## Run docker-compose up -d --build
 docker-compose-up: docker.compose.up
 
 .PHONY: docker-compose-down
@@ -19,7 +19,7 @@ docker-compose-down: docker.compose.down
 .PHONY: docker.compose.up
 docker.compose.up:
 	@echo "======> Running Docker compose up"
-	@docker-compose -f docker/service/docker-compose.yaml up -d
+	@docker-compose -f docker/service/docker-compose.yaml up -d --build
 
 .PHONY: docker.compose.down
 docker.compose.down:
