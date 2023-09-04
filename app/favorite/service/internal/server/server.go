@@ -21,6 +21,7 @@ type (
 
 // NewPublishClient 创建一个Publish服务客户端，接收Publish服务数据
 func NewPublishClient(c *conf.Client, logger log.Logger) PublishConn {
+	logs := log.NewHelper(log.With(logger, "module", "server/publish"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
 		grpc.WithEndpoint(c.Publish.To),
@@ -30,7 +31,8 @@ func NewPublishClient(c *conf.Client, logger log.Logger) PublishConn {
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to Publish Services, err : %v", err)
+		logs.Fatalf("publish service connect error, %v", err)
 	}
+	logs.Info("publish service connect successfully")
 	return conn
 }
