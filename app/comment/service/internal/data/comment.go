@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand"
 	"sort"
 	"strconv"
-	"sync"
 	"time"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
@@ -32,16 +32,14 @@ import (
 const (
 	OccupyKey   = "-1"
 	OccupyValue = ""
-	CommentNil  = ""
 )
 
-// Comment Database Model
 type Comment struct {
 	Id       uint32 `gorm:"primary_key"`
 	UserId   uint32 `gorm:"column:user_id;not null"`
 	VideoId  uint32 `gorm:"column:video_id;not null;index:idx_video_id"`
 	Content  string `gorm:"column:content;not null"`
-	CreateAt string `gorm:"column:created_at;default:''"`
+	CreateAt string `gorm:"column:created_at;default:''" copier:"CreateData"`
 }
 
 func (Comment) TableName() string {
@@ -66,37 +64,28 @@ func NewCommentRepo(
 		data:     data,
 		kfk:      data.kfk,
 		userRepo: NewUserRepo(userConn),
-		log:      log.NewHelper(log.With(logger, "model", "comment/repo")),
+		log:      log.NewHelper(log.With(logger, "model", "data/comment")),
 	}
 }
 
-// DeleteComment 删除评论，先在数据库中删除，再在redis缓存中删除
+// DeleteComment 删除评论
 func (r *commentRepo) DeleteComment(
 	ctx context.Context, videoId, commentId uint32,
 ) (*biz.Comment, error) {
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	// 先在数据库中删除关系
-	err := r.DelComment(ctx, videoId, commentId, userId)
+	err := r.DeleteCommentById(ctx, videoId, commentId)
 	if err != nil {
 		return nil, err
 	}
+
 	go func() {
-		// 设置goroutine内部上下文填空，防止外部上下文取消导致goroutine退出
-		ctx := context.TODO()
-		// 在redis缓存中查询是否存在
-		ok, err := r.data.cache.HExists(ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId))).Result()
-		if err != nil {
-			r.log.Errorf("redis query error %w", err)
+		if err = r.DeleteCache(context.Background(), videoId, commentId); err != nil {
+			r.log.Error(err)
 			return
 		}
-		if ok {
-			// 如果存在则删除
-			if err = r.data.cache.HDel(ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId))).Err(); err != nil {
-				r.log.Errorf("redis delete error %w", err)
-				return
-			}
-		}
 	}()
+
 	r.log.Infof(
 		"DeleteComment -> videoId: %v - userId: %v - commentId: %v", videoId, userId, commentId)
 	return nil, nil
@@ -112,122 +101,67 @@ func (r *commentRepo) CreateComment(
 	if err != nil {
 		return nil, err
 	}
+
 	go func() {
-		ctx = context.TODO()
-		// 在redis缓存中查询是否存在视频评论列表
-		count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(videoId))).Result()
-		if err != nil {
-			r.log.Errorf("redis query error %w", err)
-			return
-		}
-		if count == 0 {
-			// 如果不存在则创建
-			cl, err := r.SearchCommentList(ctx, videoId)
-			if err != nil {
-				r.log.Errorf("mysql query error %w", err)
-				return
-			}
-			if err = r.CacheCreateCommentTransaction(ctx, cl, videoId); err != nil {
-				r.log.Errorf("redis transaction error %w", err)
-				return
-			}
-			r.log.Info("redis transaction success")
-			return
-		}
-		// 将评论存入redis缓存
-		marc, err := json.Marshal(co)
-		if err != nil {
-			r.log.Errorf("json marshal error %w", err)
-			return
-		}
-		if err = r.data.cache.HSet(
-			ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(co.Id)), marc).Err(); err != nil {
-			r.log.Errorf("redis store error %w", err)
+		if err = r.InsertCache(context.Background(), videoId, co); err != nil {
+			r.log.Error(err)
 			return
 		}
 		r.log.Info("redis store success")
 	}()
-	users, err := r.userRepo.GetUserInfos(ctx, 0, []uint32{userId})
+
+	users, err := r.userRepo.GetUserInfos(ctx, userId, []uint32{userId})
 	if err != nil {
-		return nil, fmt.Errorf("user service transfer error %w", err)
+		return nil, err
 	}
 	var user biz.User
 	err = copier.Copy(&user, &users[0])
 	if err != nil {
-		return nil, fmt.Errorf("data replication error, err : %w", err)
+		return nil, errorX.ErrCopy
 	}
 	user.IsFollow = false
-	c = &biz.Comment{
-		Id:         co.Id,
-		User:       &user,
-		Content:    co.Content,
-		CreateDate: co.CreateAt,
+	if err = copier.Copy(c, co); err != nil {
+		return nil, errorX.ErrCopy
 	}
+	c.User = &user
+
 	r.log.Infof(
 		"CreateComment -> videoId: %v - userId: %v - comment: %v", videoId, userId, commentText)
 	return
 }
 
-// GetCommentList 获取评论列表
-func (r *commentRepo) GetCommentList(
+// GetComments 获取评论列表
+func (r *commentRepo) GetComments(
 	ctx context.Context, videoId uint32,
 ) (cls []*biz.Comment, err error) {
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-	if videoId == 0 {
-		return nil, errors.New("videoId is empty")
-	}
 	// 先在redis缓存中查询是否存在视频评论列表
-	count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(videoId))).Result()
+	ok, err := r.CheckCache(ctx, videoId)
 	if err != nil {
-		return nil, fmt.Errorf("redis query error %w", err)
+		return nil, err
 	}
 	var cl []*Comment
-	if count > 0 {
-		comments, err := r.data.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
-		if err != nil {
-			return nil, fmt.Errorf("redis query error %w", err)
-		}
+	if ok {
 		// 如果存在则直接返回
-		var wg sync.WaitGroup
-		var mutex sync.Mutex
-		errChan := make(chan error)
-		for _, v := range comments {
-			if v == OccupyValue {
-				continue
-			}
-			wg.Add(1)
-			go func(comment string) {
-				defer wg.Done()
-				co := &Comment{}
-				if err = json.Unmarshal([]byte(comment), co); err != nil {
-					errChan <- fmt.Errorf("json unmarshal error %w", err)
-					return
-				}
-				mutex.Lock()
-				cl = append(cl, co)
-				mutex.Unlock()
-			}(v)
-		}
-		wg.Wait()
-		select {
-		case err := <-errChan:
+		cl, err = r.GetCache(ctx, videoId)
+		if err != nil {
 			return nil, err
-		default:
 		}
 	} else {
-		cl, err = r.SearchCommentList(ctx, videoId)
+		cl, err = r.GetCommentsByVideoId(ctx, videoId)
 		if err != nil {
 			return nil, err
 		}
-		// 没有列表则不创建
+
 		go func(l []*Comment) {
-			if err = r.CacheCreateCommentTransaction(context.Background(), l, videoId); err != nil {
-				r.log.Errorf("redis transaction error %w", err)
+			if err = r.CreateCacheByTrans(context.Background(), l, videoId); err != nil {
+				r.log.Error(err)
 				return
 			}
 			r.log.Info("redis transaction success")
 		}(cl)
 	}
+
 	if len(cl) == 0 {
 		return nil, nil
 	}
@@ -240,7 +174,7 @@ func (r *commentRepo) GetCommentList(
 	// 统一查询，减少网络IO
 	users, err := r.userRepo.GetUserInfos(ctx, userId, userIds)
 	if err != nil {
-		return nil, fmt.Errorf("user search data error %w", err)
+		return nil, err
 	}
 	cls = make([]*biz.Comment, 0, len(cl))
 	for i, comment := range cl {
@@ -257,28 +191,92 @@ func (r *commentRepo) GetCommentList(
 	return
 }
 
-// DelComment 数据库删除评论
-func (r *commentRepo) DelComment(
-	ctx context.Context, videoId, commentId uint32, userId uint32,
+// InsertCache 创建缓存
+func (r *commentRepo) InsertCache(ctx context.Context, videoId uint32, co *Comment) error {
+	// 在redis缓存中查询是否存在视频评论列表
+	ok, err := r.CheckCache(ctx, videoId)
+	if err != nil {
+		return err
+	}
+	if ok {
+		// 将评论存入redis缓存
+		marc, err := json.Marshal(co)
+		if err != nil {
+			return errors.Join(errorX.ErrJsonMarshal, err)
+		}
+		if err = r.data.cache.HSet(
+			ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(co.Id)), marc).Err(); err != nil {
+			return errors.Join(errorX.ErrRedisSet, err)
+		}
+	}
+	return nil
+}
+
+// DeleteCache 删除缓存
+func (r *commentRepo) DeleteCache(ctx context.Context, videoId, commentId uint32) error {
+	// 在redis缓存中查询是否存在
+	ok, err := r.data.cache.HExists(ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId))).Result()
+	if err != nil {
+		return errors.Join(errorX.ErrRedisQuery, err)
+	}
+	if ok {
+		// 如果存在则删除
+		if err = r.data.cache.HDel(ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId))).Err(); err != nil {
+			return errors.Join(errorX.ErrRedisDelete, err)
+		}
+	}
+	return nil
+}
+
+// GetCache 获取缓存
+func (r *commentRepo) GetCache(ctx context.Context, videoId uint32) (cl []*Comment, err error) {
+	comments, err := r.data.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
+	if err != nil {
+		return nil, errors.Join(errorX.ErrRedisQuery, err)
+	}
+
+	for _, v := range comments {
+		if v == OccupyValue {
+			continue
+		}
+		co := &Comment{}
+		if err = json.Unmarshal([]byte(v), co); err != nil {
+			return nil, errors.Join(errorX.ErrJsonMarshal, err)
+		}
+		cl = append(cl, co)
+	}
+	return cl, nil
+}
+
+// CheckCache 检查缓存
+func (r *commentRepo) CheckCache(ctx context.Context, videoId uint32) (bool, error) {
+	// 先在redis缓存中查询是否存在视频评论列表
+	count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(videoId))).Result()
+	if err != nil {
+		return false, errors.Join(errorX.ErrRedisQuery, err)
+	}
+	return count > 0, nil
+}
+
+// DeleteCommentById 数据库删除评论
+func (r *commentRepo) DeleteCommentById(
+	ctx context.Context, videoId, commentId uint32,
 ) error {
 	comment := &Comment{}
-	result := r.data.db.WithContext(ctx).First(comment, commentId)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	err := r.data.db.WithContext(ctx).First(comment, commentId).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil
 	}
-	if result.Error != nil {
-		return fmt.Errorf("mysql query error %w", result.Error)
+	if err != nil {
+		return errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	// 判断当前用户是否为评论用户
-	if comment.UserId != userId {
-		return errors.New("comment user conflict")
-	}
-	if err := r.data.db.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
-		return fmt.Errorf("mysql delete error %w", err)
+
+	if err = r.data.db.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
+		return errors.Join(errorX.ErrMysqlDelete, err)
 	}
 	go func() {
-		if err := kafkaX.Update(r.kfk, videoId, -1); err != nil {
-			r.log.Errorf("publish update data error %w", err)
+		if err = kafkaX.Update(r.kfk, videoId, -1); err != nil {
+			r.log.Error(err)
 		}
 	}()
 	return nil
@@ -288,9 +286,6 @@ func (r *commentRepo) DelComment(
 func (r *commentRepo) InsertComment(
 	ctx context.Context, videoId uint32, commentText string, userId uint32,
 ) (*Comment, error) {
-	if commentText == CommentNil {
-		return nil, errors.New("comment text not exist")
-	}
 	comment := &Comment{
 		UserId:   userId,
 		VideoId:  videoId,
@@ -298,32 +293,26 @@ func (r *commentRepo) InsertComment(
 		CreateAt: time.Now().Format("01-02"),
 	}
 	if err := r.data.db.WithContext(ctx).Create(comment).Error; err != nil {
-		return nil, fmt.Errorf("mysql create error %w", err)
+		return nil, errors.Join(errorX.ErrMysqlInsert, err)
 	}
 	go func() {
 		if err := kafkaX.Update(r.kfk, videoId, 1); err != nil {
-			r.log.Errorf("publish update data error %w", err)
+			r.log.Error(err)
 		}
 	}()
 	return comment, nil
 }
 
-// SearchCommentList 数据库搜索评论列表
-func (r *commentRepo) SearchCommentList(ctx context.Context, videoId uint32) ([]*Comment, error) {
-	var commentList []*Comment
-	result := r.data.db.WithContext(ctx).Where("video_id = ?", videoId).Find(&commentList)
-	if err := result.Error; err != nil {
-		return nil, fmt.Errorf("mysql query error %w", err)
+// GetCommentsByVideoId 数据库搜索评论列表
+func (r *commentRepo) GetCommentsByVideoId(ctx context.Context, videoId uint32) (c []*Comment, err error) {
+	if err = r.data.db.WithContext(ctx).Where("video_id = ?", videoId).Find(&c).Error; err != nil {
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	// 此视频没有评论
-	if result.RowsAffected == 0 {
-		return nil, nil
-	}
-	return commentList, nil
+	return c, nil
 }
 
-// CacheCreateCommentTransaction 缓存创建事务
-func (r *commentRepo) CacheCreateCommentTransaction(ctx context.Context, cl []*Comment, videoId uint32) error {
+// CreateCacheByTrans 使用事务创建缓存
+func (r *commentRepo) CreateCacheByTrans(ctx context.Context, cl []*Comment, videoId uint32) error {
 	// 使用事务将评论列表存入redis缓存
 	_, err := r.data.cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		insertMap := make(map[string]interface{}, len(cl))
@@ -331,24 +320,27 @@ func (r *commentRepo) CacheCreateCommentTransaction(ctx context.Context, cl []*C
 		for _, v := range cl {
 			marc, err := json.Marshal(v)
 			if err != nil {
-				return fmt.Errorf("json marshal error, err : %w", err)
+				return errors.Join(errorX.ErrJsonMarshal, err)
 			}
 			insertMap[strconv.Itoa(int(v.Id))] = marc
 		}
 		err := pipe.HMSet(ctx, strconv.Itoa(int(videoId)), insertMap).Err()
 		if err != nil {
-			return fmt.Errorf("redis store error, err : %w", err)
+			return errors.Join(errorX.ErrRedisSet, err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
 		// 随机生成时间范围
 		begin, end := 360, 720
 		err = pipe.Expire(ctx, strconv.Itoa(int(videoId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
-			return fmt.Errorf("redis expire error, err : %w", err)
+			return errors.Join(errorX.ErrRedisSet, err)
 		}
 		return nil
 	})
-	return err
+	if err != nil {
+		return errors.Join(errorX.ErrRedisTransaction, err)
+	}
+	return nil
 }
 
 // randomTime 随机生成时间

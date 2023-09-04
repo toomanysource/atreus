@@ -17,7 +17,6 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
-// go build -ldflags "-X main.Version=x.y.z"
 var (
 	Name     = "comment"
 	flagConf string

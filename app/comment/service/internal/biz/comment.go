@@ -2,9 +2,10 @@ package biz
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-kratos/kratos/v2/log"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 )
 
 const (
@@ -36,37 +37,39 @@ type User struct {
 type CommentRepo interface {
 	CreateComment(context.Context, uint32, string) (*Comment, error)
 	DeleteComment(context.Context, uint32, uint32) (*Comment, error)
-	GetCommentList(context.Context, uint32) ([]*Comment, error)
+	GetComments(context.Context, uint32) ([]*Comment, error)
 }
 
-type CommentUsecase struct {
-	commentRepo CommentRepo
-	log         *log.Helper
+type CommentUseCase struct {
+	repo CommentRepo
+	log  *log.Helper
 }
 
-func NewCommentUsecase(cr CommentRepo, logger log.Logger) *CommentUsecase {
-	return &CommentUsecase{
-		commentRepo: cr, log: log.NewHelper(log.With(logger, "model", "usecase/comment")),
+func NewCommentUseCase(cr CommentRepo, logger log.Logger) *CommentUseCase {
+	return &CommentUseCase{
+		repo: cr, log: log.NewHelper(log.With(logger, "model", "usecase/comment")),
 	}
 }
 
-func (uc *CommentUsecase) GetCommentList(
+func (uc *CommentUseCase) GetCommentList(
 	ctx context.Context, videoId uint32,
 ) ([]*Comment, error) {
-	return uc.commentRepo.GetCommentList(ctx, videoId)
+	return uc.repo.GetComments(ctx, videoId)
 }
 
-func (uc *CommentUsecase) CommentAction(
+func (uc *CommentUseCase) CommentAction(
 	ctx context.Context, videoId, commentId uint32,
 	actionType uint32, commentText string,
 ) (*Comment, error) {
-	// 判断actionType是否在指定范围内
 	switch actionType {
 	case CreateType:
-		return uc.commentRepo.CreateComment(ctx, videoId, commentText)
+		if commentText == "" {
+			return nil, errorX.ErrCommentNil
+		}
+		return uc.repo.CreateComment(ctx, videoId, commentText)
 	case DeleteType:
-		return uc.commentRepo.DeleteComment(ctx, videoId, commentId)
+		return uc.repo.DeleteComment(ctx, videoId, commentId)
 	default:
-		return nil, errors.New("the value of action_type is not in the specified range")
+		return nil, errorX.ErrInValidActionType
 	}
 }
