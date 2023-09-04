@@ -3,9 +3,11 @@ package mock
 import (
 	"context"
 	"errors"
+
 	"github.com/jinzhu/copier"
-	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 	"gorm.io/gorm"
+
+	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 )
 
 type UserDetail struct {
@@ -33,8 +35,7 @@ var userTable = []*UserDetail{
 	{6, "erlengzi", "zilenger", "erlengzi", 6, 6, "avatar_6", "background_image_6", "signature_6", 6, 6, 6, gorm.DeletedAt{}},
 }
 
-type userRepo struct {
-}
+type userRepo struct{}
 
 func NewUserRepo() biz.UserRepo {
 	return &userRepo{}

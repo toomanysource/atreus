@@ -2,10 +2,12 @@ package mock_test
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
+
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 	"github.com/toomanysource/atreus/app/user/service/internal/mock"
-	"testing"
 )
 
 var (
