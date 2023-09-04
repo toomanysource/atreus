@@ -2,7 +2,10 @@ package kafkaX
 
 import (
 	"context"
+	"errors"
 	"strconv"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/go-kratos/kratos/v2/log"
 
@@ -17,7 +20,7 @@ func Update(writer *kafka.Writer, id uint32, num int32) error {
 			Value:     []byte(strconv.Itoa(int(num))),
 		})
 	if err != nil {
-		return err
+		return errors.Join(errorX.ErrKafkaWriter, err)
 	}
 	log.Infof("update message success, id: %v, num: %v", id, num)
 	return nil
