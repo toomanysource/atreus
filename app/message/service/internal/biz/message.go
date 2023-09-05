@@ -2,13 +2,18 @@ package biz
 
 import (
 	"context"
-	"errors"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
 
+const (
+	PublishMessage = 1
+)
+
 type Message struct {
-	UId        uint64
+	UId        uint64 `copier:"Id"`
 	ToUserId   uint32
 	FromUserId uint32
 	Content    string
@@ -21,30 +26,40 @@ type MessageRepo interface {
 	InitStoreMessageQueue()
 }
 
-type MessageUsecase struct {
+type MessageUseCase struct {
 	repo MessageRepo
 	log  *log.Helper
 }
 
-func NewMessageUsecase(repo MessageRepo, logger log.Logger) *MessageUsecase {
+func NewMessageUseCase(repo MessageRepo, logger log.Logger) *MessageUseCase {
 	go repo.InitStoreMessageQueue()
-	return &MessageUsecase{
+	return &MessageUseCase{
 		repo: repo,
 		log:  log.NewHelper(log.With(logger, "model", "usecase/message")),
 	}
 }
 
-func (uc *MessageUsecase) GetMessageList(
+func (uc *MessageUseCase) GetMessageList(
 	ctx context.Context, toUserId uint32, preMsgTime int64,
 ) ([]*Message, error) {
-	return uc.repo.GetMessageList(ctx, toUserId, preMsgTime)
+	messages, err := uc.repo.GetMessageList(ctx, toUserId, preMsgTime)
+	if err != nil {
+		uc.log.Errorf("GetMessageList error: %v", err)
+	}
+	return messages, err
 }
 
-func (uc *MessageUsecase) PublishMessage(ctx context.Context, toUserId uint32, actionType uint32, content string) error {
+func (uc *MessageUseCase) PublishMessage(
+	ctx context.Context, toUserId uint32, actionType uint32, content string,
+) error {
 	switch actionType {
-	case 1:
-		return uc.repo.PublishMessage(ctx, toUserId, content)
+	case PublishMessage:
+		err := uc.repo.PublishMessage(ctx, toUserId, content)
+		if err != nil {
+			uc.log.Errorf("PublishMessage error: %v", err)
+		}
+		return err
 	default:
-		return errors.New("the actionType value for the error is provided")
+		return errorX.ErrInValidActionType
 	}
 }
