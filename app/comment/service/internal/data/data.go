@@ -49,7 +49,7 @@ func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger l
 			if err := kfk.Close(); err != nil {
 				logHelper.Errorf("kafka connection closure failed, err: %w", err)
 			}
-			logHelper.Info("successfully close the Kafka connection")
+			logHelper.Info("successfully close the kafka connection")
 		}()
 		wg.Wait()
 	}
