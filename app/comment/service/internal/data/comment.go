@@ -94,7 +94,7 @@ func (r *commentRepo) DeleteComment(
 // CreateComment 创建评论
 func (r *commentRepo) CreateComment(
 	ctx context.Context, videoId uint32, commentText string,
-) (c *biz.Comment, err error) {
+) (*biz.Comment, error) {
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	// 先在数据库中插入关系
 	co, err := r.InsertComment(ctx, videoId, commentText, userId)
@@ -114,20 +114,21 @@ func (r *commentRepo) CreateComment(
 	if err != nil {
 		return nil, err
 	}
-	var user biz.User
-	err = copier.Copy(&user, &users[0])
+	user := new(biz.User)
+	err = copier.Copy(user, users[0])
 	if err != nil {
-		return nil, errorX.ErrCopy
+		return nil, errors.Join(errorX.ErrCopy, err)
 	}
 	user.IsFollow = false
+	c := new(biz.Comment)
 	if err = copier.Copy(c, co); err != nil {
-		return nil, errorX.ErrCopy
+		return nil, errors.Join(errorX.ErrCopy, err)
 	}
-	c.User = &user
+	c.User = user
 
 	r.log.Infof(
 		"CreateComment -> videoId: %v - userId: %v - comment: %v", videoId, userId, commentText)
-	return
+	return c, nil
 }
 
 // GetComments 获取评论列表
