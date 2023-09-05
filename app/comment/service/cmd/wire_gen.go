@@ -25,15 +25,15 @@ import (
 func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData, logger)
 	redisClient := data.NewRedisConn(confData, logger)
-	writer := data.NewKafkaWriter(confData)
+	writer := data.NewKafkaWriter(confData, logger)
 	dataData, cleanup, err := data.NewData(db, redisClient, writer, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	userConn := server.NewUserClient(client, logger)
 	commentRepo := data.NewCommentRepo(dataData, userConn, logger)
-	commentUsecase := biz.NewCommentUsecase(commentRepo, logger)
-	commentService := service.NewCommentService(commentUsecase, logger)
+	commentUseCase := biz.NewCommentUseCase(commentRepo, logger)
+	commentService := service.NewCommentService(commentUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, commentService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, commentService, logger)
 	app := newApp(logger, grpcServer, httpServer)
