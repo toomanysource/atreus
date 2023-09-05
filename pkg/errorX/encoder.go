@@ -31,7 +31,7 @@ func FromError(err error) *Error {
 	if se := new(errors.Error); errors.As(err, &se) {
 		return New(se.Code, se.Message)
 	}
-	return &Error{StatusCode: -1}
+	return &Error{StatusCode: CodeFailed}
 }
 
 func ErrorEncoder(w netHttp.ResponseWriter, r *netHttp.Request, err error) {

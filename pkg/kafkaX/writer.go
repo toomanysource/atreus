@@ -2,8 +2,8 @@ package kafkaX
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"strconv"
 
 	"github.com/toomanysource/atreus/pkg/errorX"
 
@@ -12,16 +12,24 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func Update(writer *kafka.Writer, id uint32, num int32) error {
-	err := writer.WriteMessages(context.TODO(),
+func Update(writer *kafka.Writer, key, value any) error {
+	keys, err := json.Marshal(key)
+	if err != nil {
+		return errors.Join(errorX.ErrJsonMarshal, err)
+	}
+	values, err := json.Marshal(value)
+	if err != nil {
+		return errors.Join(errorX.ErrJsonMarshal, err)
+	}
+	err = writer.WriteMessages(context.TODO(),
 		kafka.Message{
 			Partition: 0,
-			Key:       []byte(strconv.Itoa(int(id))),
-			Value:     []byte(strconv.Itoa(int(num))),
+			Key:       keys,
+			Value:     values,
 		})
 	if err != nil {
 		return errors.Join(errorX.ErrKafkaWriter, err)
 	}
-	log.Infof("update message success, id: %v, num: %v", id, num)
+	log.Infof("update message success, key: %v, value: %v", string(keys), string(values))
 	return nil
 }
