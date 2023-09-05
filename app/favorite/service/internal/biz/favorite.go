@@ -63,9 +63,17 @@ func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionTy
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	switch actionType {
 	case Favorite:
-		return uc.repo.CreateFavorite(ctx, userId, videoId)
+		err := uc.repo.CreateFavorite(ctx, userId, videoId)
+		if err != nil {
+			uc.log.Errorf("create favorite error: %v", err)
+		}
+		return err
 	case UnFavorite:
-		return uc.repo.DeleteFavorite(ctx, userId, videoId)
+		err := uc.repo.DeleteFavorite(ctx, userId, videoId)
+		if err != nil {
+			uc.log.Errorf("delete favorite error: %v", err)
+		}
+		return err
 	default:
 		return errorX.ErrInValidActionType
 	}
@@ -74,11 +82,23 @@ func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionTy
 func (uc *FavoriteUseCase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
 	if userID == 0 {
 		userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-		return uc.repo.GetFavoriteList(ctx, userId)
+		videos, err := uc.repo.GetFavoriteList(ctx, userId)
+		if err != nil {
+			uc.log.Errorf("GetFavoriteList error: %v", err)
+		}
+		return videos, err
 	}
-	return uc.repo.GetFavoriteList(ctx, userID)
+	videos, err := uc.repo.GetFavoriteList(ctx, userID)
+	if err != nil {
+		uc.log.Errorf("GetFavoriteList error: %v", err)
+	}
+	return videos, err
 }
 
 func (uc *FavoriteUseCase) IsFavorite(ctx context.Context, userID uint32, videoIDs []uint32) ([]bool, error) {
-	return uc.repo.IsFavorite(ctx, userID, videoIDs)
+	oks, err := uc.repo.IsFavorite(ctx, userID, videoIDs)
+	if err != nil {
+		uc.log.Errorf("IsFavorite error: %v", err)
+	}
+	return oks, err
 }
