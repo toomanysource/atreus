@@ -3,6 +3,7 @@ package data
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -10,6 +11,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/toomanysource/atreus/middleware"
 
@@ -25,12 +28,16 @@ import (
 	"github.com/minio/minio-go/v7"
 )
 
-var VideoCount = 30
+var ErrVideoMissing = errors.New("video missing")
 
-// Video Database Model
+const (
+	VideoCount  = 30
+	FrameNumber = 60
+)
+
 type Video struct {
 	Id            uint32 `gorm:"column:id;primary_key;auto_increment"`
-	AuthorID      uint32 `gorm:"column:author_id;not null"`
+	AuthorID      uint32 `gorm:"column:author_id;not null;index:idx_author_id"`
 	Title         string `gorm:"column:title;not null;size:255"`
 	PlayUrl       string `gorm:"column:play_url;not null"`
 	CoverUrl      string `gorm:"column:cover_url;not null"`
@@ -42,6 +49,7 @@ type Video struct {
 type UserRepo interface {
 	GetUserInfos(context.Context, uint32, []uint32) ([]*biz.User, error)
 }
+
 type FavoriteRepo interface {
 	IsFavorite(context.Context, uint32, []uint32) ([]bool, error)
 }
@@ -62,7 +70,7 @@ func NewPublishRepo(
 		kfk:          data.kfkReader,
 		favoriteRepo: NewFavoriteRepo(favoriteConn),
 		userRepo:     NewUserRepo(userConn),
-		log:          log.NewHelper(logger),
+		log:          log.NewHelper(log.With(logger, "module", "data/publish")),
 	}
 }
 
@@ -77,7 +85,7 @@ func (r *publishRepo) UploadAll(ctx context.Context, fileBytes []byte, title str
 		defer wg.Done()
 		err := r.UploadCoverImage(ctx, fileBytes, title)
 		if err != nil {
-			errChan <- fmt.Errorf("upload cover image error: %w", err)
+			errChan <- err
 			return
 		}
 	}()
@@ -87,7 +95,7 @@ func (r *publishRepo) UploadAll(ctx context.Context, fileBytes []byte, title str
 		defer wg.Done()
 		err := r.UploadVideo(ctx, fileBytes, title)
 		if err != nil {
-			errChan <- fmt.Errorf("upload video error: %w", err)
+			errChan <- err
 			return
 		}
 	}()
@@ -102,120 +110,82 @@ func (r *publishRepo) UploadAll(ctx context.Context, fileBytes []byte, title str
 		ctx = context.Background()
 		err := r.SaveVideoInfo(ctx, title, userId)
 		if err != nil {
-			r.log.Errorf("save video info error: %w", err)
+			r.log.Error(err)
 			return
 		}
 		err = kafkaX.Update(r.data.kfkWriter, userId, 1)
 		if err != nil {
-			r.log.Errorf("update user video count error: %w", err)
+			r.log.Error(err)
 			return
 		}
 	}()
 	return nil
 }
 
-// SaveVideoInfo 保存视频信息
-func (r *publishRepo) SaveVideoInfo(ctx context.Context, title string, userId uint32) error {
-	playUrl, coverUrl, err := r.GetRemoteVideoInfo(ctx, title)
+// GetFeedList 获取视频列表
+func (r *publishRepo) GetFeedList(
+	ctx context.Context, latestTime string,
+) (int64, []*biz.Video, error) {
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	if latestTime == "0" {
+		latestTime = strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
+	times, err := strconv.Atoi(latestTime)
 	if err != nil {
-		return fmt.Errorf("get remote video info error: %w", err)
+		return 0, nil, err
 	}
-	v := &Video{
-		AuthorID:      userId,
-		Title:         title,
-		PlayUrl:       playUrl,
-		CoverUrl:      coverUrl,
-		FavoriteCount: 0,
-		CommentCount:  0,
-		CreatedAt:     time.Now().UnixMilli(),
+	videoList, err := r.GetVideoByTime(ctx, int64(times))
+	if err != nil {
+		return 0, nil, err
 	}
-	if err = r.data.db.WithContext(ctx).Create(v).Error; err != nil {
-		return fmt.Errorf("create video error: %w", err)
+	if len(videoList) == 0 {
+		return 0, nil, nil
 	}
-	return nil
+	err = r.UpdateUrl(ctx, videoList)
+	if err != nil {
+		return 0, nil, err
+	}
+	nextTime := videoList[len(videoList)-1].CreatedAt
+	vl, err := r.GetVideoAuthor(ctx, userId, videoList)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// userId == 0 代表未登录
+	if userId != 0 {
+		videoIds := make([]uint32, 0, len(videoList))
+		for _, video := range videoList {
+			videoIds = append(videoIds, video.Id)
+		}
+		isFavoriteList, err := r.favoriteRepo.IsFavorite(ctx, userId, videoIds)
+		if err != nil {
+			return 0, nil, err
+		}
+		for i, video := range vl {
+			video.IsFavorite = isFavoriteList[i]
+		}
+		return nextTime, vl, err
+	}
+	for _, video := range vl {
+		video.IsFavorite = false
+	}
+	return nextTime, vl, err
 }
 
-// GetRemoteVideoInfo 获取远程视频及封面url
-func (r *publishRepo) GetRemoteVideoInfo(ctx context.Context, title string) (playURL, coverURL string, err error) {
-	hours, days := 24, 7
-	urls, err := r.data.oss.GetFileURL(
-		ctx, "oss", "videos/"+title+".mp4", time.Hour*time.Duration(hours*days))
-	if err != nil {
-		return "", "", fmt.Errorf("get video url error: %w", err)
-	}
-	playURL = urls.String()
-	urls, err = r.data.oss.GetFileURL(
-		ctx, "oss", "images/"+title+".png", time.Hour*time.Duration(hours*days))
-	if err != nil {
-		return "", "", fmt.Errorf("get image url error: %w", err)
-	}
-	coverURL = urls.String()
-	return
-}
-
-// UploadVideo 上传视频
-func (r *publishRepo) UploadVideo(ctx context.Context, fileBytes []byte, title string) error {
-	reader := bytes.NewReader(fileBytes)
-	err := r.data.oss.UploadSizeFile(
-		ctx, "oss", "videos/"+title+".mp4", reader, reader.Size(), minio.PutObjectOptions{
-			ContentType: "video/mp4",
-		})
-	if err != nil {
-		return fmt.Errorf("upload video error: %w", err)
-	}
-	return nil
-}
-
-// UploadCoverImage 上传封面
-func (r *publishRepo) UploadCoverImage(ctx context.Context, fileBytes []byte, title string) error {
-	coverReader, err := r.GenerateCoverImage(fileBytes)
-	if err != nil {
-		return fmt.Errorf("generate cover image error: %w", err)
-	}
-	data, err := io.ReadAll(coverReader)
-	if err != nil {
-		return fmt.Errorf("read cover image error: %w", err)
-	}
-	coverBytes := bytes.NewReader(data)
-	err = r.data.oss.UploadSizeFile(
-		ctx, "oss", "images/"+title+".png", coverBytes, coverBytes.Size(), minio.PutObjectOptions{
-			ContentType: "image/png",
-		})
-	if err != nil {
-		return fmt.Errorf("upload cover image error: %w", err)
-	}
-	return nil
-}
-
-// GenerateCoverImage 生成封面
-func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
-	// 创建临时文件
-	tempFile, err := os.CreateTemp("", "tempFile-*")
-	if err != nil {
-		return nil, fmt.Errorf("create temp file error: %w", err)
-	}
-	defer os.Remove(tempFile.Name())
-	if _, err = tempFile.Write(fileBytes); err != nil {
-		return nil, fmt.Errorf("write temp file error: %w", err)
-	}
-	// 调用ffmpeg 生成封面
-	frameNum := 60
-	return ffmpegX.ReadFrameAsImage(tempFile.Name(), frameNum)
-}
-
-func (r *publishRepo) FindVideoListByUserId(ctx context.Context, userId uint32) ([]*biz.Video, error) {
+// GetVideosByUserId 根据用户id获取视频列表
+func (r *publishRepo) GetVideosByUserId(ctx context.Context, userId uint32) ([]*biz.Video, error) {
 	var videoList []*Video
 	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-	result := r.data.db.WithContext(ctx).Where("author_id = ?", userId).Find(&videoList)
-	if result.Error != nil {
-		return nil, result.Error
+	err := r.data.db.WithContext(ctx).Where("author_id = ?", userId).Find(&videoList).Error
+	if err != nil {
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	if result.RowsAffected == 0 {
+	if len(videoList) == 0 {
 		return nil, nil
 	}
-	err := r.UpdateUrl(ctx, videoList)
+	err = r.UpdateUrl(ctx, videoList)
 	if err != nil {
-		return nil, fmt.Errorf("update url error: %w", err)
+		return nil, err
 	}
 	users, err := r.userRepo.GetUserInfos(ctx, userID, []uint32{userId})
 	if err != nil {
@@ -245,73 +215,117 @@ func (r *publishRepo) FindVideoListByUserId(ctx context.Context, userId uint32) 
 	return vl, nil
 }
 
-// FindVideoListByVideoIds 根据视频id列表获取视频列表
-func (r *publishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*biz.Video, error) {
+// GetVideosByVideoIds 根据视频id列表获取视频列表
+func (r *publishRepo) GetVideosByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*biz.Video, error) {
 	if len(videoIds) == 0 {
 		return nil, nil
 	}
 	var videoList []*Video
 	err := r.data.db.WithContext(ctx).Where("id IN ?", videoIds).Find(&videoList).Error
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+	}
+	if len(videoList) < len(videoIds) {
+		return nil, ErrVideoMissing
 	}
 	err = r.UpdateUrl(ctx, videoList)
 	if err != nil {
-		return nil, fmt.Errorf("update url error: %w", err)
+		return nil, err
 	}
 	return r.GetVideoAuthor(ctx, userId, videoList)
 }
 
-// GetFeedList 获取视频列表
-func (r *publishRepo) GetFeedList(
-	ctx context.Context, latestTime string,
-) (int64, []*biz.Video, error) {
-	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-	if latestTime == "0" {
-		latestTime = strconv.FormatInt(time.Now().UnixMilli(), 10)
-	}
-	var videoList []*Video
-	times, err := strconv.Atoi(latestTime)
+// SaveVideoInfo 保存视频信息
+func (r *publishRepo) SaveVideoInfo(ctx context.Context, title string, userId uint32) error {
+	playUrl, coverUrl, err := r.GetRemoteVideoInfo(ctx, title)
 	if err != nil {
-		return 0, nil, fmt.Errorf("strconv.Atoi error: %w", err)
+		return err
 	}
-	err = r.data.db.WithContext(ctx).Where("created_at < ?", int64(times)).
+	v := &Video{
+		AuthorID:      userId,
+		Title:         title,
+		PlayUrl:       playUrl,
+		CoverUrl:      coverUrl,
+		FavoriteCount: 0,
+		CommentCount:  0,
+		CreatedAt:     time.Now().UnixMilli(),
+	}
+	if err = r.data.db.WithContext(ctx).Create(v).Error; err != nil {
+		return errors.Join(errorX.ErrMysqlInsert, err)
+	}
+	return nil
+}
+
+// GetRemoteVideoInfo 获取远程视频及封面url
+func (r *publishRepo) GetRemoteVideoInfo(ctx context.Context, title string) (playURL, coverURL string, err error) {
+	hours, days := 24, 7
+	urls, err := r.data.oss.GetFileURL(
+		ctx, "oss", "videos/"+title+".mp4", time.Hour*time.Duration(hours*days))
+	if err != nil {
+		return "", "", fmt.Errorf("get remote video info err, %w", err)
+	}
+	playURL = urls.String()
+	urls, err = r.data.oss.GetFileURL(
+		ctx, "oss", "images/"+title+".png", time.Hour*time.Duration(hours*days))
+	if err != nil {
+		return "", "", fmt.Errorf("get remote video info err, %w", err)
+	}
+	coverURL = urls.String()
+	return
+}
+
+// UploadVideo 上传视频
+func (r *publishRepo) UploadVideo(ctx context.Context, fileBytes []byte, title string) error {
+	reader := bytes.NewReader(fileBytes)
+	return r.data.oss.UploadSizeFile(
+		ctx, "oss", "videos/"+title+".mp4", reader, reader.Size(), minio.PutObjectOptions{
+			ContentType: "video/mp4",
+		},
+	)
+}
+
+// UploadCoverImage 上传封面
+func (r *publishRepo) UploadCoverImage(ctx context.Context, fileBytes []byte, title string) error {
+	coverReader, err := r.GenerateCoverImage(fileBytes)
+	if err != nil {
+		return err
+	}
+	data, err := io.ReadAll(coverReader)
+	if err != nil {
+		return errors.Join(errorX.ErrFileRead, err)
+	}
+	coverBytes := bytes.NewReader(data)
+	return r.data.oss.UploadSizeFile(
+		ctx, "oss", "images/"+title+".png", coverBytes, coverBytes.Size(), minio.PutObjectOptions{
+			ContentType: "image/png",
+		},
+	)
+}
+
+// GenerateCoverImage 生成封面
+func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
+	// 创建临时文件
+	tempFile, err := os.CreateTemp("", "tempFile-*")
+	if err != nil {
+		return nil, errors.Join(errorX.ErrFileCreate, err)
+	}
+	defer os.Remove(tempFile.Name())
+	if _, err = tempFile.Write(fileBytes); err != nil {
+		return nil, errors.Join(errorX.ErrFileWrite, err)
+	}
+	// 调用ffmpeg 生成封面
+	return ffmpegX.ReadFrameAsImage(tempFile.Name(), FrameNumber)
+}
+
+// GetVideoByTime 根据时间获取视频列表
+func (r *publishRepo) GetVideoByTime(ctx context.Context, times int64) ([]*Video, error) {
+	var videoList []*Video
+	err := r.data.db.WithContext(ctx).Where("created_at < ?", times).
 		Order("created_at desc").Limit(VideoCount).Find(&videoList).Error
 	if err != nil {
-		return 0, nil, fmt.Errorf("find video list error: %w", err)
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	if len(videoList) == 0 {
-		return 0, nil, nil
-	}
-	err = r.UpdateUrl(ctx, videoList)
-	if err != nil {
-		return 0, nil, fmt.Errorf("update url error: %w", err)
-	}
-	nextTime := videoList[len(videoList)-1].CreatedAt
-	vl, err := r.GetVideoAuthor(ctx, userId, videoList)
-	if err != nil {
-		return 0, nil, fmt.Errorf("get users error: %w", err)
-	}
-
-	// userId == 0 代表未登录
-	if userId != 0 {
-		videoIds := make([]uint32, 0, len(videoList))
-		for _, video := range videoList {
-			videoIds = append(videoIds, video.Id)
-		}
-		isFavoriteList, err := r.favoriteRepo.IsFavorite(ctx, userId, videoIds)
-		if err != nil {
-			return 0, nil, err
-		}
-		for i, video := range vl {
-			video.IsFavorite = isFavoriteList[i]
-		}
-		return nextTime, vl, err
-	}
-	for _, video := range vl {
-		video.IsFavorite = false
-	}
-	return nextTime, vl, err
+	return videoList, nil
 }
 
 // GetVideoAuthor 获取视频作者
@@ -356,12 +370,12 @@ func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, f
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
 	if err != nil {
-		return err
+		return errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	newCount := calculateValidUint32(video.FavoriteCount, favoriteChange)
-	err = r.data.db.Model(&Video{}).Where("id = ?", videoId).Update("favorite_count", newCount).Error
+	newCount := calculate(video.FavoriteCount, favoriteChange)
+	err = r.data.db.WithContext(ctx).Where("id = ?", videoId).Update("favorite_count", newCount).Error
 	if err != nil {
-		return err
+		return errors.Join(errorX.ErrMysqlUpdate, err)
 	}
 	return err
 }
@@ -371,13 +385,13 @@ func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, ch
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
 	if err != nil {
-		return err
+		return errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	newCount := calculateValidUint32(video.CommentCount, change)
-	err = r.data.db.Model(&Video{}).Where("id = ?", videoId).
+	newCount := calculate(video.CommentCount, change)
+	err = r.data.db.WithContext(ctx).Where("id = ?", videoId).
 		Update("comment_count", newCount).Error
 	if err != nil {
-		return err
+		return errors.Join(errorX.ErrMysqlUpdate, err)
 	}
 	return nil
 }
@@ -386,20 +400,17 @@ func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, ch
 func (r *publishRepo) CheckUrl(accessUrl string) (bool, error) {
 	parseUrl, err := url.Parse(accessUrl)
 	if err != nil {
-		return false, fmt.Errorf("parse url error: %w", err)
+		return false, err
 	}
 	dateStr := parseUrl.Query().Get("X-Amz-Date")
 	dateInt, err := time.Parse("20060102T150405Z", dateStr)
 	if err != nil {
-		return false, fmt.Errorf("parse date error: %w", err)
+		return false, err
 	}
 	// 7天后过期,提前一个小时生成新的url
 	hours, days := 24, 7
 	now := time.Now().Add(time.Hour).UTC()
-	if now.After(dateInt.Add(time.Hour * time.Duration(hours*days))) {
-		return false, nil
-	}
-	return true, nil
+	return now.Before(dateInt.Add(time.Hour * time.Duration(hours*days))), nil
 }
 
 // UpdateUrl 更新url
@@ -409,15 +420,16 @@ func (r *publishRepo) UpdateUrl(ctx context.Context, videoList []*Video) error {
 		if err != nil {
 			return err
 		}
-		if !ok {
-			video.PlayUrl, video.CoverUrl, err = r.GetRemoteVideoInfo(ctx, video.Title)
-			if err != nil {
-				return err
-			}
-			err = r.UpdateDatabaseUrl(ctx, video.Id, video.PlayUrl, video.CoverUrl)
-			if err != nil {
-				return err
-			}
+		if ok {
+			continue
+		}
+		video.PlayUrl, video.CoverUrl, err = r.GetRemoteVideoInfo(ctx, video.Title)
+		if err != nil {
+			return err
+		}
+		err = r.UpdateDatabaseUrl(ctx, video.Id, video.PlayUrl, video.CoverUrl)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -428,7 +440,7 @@ func (r *publishRepo) UpdateDatabaseUrl(ctx context.Context, videoId uint32, pla
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).
 		Updates(&Video{PlayUrl: playUrl, CoverUrl: coverUrl}).Error
 	if err != nil {
-		return fmt.Errorf("update database url error: %w", err)
+		return errors.Join(errorX.ErrMysqlUpdate, err)
 	}
 	return nil
 }
@@ -438,17 +450,17 @@ func (r *publishRepo) InitUpdateFavoriteQueue() {
 	kafkaX.Reader(r.kfk.favorite, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		videoId, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Error(errorX.ErrKafkaReader, err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Error(errorX.ErrKafkaReader, err)
 			return
 		}
 		err = r.UpdateFavoriteCount(ctx, uint32(videoId), int32(change))
 		if err != nil {
-			r.log.Errorf("update favorite count error, err: %v", err)
+			r.log.Error(errorX.ErrKafkaReader, err)
 			return
 		}
 	})
@@ -459,23 +471,24 @@ func (r *publishRepo) InitUpdateCommentQueue() {
 	kafkaX.Reader(r.kfk.comment, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		videoId, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Error(errorX.ErrKafkaReader, err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Error(errorX.ErrKafkaReader, err)
 			return
 		}
 		err = r.UpdateCommentCount(ctx, uint32(videoId), int32(change))
 		if err != nil {
-			r.log.Errorf("update comment count error, err: %v", err)
+			r.log.Error(errorX.ErrKafkaReader, err)
 			return
 		}
 	})
 }
 
-func calculateValidUint32(src uint32, mod int32) uint32 {
+// calculate 转换计算类型
+func calculate(src uint32, mod int32) uint32 {
 	if mod < 0 {
 		mod = -mod
 		if src < uint32(mod) {
