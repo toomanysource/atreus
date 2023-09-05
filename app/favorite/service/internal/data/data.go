@@ -42,12 +42,13 @@ func NewData(db *gorm.DB, cache *redis.Client, kfk KfkWriter, logger log.Logger)
 			defer wg.Done()
 			_, err := cache.Ping(context.Background()).Result()
 			if err != nil {
+				logHelper.Warn("redis connection pool is empty")
 				return
 			}
 			if err = cache.Close(); err != nil {
 				logHelper.Errorf("redis connection closure failed, err: %w", err)
 			}
-			logHelper.Info("successfully close the Redis connection")
+			logHelper.Info("successfully close the redis connection")
 		}()
 		wg.Add(1)
 		go func() {
@@ -55,6 +56,7 @@ func NewData(db *gorm.DB, cache *redis.Client, kfk KfkWriter, logger log.Logger)
 			if err := kfk.Favored.Close(); err != nil {
 				logHelper.Errorf("kafka connection closure failed, err: %w", err)
 			}
+			logHelper.Info("successfully close the kafka favored queue connection")
 		}()
 		wg.Add(1)
 		go func() {
@@ -62,6 +64,7 @@ func NewData(db *gorm.DB, cache *redis.Client, kfk KfkWriter, logger log.Logger)
 			if err := kfk.Favorite.Close(); err != nil {
 				logHelper.Errorf("kafka connection closure failed, err: %w", err)
 			}
+			logHelper.Info("successfully close the kafka favorite queue connection")
 		}()
 		wg.Add(1)
 		go func() {
@@ -69,9 +72,9 @@ func NewData(db *gorm.DB, cache *redis.Client, kfk KfkWriter, logger log.Logger)
 			if err := kfk.videoFavorite.Close(); err != nil {
 				logHelper.Errorf("kafka connection closure failed, err: %w", err)
 			}
+			logHelper.Info("successfully close the kafka video favorite queue connection")
 		}()
 		wg.Wait()
-		logHelper.Info("successfully close the Kafka connection")
 	}
 
 	data := &Data{
