@@ -13,7 +13,7 @@ import (
 
 type MockPublishRepo struct{}
 
-func (m *MockPublishRepo) FindVideoListByUserId(ctx context.Context, userId uint32) (v []*Video, err error) {
+func (m *MockPublishRepo) GetVideosByUserId(ctx context.Context, userId uint32) (v []*Video, err error) {
 	if userId == 1 {
 		v = append(v, &Video{
 			ID: 1,
@@ -35,7 +35,7 @@ func (m *MockPublishRepo) GetFeedList(ctx context.Context, latestTime string) (t
 	return
 }
 
-func (m *MockPublishRepo) FindVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {
+func (m *MockPublishRepo) GetVideosByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {
 	return []*Video{{
 		ID: 1,
 	}}, nil
@@ -48,12 +48,12 @@ func (m *MockPublishRepo) InitUpdateCommentQueue() {}
 var (
 	ctx      = context.Background()
 	mockRepo = &MockPublishRepo{}
-	useCase  *PublishUsecase
+	useCase  *PublishUseCase
 )
 
 func TestMain(m *testing.M) {
 	ctx = context.WithValue(ctx, middleware.UserIdKey("user_id"), uint32(1))
-	useCase = NewPublishUsecase(mockRepo, log.DefaultLogger)
+	useCase = NewPublishUseCase(mockRepo, log.DefaultLogger)
 	m.Run()
 	os.Exit(0)
 }

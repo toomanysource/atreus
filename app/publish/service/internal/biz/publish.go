@@ -8,7 +8,6 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-// Video is a video model
 type Video struct {
 	ID            uint32 `copier:"Id"`
 	Author        *User
@@ -20,7 +19,6 @@ type Video struct {
 	Title         string
 }
 
-// User is a user model.
 type User struct {
 	ID              uint32 `copier:"Id"`
 	Name            string
@@ -35,49 +33,69 @@ type User struct {
 	FavoriteCount   uint32
 }
 
-// PublishRepo is a publishing repo.
 type PublishRepo interface {
-	FindVideoListByUserId(context.Context, uint32) ([]*Video, error)
+	GetVideosByUserId(context.Context, uint32) ([]*Video, error)
 	UploadAll(context.Context, []byte, string) error
 	GetFeedList(context.Context, string) (int64, []*Video, error)
-	FindVideoListByVideoIds(context.Context, uint32, []uint32) ([]*Video, error)
+	GetVideosByVideoIds(context.Context, uint32, []uint32) ([]*Video, error)
 	InitUpdateFavoriteQueue()
 	InitUpdateCommentQueue()
 }
 
-// PublishUsecase is a publishing usecase.
-type PublishUsecase struct {
+type PublishUseCase struct {
 	repo PublishRepo
 	log  *log.Helper
 }
 
-// NewPublishUsecase new a publishing usecase.
-func NewPublishUsecase(repo PublishRepo, logger log.Logger) *PublishUsecase {
+func NewPublishUseCase(repo PublishRepo, logger log.Logger) *PublishUseCase {
 	go repo.InitUpdateCommentQueue()
 	go repo.InitUpdateFavoriteQueue()
-	return &PublishUsecase{repo: repo, log: log.NewHelper(logger)}
+	return &PublishUseCase{
+		repo: repo,
+		log:  log.NewHelper(log.With(logger, "model", "usecase/publish")),
+	}
 }
 
-func (u *PublishUsecase) GetPublishList(
+func (u *PublishUseCase) GetPublishList(
 	ctx context.Context, userId uint32,
 ) ([]*Video, error) {
 	if userId == 0 {
 		userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-		return u.repo.FindVideoListByUserId(ctx, userID)
+		video, err := u.repo.GetVideosByUserId(ctx, userID)
+		if err != nil {
+			u.log.Errorf("GetPublishList error: %v", err)
+		}
+		return video, err
 	}
-	return u.repo.FindVideoListByUserId(ctx, userId)
+	video, err := u.repo.GetVideosByUserId(ctx, userId)
+	if err != nil {
+		u.log.Errorf("GetPublishList error: %v", err)
+	}
+	return video, err
 }
 
-func (u *PublishUsecase) PublishAction(
+func (u *PublishUseCase) PublishAction(
 	ctx context.Context, fileBytes []byte, title string,
 ) error {
-	return u.repo.UploadAll(ctx, fileBytes, title)
+	err := u.repo.UploadAll(ctx, fileBytes, title)
+	if err != nil {
+		u.log.Errorf("PublishAction error: %v", err)
+	}
+	return err
 }
 
-func (u *PublishUsecase) GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {
-	return u.repo.FindVideoListByVideoIds(ctx, userId, videoIds)
+func (u *PublishUseCase) GetVideoListByVideoIds(ctx context.Context, userId uint32, videoIds []uint32) ([]*Video, error) {
+	video, err := u.repo.GetVideosByVideoIds(ctx, userId, videoIds)
+	if err != nil {
+		u.log.Errorf("GetVideoListByVideoIds error: %v", err)
+	}
+	return video, err
 }
 
-func (u *PublishUsecase) FeedList(ctx context.Context, latestTime string) (int64, []*Video, error) {
-	return u.repo.GetFeedList(ctx, latestTime)
+func (u *PublishUseCase) FeedList(ctx context.Context, latestTime string) (int64, []*Video, error) {
+	n, video, err := u.repo.GetFeedList(ctx, latestTime)
+	if err != nil {
+		u.log.Errorf("FeedList error: %v", err)
+	}
+	return n, video, err
 }
