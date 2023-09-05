@@ -2,16 +2,16 @@ package biz
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/toomanysource/atreus/middleware"
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
 
-var (
-	actionFavorite   uint32 = 1
-	actionUnFavorite uint32 = 2
+const (
+	Favorite   uint32 = 1
+	UnFavorite uint32 = 2
 )
 
 type Video struct {
@@ -51,38 +51,34 @@ type PublishRepo interface {
 }
 
 type FavoriteUseCase struct {
-	favoriteRepo FavoriteRepo
-	log          *log.Helper
+	repo FavoriteRepo
+	log  *log.Helper
 }
 
 func NewFavoriteUseCase(repo FavoriteRepo, logger log.Logger) *FavoriteUseCase {
-	return &FavoriteUseCase{favoriteRepo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
+	return &FavoriteUseCase{repo: repo, log: log.NewHelper(log.With(logger, "model", "usecase/favorite"))}
 }
 
 func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionType uint32) error {
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	switch actionType {
-	case actionFavorite:
-		return uc.favoriteRepo.CreateFavorite(ctx, userId, videoId)
-	case actionUnFavorite:
-		return uc.favoriteRepo.DeleteFavorite(ctx, userId, videoId)
+	case Favorite:
+		return uc.repo.CreateFavorite(ctx, userId, videoId)
+	case UnFavorite:
+		return uc.repo.DeleteFavorite(ctx, userId, videoId)
 	default:
-		return fmt.Errorf("invalid action type(not 1 nor 2)")
+		return errorX.ErrInValidActionType
 	}
 }
 
 func (uc *FavoriteUseCase) GetFavoriteList(ctx context.Context, userID uint32) ([]Video, error) {
 	if userID == 0 {
 		userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-		return uc.favoriteRepo.GetFavoriteList(ctx, userId)
+		return uc.repo.GetFavoriteList(ctx, userId)
 	}
-	return uc.favoriteRepo.GetFavoriteList(ctx, userID)
+	return uc.repo.GetFavoriteList(ctx, userID)
 }
 
 func (uc *FavoriteUseCase) IsFavorite(ctx context.Context, userID uint32, videoIDs []uint32) ([]bool, error) {
-	ret, err := uc.favoriteRepo.IsFavorite(ctx, userID, videoIDs)
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
+	return uc.repo.IsFavorite(ctx, userID, videoIDs)
 }

@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/jinzhu/copier"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
+
 	pb "github.com/toomanysource/atreus/api/user/service/v1"
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
@@ -23,28 +27,12 @@ func NewUserRepo(conn server.UserConn) UserRepo {
 func (u *userRepo) GetUserInfos(ctx context.Context, userId uint32, userIds []uint32) ([]*biz.User, error) {
 	resp, err := u.client.GetUserInfos(ctx, &pb.UserInfosRequest{UserId: userId, UserIds: userIds})
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(errorX.ErrUserServiceResponse, err)
 	}
 
-	// 判空
-	if len(resp.Users) == 0 {
-		return nil, errors.New("the user service did not search for any information")
-	}
-	users := make([]*biz.User, 0, len(resp.Users)+1)
-	for _, user := range resp.Users {
-		users = append(users, &biz.User{
-			Id:              user.Id,
-			Name:            user.Name,
-			Avatar:          user.Avatar,
-			BackgroundImage: user.BackgroundImage,
-			Signature:       user.Signature,
-			IsFollow:        user.IsFollow,
-			FollowCount:     user.FollowCount,
-			FollowerCount:   user.FollowerCount,
-			TotalFavorited:  user.TotalFavorited,
-			WorkCount:       user.WorkCount,
-			FavoriteCount:   user.FavoriteCount,
-		})
+	users := make([]*biz.User, 0, len(resp.Users))
+	if err = copier.Copy(&users, &resp.Users); err != nil {
+		return nil, errorX.ErrCopy
 	}
 	return users, nil
 }

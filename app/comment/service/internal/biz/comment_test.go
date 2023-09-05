@@ -95,7 +95,7 @@ func (m *MockCommentRepo) DeleteComment(ctx context.Context, videoId, commentId 
 	return nil, nil
 }
 
-func (m *MockCommentRepo) GetCommentList(ctx context.Context, videoId uint32) ([]*Comment, error) {
+func (m *MockCommentRepo) GetComments(ctx context.Context, videoId uint32) ([]*Comment, error) {
 	var comments []*Comment
 	for _, comment := range testCommentsData {
 		comments = append(comments, comment)
@@ -109,11 +109,11 @@ func (m *MockCommentRepo) GetCommentNumber(ctx context.Context, videoId uint32) 
 
 var mockRepo = &MockCommentRepo{}
 
-var useCase *CommentUsecase
+var useCase *CommentUseCase
 
 func TestMain(m *testing.M) {
 	ctx = context.WithValue(ctx, middleware.UserIdKey("user_id"), uint32(1))
-	useCase = NewCommentUsecase(mockRepo, log.DefaultLogger)
+	useCase = NewCommentUseCase(mockRepo, log.DefaultLogger)
 	r := m.Run()
 	os.Exit(r)
 }
