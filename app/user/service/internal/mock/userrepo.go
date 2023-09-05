@@ -35,10 +35,24 @@ var userTable = []*UserDetail{
 	{6, "erlengzi", "zilenger", "erlengzi", 6, 6, "avatar_6", "background_image_6", "signature_6", 6, 6, 6, gorm.DeletedAt{}},
 }
 
-type userRepo struct{}
+type relationRepo struct{}
+
+func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, userIds []uint32) ([]bool, error) {
+	result := make([]bool, len(userIds))
+	for i := range result {
+		result[i] = true
+	}
+	return result, nil
+}
+
+type userRepo struct {
+	relationRepo *relationRepo
+}
 
 func NewUserRepo() biz.UserRepo {
-	return &userRepo{}
+	return &userRepo{
+		relationRepo: &relationRepo{},
+	}
 }
 
 func (r *userRepo) Create(ctx context.Context, user *biz.User) (*biz.User, error) {

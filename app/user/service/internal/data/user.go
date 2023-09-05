@@ -28,24 +28,40 @@ var FixedCacheExpire = 720
 
 var userTableName = "users"
 
+// User 是用户的全量信息，包含敏感字段，是数据库的模型
 type User struct {
-	Id              uint32         `gorm:"primary_key" json:"id"`
-	Username        string         `gorm:"column:username;not null" json:"username"`
-	Password        string         `gorm:"column:password;not null" json:"password"`
-	Name            string         `gorm:"column:name;not null" json:"name"`
-	FollowCount     uint32         `gorm:"column:follow_count;not null;default:0" json:"follow_count"`
-	FollowerCount   uint32         `gorm:"column:follower_count;not null;default:0" json:"follower_count"`
-	Avatar          string         `gorm:"column:avatar_url;type:longtext;not null" json:"avatar"`
-	BackgroundImage string         `gorm:"column:background_image_url;type:longtext;not null" json:"background_image"`
-	Signature       string         `gorm:"column:signature;not null;type:longtext" json:"signature"`
-	TotalFavorited  uint32         `gorm:"column:total_favorited;not null;default:0" json:"total_favorited"`
-	WorkCount       uint32         `gorm:"column:work_count;not null;default:0" json:"work_count"`
-	FavoriteCount   uint32         `grom:"column:favorite_count;not null;default:0" json:"favorite_count"`
-	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at" json:"-"`
+	Id              uint32         `gorm:"primary_key"`
+	Username        string         `gorm:"column:username;not null;index:idx_uname_pwd"`
+	Password        string         `gorm:"column:password;not null;index:idx_uname_pwd"`
+	Name            string         `gorm:"column:name;not null"`
+	FollowCount     uint32         `gorm:"column:follow_count;not null;default:0"`
+	FollowerCount   uint32         `gorm:"column:follower_count;not null;default:0"`
+	Avatar          string         `gorm:"column:avatar_url;type:longtext;not null"`
+	BackgroundImage string         `gorm:"column:background_image_url;type:longtext;not null"`
+	Signature       string         `gorm:"column:signature;not null;type:longtext"`
+	TotalFavorited  uint32         `gorm:"column:total_favorited;not null;default:0"`
+	WorkCount       uint32         `gorm:"column:work_count;not null;default:0"`
+	FavoriteCount   uint32         `grom:"column:favorite_count;not null;default:0"`
+	DeletedAt       gorm.DeletedAt `gorm:"column:deleted_at"`
 }
 
 func (User) TableName() string {
 	return userTableName
+}
+
+// UserDetail 是不包含敏感信息的用户信息
+type UserDetail struct {
+	Id              uint32 `gorm:"primary_key" json:"id"`
+	Username        string `gorm:"column:username" json:"username"`
+	Name            string `gorm:"column:name" json:"name"`
+	FollowCount     uint32 `gorm:"column:follow_count" json:"follow_count"`
+	FollowerCount   uint32 `gorm:"column:follower_count" json:"follower_count"`
+	Avatar          string `gorm:"column:avatar_url" json:"avatar"`
+	BackgroundImage string `gorm:"column:background_image_url" json:"background_image"`
+	Signature       string `gorm:"column:signature" json:"signature"`
+	TotalFavorited  uint32 `gorm:"column:total_favorited" json:"total_favorited"`
+	WorkCount       uint32 `gorm:"column:work_count" json:"work_count"`
+	FavoriteCount   uint32 `grom:"column:favorite_count" json:"favorite_count"`
 }
 
 type RelationRepo interface {
@@ -86,7 +102,9 @@ func (r *userRepo) Create(ctx context.Context, user *biz.User) (*biz.User, error
 	}
 	// 缓存用户信息
 	go func() {
-		err := r.cacheUserById(u)
+		uDetail := new(UserDetail)
+		copier.Copy(uDetail, u)
+		err := r.cacheUserDetailById(uDetail)
 		if err != nil {
 			r.log.Errorf("cache user by id %d failed: %s", u.Id, err.Error())
 		}
@@ -105,21 +123,21 @@ func (r *userRepo) FindById(ctx context.Context, id uint32) (*biz.User, error) {
 	return user, nil
 }
 
-// findById 返回的是*User
-func (r *userRepo) findById(ctx context.Context, id uint32) (*User, error) {
+// findById 返回的是*UserDetail
+func (r *userRepo) findById(ctx context.Context, id uint32) (*UserDetail, error) {
 	// 先查看缓存有无对应的user信息
-	u, err := r.getCachedUserById(ctx, id)
+	uDetail, err := r.getCachedUserDetailById(ctx, id)
 	if err == nil {
-		return u, nil
+		return uDetail, nil
 	}
 	// 如果遇到错误，但不是key不存在的错误，则输出到日志里，继续查询数据库
 	if !errors.Is(err, redis.Nil) {
 		r.log.Errorf("get user cache by id %d failed: %s", id, err.Error())
 	}
-	u = new(User)
-	err = r.db.WithContext(ctx).Model(u).
+	uDetail = new(UserDetail)
+	err = r.db.WithContext(ctx).Model(&User{}).
 		Where("id = ?", id).
-		First(u).Error
+		First(uDetail).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}
@@ -128,12 +146,12 @@ func (r *userRepo) findById(ctx context.Context, id uint32) (*User, error) {
 	}
 	// 缓存用户信息
 	go func() {
-		err := r.cacheUserById(u)
+		err := r.cacheUserDetailById(uDetail)
 		if err != nil {
 			r.log.Errorf("cache user by id %d failed: %s", id, err.Error())
 		}
 	}()
-	return u, nil
+	return uDetail, nil
 }
 
 // FindByIds .
@@ -154,10 +172,10 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 			continue
 		}
 		// 先查看缓存有无对应的user信息
-		u, err := r.getCachedUserById(ctx, id)
+		uDetail, err := r.getCachedUserDetailById(ctx, id)
 		if err == nil {
 			user := new(biz.User)
-			copier.Copy(user, u)
+			copier.Copy(user, uDetail)
 			user.IsFollow = isFollow[i]
 			result = append(result, user)
 			once[id] = len(result) - 1
@@ -167,11 +185,11 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 		if !errors.Is(err, redis.Nil) {
 			r.log.Errorf("get user cache by id %d failed: %s", id, err.Error())
 		}
-		u = new(User)
+		uDetail = new(UserDetail)
 		// 对于唯一id，进行查询
-		err = session.Model(u).
+		err = session.Model(&User{}).
 			Where("id = ?", id).
-			First(u).Error
+			First(uDetail).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			continue
 		}
@@ -179,14 +197,14 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 			return nil, err
 		}
 		// 缓存用户信息
-		go func(id uint32) {
-			err := r.cacheUserById(u)
+		go func() {
+			err := r.cacheUserDetailById(uDetail)
 			if err != nil {
-				r.log.Errorf("cache user by id %d failed: %s", id, err.Error())
+				r.log.Errorf("cache user by id %d failed: %s", uDetail.Id, err.Error())
 			}
-		}(u.Id)
+		}()
 		user := new(biz.User)
-		copier.Copy(user, u)
+		copier.Copy(user, uDetail)
 		user.IsFollow = isFollow[i]
 		result = append(result, user)
 		once[id] = len(result) - 1
@@ -205,34 +223,18 @@ func (r *userRepo) FindByUsername(ctx context.Context, username string) (*biz.Us
 	return user, nil
 }
 
-func (r *userRepo) findByUsername(ctx context.Context, username string) (*User, error) {
-	// 先查看缓存有无对应的user信息
-	u, err := r.getCachedUserByUsername(ctx, username)
-	if err == nil {
-		return u, nil
-	}
-	// 如果遇到错误，但不是key不存在的错误，则输出到日志里，继续查询数据库
-	if !errors.Is(err, redis.Nil) {
-		r.log.Errorf("get user cache by username %s failed: %s", username, err.Error())
-	}
-	u = new(User)
-	err = r.db.WithContext(ctx).Model(u).
+func (r *userRepo) findByUsername(ctx context.Context, username string) (*UserDetail, error) {
+	uDetail := new(UserDetail)
+	err := r.db.WithContext(ctx).Model(&User{}).
 		Where("username = ?", username).
-		First(u).Error
+		First(uDetail).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
-	// 缓存用户信息
-	go func() {
-		err = r.cacheUserByUsername(u)
-		if err != nil {
-			r.log.Errorf("cache user by username %s failed: %s", u.Username, err.Error())
-		}
-	}()
-	return u, nil
+	return uDetail, nil
 }
 
 func (r *userRepo) InitUpdateFollowQueue() {
@@ -335,100 +337,96 @@ func (r *userRepo) InitUpdatePublishQueue() {
 	})
 }
 
-func (r *userRepo) updateCache(user *User) error {
-	err := r.cacheUserById(user)
+func (r *userRepo) updateCache(user *UserDetail) error {
+	err := r.cacheUserDetailById(user)
 	if err != nil {
 		r.log.Errorf("cache user by id %d failed: %s", user.Id, err.Error())
-	}
-	err = r.cacheUserByUsername(user)
-	if err != nil {
-		r.log.Errorf("cache user by username %s failed: %s", user.Username, err.Error())
 	}
 	return nil
 }
 
 // UpdateFollow .
 func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, followChange int32) error {
-	user, err := r.findById(ctx, id)
+	uDetail, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	newValue := addUint32int32(user.FollowCount, followChange)
-	user.FollowCount = newValue
-	err = r.updateCache(user)
+	newValue := addUint32int32(uDetail.FollowCount, followChange)
+	uDetail.FollowCount = newValue
+	err = r.updateCache(uDetail)
 	if err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).Model(user).
+	return r.db.WithContext(ctx).Model(&User{}).
 		Update("follow_count", newValue).Error
 }
 
 // UpdateFollower .
 func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, followerChange int32) error {
-	user, err := r.findById(ctx, id)
+	uDetail, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	newValue := addUint32int32(user.FollowerCount, followerChange)
-	user.FollowerCount = newValue
-	err = r.updateCache(user)
+	newValue := addUint32int32(uDetail.FollowerCount, followerChange)
+	uDetail.FollowerCount = newValue
+	err = r.updateCache(uDetail)
 	if err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).Model(user).
+	return r.db.WithContext(ctx).Model(&User{}).
 		Update("follower_count", newValue).Error
 }
 
 // UpdateFavorited .
 func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, favoritedChange int32) error {
-	user, err := r.findById(ctx, id)
+	uDetail, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	newValue := addUint32int32(user.TotalFavorited, favoritedChange)
-	user.TotalFavorited = newValue
-	err = r.updateCache(user)
+	newValue := addUint32int32(uDetail.TotalFavorited, favoritedChange)
+	uDetail.TotalFavorited = newValue
+	err = r.updateCache(uDetail)
 	if err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).Model(user).
+	return r.db.WithContext(ctx).Model(&User{}).
 		Update("total_favorited", newValue).Error
 }
 
 // UpdateWork .
 func (r *userRepo) UpdateWork(ctx context.Context, id uint32, workChange int32) error {
-	user, err := r.findById(ctx, id)
+	uDetail, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	newValue := addUint32int32(user.WorkCount, workChange)
-	user.WorkCount = newValue
-	err = r.updateCache(user)
+	newValue := addUint32int32(uDetail.WorkCount, workChange)
+	uDetail.WorkCount = newValue
+	err = r.updateCache(uDetail)
 	if err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).Model(user).
+	return r.db.WithContext(ctx).Model(&User{}).
 		Update("work_count", newValue).Error
 }
 
 // UpdateFavorite .
 func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, favoriteChange int32) error {
-	user, err := r.findById(ctx, id)
+	uDetail, err := r.findById(ctx, id)
 	if err != nil {
 		return err
 	}
-	newValue := addUint32int32(user.FavoriteCount, favoriteChange)
-	user.FavoriteCount = newValue
-	err = r.updateCache(user)
+	newValue := addUint32int32(uDetail.FavoriteCount, favoriteChange)
+	uDetail.FavoriteCount = newValue
+	err = r.updateCache(uDetail)
 	if err != nil {
 		return err
 	}
-	return r.db.WithContext(ctx).Model(user).
+	return r.db.WithContext(ctx).Model(&User{}).
 		Update("favorite_count", newValue).Error
 }
 
 // cacheUserById 用id来缓存User信息
-func (r *userRepo) cacheUserById(user *User) error {
+func (r *userRepo) cacheUserDetailById(user *UserDetail) error {
 	bs, err := json.Marshal(user)
 	if err != nil {
 		return err
@@ -436,32 +434,11 @@ func (r *userRepo) cacheUserById(user *User) error {
 	return r.rdb.Set(context.TODO(), getUserCachedKeyById(user.Id), bs, time.Duration(FixedCacheExpire)*time.Minute).Err()
 }
 
-// cacheUserById 用username来缓存User信息
-func (r *userRepo) cacheUserByUsername(user *User) error {
-	bs, err := json.Marshal(user)
-	if err != nil {
-		return err
-	}
-	return r.rdb.Set(context.TODO(), getUserCachedKeyByUsername(user.Username), bs, time.Duration(FixedCacheExpire)*time.Minute).Err()
-}
-
 // getCachedUserById 根据id来获取缓存的User信息
 // error 可能是key不存在
-func (r *userRepo) getCachedUserById(ctx context.Context, id uint32) (*User, error) {
-	user := new(User)
+func (r *userRepo) getCachedUserDetailById(ctx context.Context, id uint32) (*UserDetail, error) {
+	user := new(UserDetail)
 	bs, err := r.rdb.Get(ctx, getUserCachedKeyById(id)).Bytes()
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(bs, user)
-	return user, err
-}
-
-// getCachedUserByUsername 根据username来获取缓存的User信息
-// error 可能是key不存在
-func (r *userRepo) getCachedUserByUsername(ctx context.Context, username string) (*User, error) {
-	user := new(User)
-	bs, err := r.rdb.Get(ctx, getUserCachedKeyByUsername(username)).Bytes()
 	if err != nil {
 		return nil, err
 	}
@@ -472,11 +449,6 @@ func (r *userRepo) getCachedUserByUsername(ctx context.Context, username string)
 // getUserCachedKeyById 获取根据id拼接成用于缓存User的key
 func getUserCachedKeyById(id uint32) string {
 	return fmt.Sprintf("user:id:%d", id)
-}
-
-// getUserCachedKeyByUsername 获取根据username拼接成用于缓存User的key
-func getUserCachedKeyByUsername(username string) string {
-	return fmt.Sprintf("user:username:%s", username)
 }
 
 // addUint32int32 计算uint32数字与int32数字的和，结果为uint32
