@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-kratos/kratos/v2/log"
 
@@ -12,6 +13,8 @@ const (
 	CreateType uint32 = 1
 	DeleteType uint32 = 2
 )
+
+var ErrCommentTextEmpty = errors.New("comment text is empty")
 
 type Comment struct {
 	Id         uint32
@@ -54,7 +57,11 @@ func NewCommentUseCase(cr CommentRepo, logger log.Logger) *CommentUseCase {
 func (uc *CommentUseCase) GetCommentList(
 	ctx context.Context, videoId uint32,
 ) ([]*Comment, error) {
-	return uc.repo.GetComments(ctx, videoId)
+	comment, err := uc.repo.GetComments(ctx, videoId)
+	if err != nil {
+		uc.log.Errorf("GetComments err: %v", err)
+	}
+	return comment, err
 }
 
 func (uc *CommentUseCase) CommentAction(
@@ -64,11 +71,19 @@ func (uc *CommentUseCase) CommentAction(
 	switch actionType {
 	case CreateType:
 		if commentText == "" {
-			return nil, errorX.ErrCommentNil
+			return nil, ErrCommentTextEmpty
 		}
-		return uc.repo.CreateComment(ctx, videoId, commentText)
+		comment, err := uc.repo.CreateComment(ctx, videoId, commentText)
+		if err != nil {
+			uc.log.Errorf("CreateComment err: %v", err)
+		}
+		return comment, err
 	case DeleteType:
-		return uc.repo.DeleteComment(ctx, videoId, commentId)
+		comment, err := uc.repo.DeleteComment(ctx, videoId, commentId)
+		if err != nil {
+			uc.log.Errorf("DeleteComment err: %v", err)
+		}
+		return comment, err
 	default:
 		return nil, errorX.ErrInValidActionType
 	}
