@@ -2,12 +2,19 @@ package ffmpegX
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/disintegration/imaging"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
+)
+
+var (
+	ErrImageGenerate = errors.New("image generate error")
+	ErrImageDecode   = errors.New("image decode error")
+	ErrImageSave     = errors.New("image save error")
 )
 
 // ReadFrameAsImage 读取视频文件的某一帧并转换为jpeg格式
@@ -21,7 +28,7 @@ func ReadFrameAsImage(inFilePath string, frameNum int) (io.Reader, error) {
 		WithOutput(buf, os.Stdout).
 		Run()
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(ErrImageGenerate, err)
 	}
 	return buf, err
 }
@@ -32,8 +39,10 @@ func ReadFrameAsImage(inFilePath string, frameNum int) (io.Reader, error) {
 func SaveImage(reader io.Reader, outFilePath string) error {
 	img, err := imaging.Decode(reader)
 	if err != nil {
-		return err
+		return errors.Join(ErrImageDecode, err)
 	}
-	err = imaging.Save(img, outFilePath)
+	if err = imaging.Save(img, outFilePath); err != nil {
+		return errors.Join(ErrImageSave, err)
+	}
 	return err
 }
