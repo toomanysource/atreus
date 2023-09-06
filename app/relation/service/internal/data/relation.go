@@ -172,6 +172,7 @@ func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, toUserId []u
 
 // GetFollowList 获取关注列表
 func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz.User, error) {
+	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	// 先在redis缓存中查询是否存在关注列表
 	follows, err := r.GetFollowCache(ctx, userId)
 	if err != nil {
@@ -207,7 +208,24 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 	if len(fl) == 0 {
 		return nil, nil
 	}
-	users, err := r.userRepo.GetUserInfos(ctx, 0, fl)
+	if userID != userId {
+		// 查询是否关注
+		isFollow, err := r.SearchRelation(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		users, err := r.userRepo.GetUserInfos(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		for i, user := range users {
+			user.IsFollow = isFollow[i]
+		}
+		r.log.Infof(
+			"GetFollowUserList -> userId: %v - userList: %v", userId, users)
+		return users, nil
+	}
+	users, err := r.userRepo.GetUserInfos(ctx, userId, fl)
 	if err != nil {
 		return nil, err
 	}
@@ -222,6 +240,7 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 // GetFollowerList 获取粉丝列表
 func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul []*biz.User, err error) {
 	// 先在redis缓存中查询是否存在被关注列表
+	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	followers, err := r.GetFollowedCache(ctx, userId)
 	if err != nil {
 		return nil, err
@@ -256,12 +275,29 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 	if len(fl) == 0 {
 		return nil, nil
 	}
+	if userID != userId {
+		// 查询是否关注
+		isFollow, err := r.SearchRelation(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		users, err := r.userRepo.GetUserInfos(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		for i, user := range users {
+			user.IsFollow = isFollow[i]
+		}
+		r.log.Infof(
+			"GetFollowUserList -> userId: %v - userList: %v", userId, users)
+		return users, nil
+	}
 	// 查询是否关注粉丝
 	isFollow, err := r.SearchRelation(ctx, userId, fl)
 	if err != nil {
 		return nil, err
 	}
-	users, err := r.userRepo.GetUserInfos(ctx, 0, fl)
+	users, err := r.userRepo.GetUserInfos(ctx, userId, fl)
 	if err != nil {
 		return nil, err
 	}
@@ -473,7 +509,7 @@ func (r *relationRepo) SearchRelation(ctx context.Context, userId uint32, toUser
 	for _, follow := range relation {
 		relationMap[follow.UserId] = true
 	}
-	slice := make([]bool, len(toUserId))
+	slice := make([]bool, 0, len(toUserId))
 	for _, id := range toUserId {
 		if _, ok := relationMap[id]; !ok {
 			slice = append(slice, false)
