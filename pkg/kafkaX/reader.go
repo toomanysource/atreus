@@ -46,7 +46,7 @@ func Reader(reader *kafka.Reader, log *log.Helper,
 				log.Errorf("commit message error, err: %v", err)
 				return
 			}
-			log.Infof("commit message success, %v-(%v)", msg.Key, msg.Value)
+			log.Infof("commit message success, %v-(%v)", string(msg.Key), string(msg.Value))
 		}
 	}
 }
