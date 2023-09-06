@@ -270,7 +270,16 @@ func (m *RelationActionRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for ToUserId
+	if m.GetToUserId() <= 0 {
+		err := RelationActionRequestValidationError{
+			field:  "ToUserId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for ActionType
 

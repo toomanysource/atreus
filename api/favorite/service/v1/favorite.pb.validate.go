@@ -518,7 +518,16 @@ func (m *FavoriteActionRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for VideoId
+	if m.GetVideoId() <= 0 {
+		err := FavoriteActionRequestValidationError{
+			field:  "VideoId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for ActionType
 

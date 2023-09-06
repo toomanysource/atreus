@@ -54,7 +54,7 @@ message RelationActionRequest {
 	// 用户鉴权token
 	string token = 1 [(validate.rules).string.min_len = 1];
 	// 对方用户id
-	uint32 to_user_id = 2;
+	uint32 to_user_id = 2 [(validate.rules).uint32 = {gt: 0}];
 	// 1-关注，2-取消关注
 	uint32 action_type = 3;
 }

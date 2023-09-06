@@ -567,9 +567,27 @@ func (m *PublishActionRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for Data
+	if len(m.GetData()) < 100000 {
+		err := PublishActionRequestValidationError{
+			field:  "Data",
+			reason: "value length must be at least 100000 bytes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Title
+	if utf8.RuneCountInString(m.GetTitle()) < 1 {
+		err := PublishActionRequestValidationError{
+			field:  "Title",
+			reason: "value length must be at least 1 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return PublishActionRequestMultiError(errors)
