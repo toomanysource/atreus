@@ -40,7 +40,7 @@ type Comment struct {
 	UserId   uint32 `gorm:"column:user_id;not null"`
 	VideoId  uint32 `gorm:"column:video_id;not null;index:idx_video_id"`
 	Content  string `gorm:"column:content;not null"`
-	CreateAt string `gorm:"column:created_at;default:''" copier:"CreateData"`
+	CreateAt string `gorm:"column:created_at;default:''" copier:"CreateDate"`
 }
 
 func (Comment) TableName() string {

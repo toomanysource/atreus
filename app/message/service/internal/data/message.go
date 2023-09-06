@@ -66,10 +66,13 @@ func (r *messageRepo) PublishMessage(ctx context.Context, toUserId uint32, conte
 	createTime := time.Now().UnixMilli()
 	// 生成消息uid,解决kafka发送数据库不及时，导致查询时没有数据的问题
 	uid := common.NewUUIDInt()
-	err := r.MessageProducer(uid, userId, toUserId, content, createTime)
-	if err != nil {
-		return fmt.Errorf("message producer error, err: %w", err)
-	}
+	go func() {
+		err := r.MessageProducer(uid, userId, toUserId, content, createTime)
+		if err != nil {
+			r.log.Errorf("message producer error, err: %w", err)
+			return
+		}
+	}()
 	go func() {
 		ctx = context.Background()
 		key := setKey(userId, toUserId)
