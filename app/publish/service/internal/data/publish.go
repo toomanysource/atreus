@@ -113,7 +113,7 @@ func (r *publishRepo) UploadAll(ctx context.Context, fileBytes []byte, title str
 			r.log.Error(err)
 			return
 		}
-		err = kafkaX.Update(r.data.kfkWriter, userId, 1)
+		err = kafkaX.Update(r.data.kfkWriter, strconv.Itoa(int(userId)), "1")
 		if err != nil {
 			r.log.Error(err)
 			return

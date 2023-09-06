@@ -25,7 +25,11 @@ const (
 	OccupyValue = ""
 )
 
-var ErrFollowYourself = errors.New("can't follow yourself")
+var (
+	ErrFollowYourself   = errors.New("can't follow yourself")
+	ErrExistRelation    = errors.New("exist relation")
+	ErrNotExistRelation = errors.New("not exist relation")
+)
 
 type UserRepo interface {
 	GetUserInfos(ctx context.Context, userId uint32, userIds []uint32) ([]*biz.User, error)
@@ -456,18 +460,21 @@ func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId ui
 		UserId:     toUserId,
 		FollowerId: userId,
 	}
-	err := r.data.db.WithContext(ctx).Create(&follow).Error
-	if err != nil {
-		return errors.Join(errorX.ErrMysqlInsert, err)
+	result := r.data.db.WithContext(ctx).FirstOrCreate(&follow)
+	if result.RowsAffected == 0 {
+		return ErrExistRelation
+	}
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlInsert, result.Error)
 	}
 	go func() {
-		err = kafkaX.Update(r.kfk.follow, userId, 1)
+		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "1")
 		if err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		err = kafkaX.Update(r.kfk.follower, toUserId, 1)
+		err := kafkaX.Update(r.kfk.follower, strconv.Itoa(int(toUserId)), "1")
 		if err != nil {
 			r.log.Error(err)
 		}
@@ -477,19 +484,22 @@ func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId ui
 
 // DelFollow 数据库取消关注关系
 func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId uint32) error {
-	err := r.data.db.WithContext(ctx).Where(
-		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{}).Error
-	if err != nil {
-		return errors.Join(errorX.ErrMysqlDelete, err)
+	result := r.data.db.WithContext(ctx).Where(
+		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{})
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlDelete, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotExistRelation
 	}
 	go func() {
-		err = kafkaX.Update(r.kfk.follow, userId, -1)
+		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "-1")
 		if err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		err = kafkaX.Update(r.kfk.follower, toUserId, -1)
+		err := kafkaX.Update(r.kfk.follower, strconv.Itoa(int(toUserId)), "-1")
 		if err != nil {
 			r.log.Error(err)
 		}

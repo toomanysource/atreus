@@ -22,9 +22,10 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 )
 
-var ErrUserNotFound = errors.Join(biz.ErrUserNotFound)
-
-var FixedCacheExpire = 720
+var (
+	FixedCacheExpire = 720
+	ErrUserNotFound  = errors.Join(biz.ErrUserNotFound)
+)
 
 var userTableName = "users"
 
@@ -137,11 +138,14 @@ func (r *userRepo) findById(ctx context.Context, id uint32) (*User, error) {
 }
 
 // FindByIds .
-func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) ([]*biz.User, error) {
+func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (ur []*biz.User, err error) {
 	result := make([]*biz.User, 0, len(ids))
-	isFollow, err := r.relationRepo.IsFollow(ctx, userId, ids)
-	if err != nil {
-		return nil, err
+	var isFollow []bool
+	if userId != 0 {
+		isFollow, err = r.relationRepo.IsFollow(ctx, userId, ids)
+		if err != nil {
+			return nil, err
+		}
 	}
 	// 记录查询过的id，避免出现查询重复的id
 	once := make(map[uint32]int)
@@ -149,7 +153,6 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 	for i, id := range ids {
 		// 重复id无需查询，从已查询的结果中获取
 		if idx, ok := once[id]; ok {
-			result[idx].IsFollow = isFollow[i]
 			result = append(result, result[idx])
 			continue
 		}
@@ -158,7 +161,11 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 		if err == nil {
 			user := new(biz.User)
 			copier.Copy(user, u)
-			user.IsFollow = isFollow[i]
+			if userId != 0 {
+				user.IsFollow = isFollow[i]
+			} else {
+				user.IsFollow = false
+			}
 			result = append(result, user)
 			once[id] = len(result) - 1
 			continue
@@ -187,7 +194,11 @@ func (r *userRepo) FindByIds(ctx context.Context, userId uint32, ids []uint32) (
 		}(u.Id)
 		user := new(biz.User)
 		copier.Copy(user, u)
-		user.IsFollow = isFollow[i]
+		if userId != 0 {
+			user.IsFollow = isFollow[i]
+		} else {
+			user.IsFollow = false
+		}
 		result = append(result, user)
 		once[id] = len(result) - 1
 	}

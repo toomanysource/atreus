@@ -59,7 +59,16 @@ func (m *CommentListRequest) validate(all bool) error {
 
 	// no validation rules for Token
 
-	// no validation rules for VideoId
+	if m.GetVideoId() <= 0 {
+		err := CommentListRequestValidationError{
+			field:  "VideoId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return CommentListRequestMultiError(errors)
@@ -312,7 +321,16 @@ func (m *CommentActionRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for VideoId
+	if m.GetVideoId() <= 0 {
+		err := CommentActionRequestValidationError{
+			field:  "VideoId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for ActionType
 

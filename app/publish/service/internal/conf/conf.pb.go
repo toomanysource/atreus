@@ -218,7 +218,6 @@ type Data struct {
 	unknownFields protoimpl.UnknownFields
 
 	Mysql *Data_Mysql `protobuf:"bytes,1,opt,name=mysql,proto3" json:"mysql,omitempty"`
-	// Redis redis = 2;
 	Kafka *Data_Kafka `protobuf:"bytes,2,opt,name=kafka,proto3" json:"kafka,omitempty"`
 }
 
@@ -685,13 +684,6 @@ func (x *Data_Mysql) GetDsn() string {
 	return ""
 }
 
-//	message Redis {
-//	  int32 db = 1;
-//	  string addr = 2;
-//	  string password = 3;
-//	  google.protobuf.Duration read_timeout = 4;
-//	  google.protobuf.Duration write_timeout = 5;
-//	}
 type Data_Kafka struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

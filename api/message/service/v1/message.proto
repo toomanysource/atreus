@@ -25,7 +25,7 @@ message MessageListRequest {
   // 用户鉴权token
   string token = 1 [(validate.rules).string.min_len = 1];
   // 对方用户id
-  uint32 to_user_id = 2;
+  uint32 to_user_id = 2 [(validate.rules).uint32 = {gt: 0}];
   //上次最新消息的时间
   int64 pre_msg_time = 3;
 }
@@ -43,7 +43,7 @@ message MessageActionRequest {
   // 用户鉴权token
   string token = 1 [(validate.rules).string.min_len = 1];
   // 对方用户id
-  uint32 to_user_id = 2;
+  uint32 to_user_id = 2 [(validate.rules).uint32 = {gt: 0}];
   // 1-发送消息
   uint32 action_type = 3;
   // 消息内容

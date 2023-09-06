@@ -22,7 +22,6 @@ import (
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 
 	"github.com/jinzhu/copier"
-	"gorm.io/gorm"
 
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 
@@ -33,6 +32,8 @@ const (
 	OccupyKey   = "-1"
 	OccupyValue = ""
 )
+
+var ErrInvalidComment = errors.New("invalid comment")
 
 type Comment struct {
 	Id       uint32 `gorm:"primary_key"`
@@ -263,20 +264,15 @@ func (r *commentRepo) CheckCache(ctx context.Context, videoId uint32) (bool, err
 func (r *commentRepo) DeleteCommentById(
 	ctx context.Context, videoId, commentId uint32,
 ) error {
-	comment := &Comment{}
-	err := r.data.db.WithContext(ctx).First(comment, commentId).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil
+	result := r.data.db.WithContext(ctx).Select("id").Delete(&Comment{}, commentId)
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlDelete, result.Error)
 	}
-	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
-	}
-
-	if err = r.data.db.WithContext(ctx).Select("id").Delete(&Comment{}, commentId).Error; err != nil {
-		return errors.Join(errorX.ErrMysqlDelete, err)
+	if result.RowsAffected == 0 {
+		return ErrInvalidComment
 	}
 	go func() {
-		if err = kafkaX.Update(r.kfk, videoId, -1); err != nil {
+		if err := kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "-1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
@@ -297,7 +293,8 @@ func (r *commentRepo) InsertComment(
 		return nil, errors.Join(errorX.ErrMysqlInsert, err)
 	}
 	go func() {
-		if err := kafkaX.Update(r.kfk, videoId, 1); err != nil {
+		strconv.Itoa(int(videoId))
+		if err := kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "1"); err != nil {
 			r.log.Error(err)
 		}
 	}()

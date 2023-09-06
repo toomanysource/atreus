@@ -211,7 +211,7 @@ func (r *messageRepo) MessageProducer(uid uint64, userId, toUserId uint32, conte
 	if err != nil {
 		return errors.Join(errorX.ErrJsonMarshal, err)
 	}
-	return kafkaX.Update(r.data.kfk.writer, "", byteValue)
+	return kafkaX.Update(r.data.kfk.writer, "", string(byteValue))
 }
 
 // InitStoreMessageQueue 初始化聊天记录存储队列
