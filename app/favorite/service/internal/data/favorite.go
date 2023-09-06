@@ -185,6 +185,7 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 		return oks, nil
 	}
 	go func() {
+		ctx := context.TODO()
 		// 如果不存在则创建
 		fl, err := r.GetFavoritesByUserId(ctx, userId)
 		if err != nil {
@@ -192,7 +193,7 @@ func (r *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds [
 			return
 		}
 		// 将喜爱列表存入redis缓存
-		if err = CreateCacheByTran(context.Background(), r.data.cache, fl, userId); err != nil {
+		if err = CreateCacheByTran(ctx, r.data.cache, fl, userId); err != nil {
 			r.log.Error(err)
 			return
 		}
