@@ -13,6 +13,8 @@ type relationRepo struct {
 	client pb.RelationServiceClient
 }
 
+var _ biz.RelationRepo = (*relationRepo)(nil)
+
 func NewRelationRepo(conn server.RelationConn) biz.RelationRepo {
 	return &relationRepo{
 		client: pb.NewRelationServiceClient(conn),
