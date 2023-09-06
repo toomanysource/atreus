@@ -143,11 +143,11 @@ func (r *userRepo) findById(ctx context.Context, id uint32) (*UserDetail, error)
 
 // FindByIds .
 func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, error) {
-	result := make([]*biz.User, 0, len(ids))
+	result := make([]*biz.User, len(ids))
 	// 记录查询过的id，避免出现查询重复的id
 	once := make(map[uint32]int)
 	session := r.db.WithContext(ctx)
-	for _, id := range ids {
+	for i, id := range ids {
 		// 重复id无需查询，从已查询的结果中获取
 		if idx, ok := once[id]; ok {
 			result = append(result, result[idx])
@@ -156,18 +156,19 @@ func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, er
 		// 先查看缓存有无对应的user信息
 		userDetail, err := r.getCachedDetailById(ctx, id)
 		if err == nil {
+			// 添加用户信息
 			user := new(biz.User)
 			copier.Copy(user, userDetail)
-			result = append(result, user)
-			once[id] = len(result) - 1
+			result[i] = user
+			once[id] = i
 			continue
 		}
 		// 如果遇到错误，但不是key不存在的错误，则输出到日志里，继续查询数据库
 		if !errors.Is(err, redis.Nil) {
 			r.log.Errorf("get user cache by id %d failed: %s", id, err.Error())
 		}
-		userDetail = new(UserDetail)
 		// 对于唯一id，进行查询
+		userDetail = new(UserDetail)
 		err = session.Model(&User{}).
 			Where("id = ?", id).
 			First(userDetail).Error
@@ -179,10 +180,11 @@ func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, er
 		}
 		// 缓存用户信息
 		go r.cacheDetailWithHandleError(userDetail)
+		// 添加用户信息
 		user := new(biz.User)
 		copier.Copy(user, userDetail)
-		result = append(result, user)
-		once[id] = len(result) - 1
+		result[i] = user
+		once[id] = i
 	}
 	return result, nil
 }

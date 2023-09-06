@@ -62,7 +62,7 @@ func testFindByIds(t *testing.T) {
 	for k := range tests {
 		ids = append(ids, k)
 	}
-	users, err := userRepo.FindByIds(ctx, 0, ids)
+	users, err := userRepo.FindByIds(ctx, ids)
 	assert.NoError(t, err)
 	for i := range users {
 		name := tests[users[i].Id]
