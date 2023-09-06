@@ -93,9 +93,9 @@ message PublishActionRequest {
 	// 用户鉴权token
 	string token = 1 [(validate.rules).string.min_len = 1];
 	// 视频数据
-	bytes data = 2;
+	bytes data = 2 [(validate.rules).bytes.min_len = 100000];
 	// 视频标题
-	string title = 3;
+	string title = 3 [(validate.rules).string.min_len = 1];
 }
 
 message ListFeedRequest {

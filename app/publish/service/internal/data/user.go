@@ -3,7 +3,8 @@ package data
 import (
 	"context"
 	"errors"
-	"fmt"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/jinzhu/copier"
 
@@ -26,17 +27,16 @@ func NewUserRepo(conn server.UserConn) UserRepo {
 func (u *userRepo) GetUserInfos(ctx context.Context, userId uint32, userIds []uint32) ([]*biz.User, error) {
 	resp, err := u.client.GetUserInfos(ctx, &pb.UserInfosRequest{UserId: userId, UserIds: userIds})
 	if err != nil {
-		return nil, fmt.Errorf("rpc GetUserInfos error: %v", err)
+		return nil, errors.Join(errorX.ErrUserServiceResponse, err)
 	}
 
-	// 判空
 	if len(resp.Users) == 0 {
-		return nil, errors.New("the user service did not search for any information")
+		return nil, errors.New("user not found")
 	}
+
 	users := make([]*biz.User, 0, len(resp.Users))
-	err = copier.Copy(&users, &resp.Users)
-	if err != nil {
-		return nil, fmt.Errorf("copier.Copy error: %v", err)
+	if err = copier.Copy(&users, &resp.Users); err != nil {
+		return nil, errors.Join(errorX.ErrCopy, err)
 	}
 	return users, nil
 }

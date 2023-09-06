@@ -68,7 +68,16 @@ func (m *MessageListRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for ToUserId
+	if m.GetToUserId() <= 0 {
+		err := MessageListRequestValidationError{
+			field:  "ToUserId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for PreMsgTime
 
@@ -323,7 +332,16 @@ func (m *MessageActionRequest) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	// no validation rules for ToUserId
+	if m.GetToUserId() <= 0 {
+		err := MessageActionRequestValidationError{
+			field:  "ToUserId",
+			reason: "value must be greater than 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	// no validation rules for ActionType
 

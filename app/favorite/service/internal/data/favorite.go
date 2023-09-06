@@ -25,6 +25,11 @@ const (
 	OccupyValue = ""
 )
 
+var (
+	ErrExistFavorite    = errors.New("exist favorite relation")
+	ErrNotExistFavorite = errors.New("not exist favorite relation")
+)
+
 type Favorite struct {
 	ID      uint32 `gorm:"column:id;primary_key;autoIncrement"`
 	UserID  uint32 `gorm:"column:user_id;index:idx_user_video"`
@@ -266,24 +271,28 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 	if err != nil {
 		return err
 	}
-	if err = r.data.db.WithContext(ctx).Create(&Favorite{
+	result := r.data.db.WithContext(ctx).FirstOrCreate(&Favorite{
 		VideoID: videoId,
 		UserID:  userId,
-	}).Error; err != nil {
-		return errors.Join(errorX.ErrMysqlInsert, err)
+	})
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlInsert, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrExistFavorite
 	}
 	go func() {
-		if err = kafkaX.Update(r.kfk.Favored, authorId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		if err = kafkaX.Update(r.kfk.Favorite, userId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.Favorite, strconv.Itoa(int(userId)), "1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, 1); err != nil {
+		if err = kafkaX.Update(r.kfk.videoFavorite, strconv.Itoa(int(videoId)), "1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
@@ -296,22 +305,25 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 	if err != nil {
 		return err
 	}
-	err = r.data.db.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{}).Error
-	if err != nil {
-		return errors.Join(errorX.ErrMysqlDelete, err)
+	result := r.data.db.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{})
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlDelete, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotExistFavorite
 	}
 	go func() {
-		if err = kafkaX.Update(r.kfk.Favored, authorId, -1); err != nil {
+		if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "-1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		if err = kafkaX.Update(r.kfk.Favorite, userId, -1); err != nil {
+		if err = kafkaX.Update(r.kfk.Favorite, strconv.Itoa(int(userId)), "-1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		if err = kafkaX.Update(r.kfk.videoFavorite, videoId, -1); err != nil {
+		if err = kafkaX.Update(r.kfk.videoFavorite, strconv.Itoa(int(videoId)), "-1"); err != nil {
 			r.log.Error(err)
 		}
 	}()

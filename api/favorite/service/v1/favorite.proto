@@ -57,7 +57,7 @@ message FavoriteActionRequest {
   // 用户鉴权 token
   string token = 1 [(validate.rules).string.min_len = 1];
   // 需要操作的视频 id
-  uint32 video_id = 2;
+  uint32 video_id = 2 [(validate.rules).uint32 = {gt: 0}];
   // 1-点赞，2-取消点赞
   uint32 action_type = 3;
 }

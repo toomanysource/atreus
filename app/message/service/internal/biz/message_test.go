@@ -30,12 +30,12 @@ func (m *MockMessageRepo) InitStoreMessageQueue() {}
 var (
 	ctx      = context.Background()
 	mockRepo *MockMessageRepo
-	useCase  *MessageUsecase
+	useCase  *MessageUseCase
 )
 
 func TestMain(m *testing.M) {
 	ctx = context.WithValue(ctx, middleware.UserIdKey("user_id"), uint32(1))
-	useCase = NewMessageUsecase(mockRepo, log.DefaultLogger)
+	useCase = NewMessageUseCase(mockRepo, log.DefaultLogger)
 	m.Run()
 	os.Exit(0)
 }

@@ -23,12 +23,12 @@ import (
 
 // wireApp init kratos application.
 func wireApp(confServer *conf.Server, client *conf.Client, minio *conf.Minio, jwt *conf.JWT, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
-	db := data.NewMysqlConn(confData)
-	extraConn := data.NewMinioExtraConn(minio)
-	intraConn := data.NewMinioIntraConn(minio)
-	minioXClient := data.NewMinioConn(minio, extraConn, intraConn)
-	writer := data.NewKafkaWriter(confData)
-	kfkReader := data.NewKafkaReader(confData)
+	db := data.NewMysqlConn(confData, logger)
+	extraConn := data.NewMinioExtraConn(minio, logger)
+	intraConn := data.NewMinioIntraConn(minio, logger)
+	minioXClient := data.NewMinioConn(minio, extraConn, intraConn, logger)
+	writer := data.NewKafkaWriter(confData, logger)
+	kfkReader := data.NewKafkaReader(confData, logger)
 	dataData, cleanup, err := data.NewData(db, minioXClient, writer, kfkReader, logger)
 	if err != nil {
 		return nil, nil, err
@@ -36,8 +36,8 @@ func wireApp(confServer *conf.Server, client *conf.Client, minio *conf.Minio, jw
 	userConn := server.NewUserClient(client, logger)
 	favoriteConn := server.NewFavoriteClient(client, logger)
 	publishRepo := data.NewPublishRepo(dataData, userConn, favoriteConn, logger)
-	publishUsecase := biz.NewPublishUsecase(publishRepo, logger)
-	publishService := service.NewPublishService(publishUsecase, logger)
+	publishUseCase := biz.NewPublishUseCase(publishRepo, logger)
+	publishService := service.NewPublishService(publishUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, publishService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, publishService, logger)
 	app := newApp(logger, grpcServer, httpServer)

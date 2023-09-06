@@ -23,6 +23,7 @@ type (
 
 // NewUserClient 创建一个User服务客户端，接收User服务数据
 func NewUserClient(c *conf.Client, logger log.Logger) UserConn {
+	logs := log.NewHelper(log.With(logger, "module", "server/user"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
 		grpc.WithEndpoint(c.User.To),
@@ -32,14 +33,15 @@ func NewUserClient(c *conf.Client, logger log.Logger) UserConn {
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to User Services, err : %v", err)
+		logs.Fatalf("user service connect error, %v", err)
 	}
-	log.Info("User Services connected.")
+	logs.Info("user service connect successfully")
 	return conn
 }
 
 // NewFavoriteClient 创建一个Favorite服务客户端，接收Favorite服务数据
 func NewFavoriteClient(c *conf.Client, logger log.Logger) FavoriteConn {
+	logs := log.NewHelper(log.With(logger, "module", "server/favorite"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
 		grpc.WithEndpoint(c.Favorite.To),
@@ -49,8 +51,8 @@ func NewFavoriteClient(c *conf.Client, logger log.Logger) FavoriteConn {
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to User Services, err : %v", err)
+		logs.Fatalf("favorite service connect error, %v", err)
 	}
-	log.Info("Favorite Services connected.")
+	logs.Info("favorite service connect successfully")
 	return conn
 }

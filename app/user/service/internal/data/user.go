@@ -20,9 +20,10 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 )
 
-var ErrUserNotFound = errors.Join(biz.ErrUserNotFound)
-
-var FixedCacheExpire = 720
+var (
+	FixedCacheExpire = 720
+	ErrUserNotFound  = errors.Join(biz.ErrUserNotFound)
+)
 
 var userTableName = "users"
 

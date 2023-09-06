@@ -2,10 +2,12 @@ package data
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/toomanysource/atreus/middleware"
 
@@ -21,6 +23,12 @@ import (
 const (
 	OccupyKey   = "-1"
 	OccupyValue = ""
+)
+
+var (
+	ErrFollowYourself   = errors.New("can't follow yourself")
+	ErrExistRelation    = errors.New("exist relation")
+	ErrNotExistRelation = errors.New("not exist relation")
 )
 
 type UserRepo interface {
@@ -53,11 +61,126 @@ func NewRelationRepo(data *Data, conn *grpc.ClientConn, logger log.Logger) biz.R
 	}
 }
 
-func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz.User, error) {
-	// 先在redis缓存中查询是否存在关注列表
-	follows, err := r.data.cache.followRelation.HKeys(ctx, strconv.Itoa(int(userId))).Result()
+// Follow 关注
+func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	if userId == toUserId {
+		return ErrFollowYourself
+	}
+	// 先在数据库中插入关系
+	if err := r.AddFollow(ctx, userId, toUserId); err != nil {
+		return err
+	}
+	go func() {
+		ctx := context.TODO()
+		if err := r.AddFollowCache(ctx, userId, toUserId); err != nil {
+			r.log.Error(err)
+			return
+		}
+		r.log.Info("redis store success")
+	}()
+	go func() {
+		ctx := context.TODO()
+		if err := r.AddFollowedCache(ctx, toUserId, userId); err != nil {
+			r.log.Error(err)
+			return
+		}
+		r.log.Info("redis store success")
+	}()
+	r.log.Infof(
+		"CreateRelation -> userId: %v - toUserId: %v", userId, toUserId)
+	return nil
+}
+
+// UnFollow 取消关注
+func (r *relationRepo) UnFollow(ctx context.Context, toUserId uint32) error {
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	err := r.DelFollow(ctx, userId, toUserId)
 	if err != nil {
-		return nil, fmt.Errorf("redis query error %w", err)
+		return err
+	}
+	go func() {
+		ctx := context.TODO()
+		// 在redis缓存中查询是否存在
+		ok, err := r.CheckFollowCache(ctx, userId, toUserId)
+		if err != nil {
+			r.log.Error(err)
+			return
+		}
+		if ok {
+			// 如果存在则删除
+			if err = r.DeleteFollowCache(ctx, userId, toUserId); err != nil {
+				r.log.Error(err)
+				return
+			}
+		}
+	}()
+	go func() {
+		ctx := context.TODO()
+		// 在redis缓存中查询是否存在
+		ok, err := r.CheckFollowedCache(ctx, toUserId, userId)
+		if err != nil {
+			r.log.Error(err)
+			return
+		}
+		if ok {
+			// 如果存在则删除
+			if err = r.DeleteFollowedCache(ctx, toUserId, userId); err != nil {
+				r.log.Error(err)
+				return
+			}
+		}
+	}()
+	r.log.Infof(
+		"DelRelation -> userId: %v - toUserId: %v", userId, toUserId)
+	return nil
+}
+
+// IsFollow 查询是否关注
+func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, toUserId []uint32) (oks []bool, err error) {
+	count, err := r.data.cache.followRelation.Exists(ctx, strconv.Itoa(int(userId))).Result()
+	if err != nil {
+		return nil, errors.Join(errorX.ErrRedisQuery, err)
+	}
+	if count > 0 {
+		once := make(map[uint32]bool)
+		for _, v := range toUserId {
+			if _, ok := once[v]; ok {
+				oks = append(oks, once[v])
+				continue
+			}
+			ok, err := r.CheckFollowCache(ctx, userId, v)
+			if err != nil {
+				return nil, err
+			}
+			once[v] = ok
+			oks = append(oks, ok)
+		}
+		return oks, nil
+	}
+	go func() {
+		// 如果不存在则创建
+		cl, err := r.GetFlList(ctx, userId)
+		if err != nil {
+			r.log.Error(err)
+			return
+		}
+		if err = CreateCacheByTran(ctx, r.data.cache.followRelation, cl, userId); err != nil {
+			r.log.Error(err)
+			return
+		}
+		r.log.Info("redis transaction success")
+	}()
+	return r.SearchRelation(ctx, userId, toUserId)
+}
+
+// GetFollowList 获取关注列表
+func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz.User, error) {
+	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	// 先在redis缓存中查询是否存在关注列表
+	follows, err := r.GetFollowCache(ctx, userId)
+	if err != nil {
+		return nil, err
 	}
 	fl := make([]uint32, 0, len(follows))
 	if len(follows) > 0 {
@@ -67,7 +190,7 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 			}
 			vc, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, fmt.Errorf("strconv error %w", err)
+				return nil, err
 			}
 			fl = append(fl, uint32(vc))
 		}
@@ -79,14 +202,34 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 		}
 		// 将关注列表存入redis缓存
 		go func(l []uint32) {
-			if err = CacheCreateRelationTransaction(context.Background(), r.data.cache.followRelation, l, userId); err != nil {
-				r.log.Errorf("redis transaction error %w", err)
+			if err = CreateCacheByTran(context.Background(), r.data.cache.followRelation, l, userId); err != nil {
+				r.log.Error(err)
 				return
 			}
 			r.log.Info("redis transaction success")
 		}(fl)
 	}
-	users, err := r.userRepo.GetUserInfos(ctx, 0, fl)
+	if len(fl) == 0 {
+		return nil, nil
+	}
+	if userID != userId {
+		// 查询是否关注
+		isFollow, err := r.SearchRelation(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		users, err := r.userRepo.GetUserInfos(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		for i, user := range users {
+			user.IsFollow = isFollow[i]
+		}
+		r.log.Infof(
+			"GetFollowUserList -> userId: %v - userList: %v", userId, users)
+		return users, nil
+	}
+	users, err := r.userRepo.GetUserInfos(ctx, userId, fl)
 	if err != nil {
 		return nil, err
 	}
@@ -98,11 +241,13 @@ func (r *relationRepo) GetFollowList(ctx context.Context, userId uint32) ([]*biz
 	return users, nil
 }
 
+// GetFollowerList 获取粉丝列表
 func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul []*biz.User, err error) {
 	// 先在redis缓存中查询是否存在被关注列表
-	followers, err := r.data.cache.followedRelation.HKeys(ctx, strconv.Itoa(int(userId))).Result()
+	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	followers, err := r.GetFollowedCache(ctx, userId)
 	if err != nil {
-		return nil, fmt.Errorf("redis query error %w", err)
+		return nil, err
 	}
 	fl := make([]uint32, 0, len(followers))
 	if len(followers) > 0 {
@@ -112,7 +257,7 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 			}
 			vc, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, fmt.Errorf("strconv error %w", err)
+				return nil, err
 			}
 			fl = append(fl, uint32(vc))
 		}
@@ -124,19 +269,39 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 		}
 		// 将关注列表存入redis缓存
 		go func(l []uint32) {
-			if err = CacheCreateRelationTransaction(context.Background(), r.data.cache.followedRelation, l, userId); err != nil {
-				r.log.Errorf("redis transaction error %w", err)
+			if err = CreateCacheByTran(context.Background(), r.data.cache.followedRelation, l, userId); err != nil {
+				r.log.Error(err)
 				return
 			}
 			r.log.Info("redis transaction success")
 		}(fl)
+	}
+	if len(fl) == 0 {
+		return nil, nil
+	}
+	if userID != userId {
+		// 查询是否关注
+		isFollow, err := r.SearchRelation(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		users, err := r.userRepo.GetUserInfos(ctx, userID, fl)
+		if err != nil {
+			return nil, err
+		}
+		for i, user := range users {
+			user.IsFollow = isFollow[i]
+		}
+		r.log.Infof(
+			"GetFollowUserList -> userId: %v - userList: %v", userId, users)
+		return users, nil
 	}
 	// 查询是否关注粉丝
 	isFollow, err := r.SearchRelation(ctx, userId, fl)
 	if err != nil {
 		return nil, err
 	}
-	users, err := r.userRepo.GetUserInfos(ctx, 0, fl)
+	users, err := r.userRepo.GetUserInfos(ctx, userId, fl)
 	if err != nil {
 		return nil, err
 	}
@@ -148,171 +313,123 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 	return users, nil
 }
 
-func (r *relationRepo) Follow(ctx context.Context, toUserId uint32) error {
-	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-	if userId == toUserId {
-		return fmt.Errorf("can't follow yourself")
+// GetFollowCache 获取关注缓存
+func (r *relationRepo) GetFollowCache(ctx context.Context, userId uint32) ([]string, error) {
+	follows, err := r.data.cache.followRelation.HKeys(ctx, strconv.Itoa(int(userId))).Result()
+	if err != nil {
+		return nil, errors.Join(errorX.ErrRedisQuery, err)
 	}
-	// 先在数据库中插入关系
-	err := r.AddFollow(ctx, userId, toUserId)
+	return follows, nil
+}
+
+// AddFollowCache 添加关注缓存
+func (r *relationRepo) AddFollowCache(ctx context.Context, userId uint32, toUserId uint32) error {
+	// 在redis缓存中查询是否存在
+	ok, err := r.CheckFollowCache(ctx, userId, toUserId)
 	if err != nil {
 		return err
 	}
-	go func() {
-		ctx := context.TODO()
-		// 在redis缓存中查询是否存在
-		ok, err := r.data.cache.followRelation.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Result()
-		if err != nil {
-			r.log.Errorf("redis query error %w", err)
-			return
-		}
-		if !ok {
-			// 如果不存在则创建
-			cl, err := r.GetFlList(ctx, userId)
-			if err != nil {
-				r.log.Errorf("mysql query error %w", err)
-				return
-			}
-			// 没有关注列表则不创建
-			if len(cl) == 0 {
-				return
-			}
-			if err = CacheCreateRelationTransaction(ctx, r.data.cache.followRelation, cl, userId); err != nil {
-				r.log.Errorf("redis transaction error %w", err)
-				return
-			}
-			r.log.Info("redis transaction success")
-			return
-		}
-		if err = r.data.cache.followRelation.HSet(
-			ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId)), "").Err(); err != nil {
-			r.log.Errorf("redis store error %w", err)
-			return
-		}
-		r.log.Info("redis store success")
-	}()
-	go func() {
-		ctx := context.TODO()
-		// 在redis缓存中查询是否存在
-		ok, err := r.data.cache.followedRelation.HExists(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Result()
-		if err != nil {
-			r.log.Errorf("redis query error %w", err)
-			return
-		}
-		if !ok {
-			// 如果不存在则创建
-			cl, err := r.GetFlrList(ctx, toUserId)
-			if err != nil {
-				r.log.Errorf("mysql query error %w", err)
-				return
-			}
-			if err = CacheCreateRelationTransaction(ctx, r.data.cache.followedRelation, cl, toUserId); err != nil {
-				r.log.Errorf("redis transaction error %w", err)
-				return
-			}
-			r.log.Info("redis transaction success")
-			return
-		}
-		if err = r.data.cache.followedRelation.HSet(
-			ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId)), "").Err(); err != nil {
-			r.log.Errorf("redis store error %w", err)
-			return
-		}
-		r.log.Info("redis store success")
-	}()
-	r.log.Infof(
-		"CreateRelation -> userId: %v - toUserId: %v", userId, toUserId)
-	return nil
-}
-
-func (r *relationRepo) UnFollow(ctx context.Context, toUserId uint32) error {
-	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
-	err := r.DelFollow(ctx, userId, toUserId)
-	if err != nil {
-		return err
-	}
-	go func() {
-		ctx := context.TODO()
-		// 在redis缓存中查询是否存在
-		ok, err := r.data.cache.followRelation.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Result()
-		if err != nil {
-			r.log.Errorf("redis query error %w", err)
-			return
-		}
-		if ok {
-			// 如果存在则删除
-			if err = r.data.cache.followRelation.HDel(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Err(); err != nil {
-				r.log.Errorf("redis delete error %w", err)
-				return
-			}
-		}
-	}()
-	go func() {
-		ctx := context.TODO()
-		// 在redis缓存中查询是否存在
-		ok, err := r.data.cache.followedRelation.HExists(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Result()
-		if err != nil {
-			r.log.Errorf("redis query error %w", err)
-			return
-		}
-		if ok {
-			// 如果存在则删除
-			if err = r.data.cache.followedRelation.HDel(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Err(); err != nil {
-				r.log.Errorf("redis delete error %w", err)
-				return
-			}
-		}
-	}()
-	r.log.Infof(
-		"DelRelation -> userId: %v - toUserId: %v", userId, toUserId)
-	return nil
-}
-
-func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, toUserId []uint32) (oks []bool, err error) {
-	count, err := r.data.cache.followRelation.Exists(ctx, strconv.Itoa(int(userId))).Result()
-	if err != nil {
-		return nil, fmt.Errorf("redis query error %w", err)
-	}
-	if count > 0 {
-		once := make(map[uint32]bool)
-		for _, v := range toUserId {
-			if _, ok := once[v]; ok {
-				oks = append(oks, once[v])
-				continue
-			}
-			ok, err := r.data.cache.followRelation.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(v))).Result()
-			if err != nil {
-				return nil, fmt.Errorf("redis query error %w", err)
-			}
-			once[v] = ok
-			oks = append(oks, ok)
-		}
-		return oks, nil
-	}
-	go func() {
+	if !ok {
 		// 如果不存在则创建
 		cl, err := r.GetFlList(ctx, userId)
 		if err != nil {
-			r.log.Errorf("mysql query error %w", err)
-			return
+			return err
 		}
-		if err = CacheCreateRelationTransaction(ctx, r.data.cache.followRelation, cl, userId); err != nil {
-			r.log.Errorf("redis transaction error %w", err)
-			return
+		// 没有关注列表则不创建
+		if len(cl) == 0 {
+			return err
 		}
-		r.log.Info("redis transaction success")
-	}()
-	return r.SearchRelation(ctx, userId, toUserId)
+		return CreateCacheByTran(ctx, r.data.cache.followRelation, cl, userId)
+	}
+	return r.CreateFollowCache(ctx, userId, toUserId)
+}
+
+// CheckFollowCache 查询关注缓存
+func (r *relationRepo) CheckFollowCache(ctx context.Context, userId uint32, toUserId uint32) (bool, error) {
+	ok, err := r.data.cache.followRelation.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Result()
+	if err != nil {
+		return false, errors.Join(errorX.ErrRedisQuery, err)
+	}
+	return ok, nil
+}
+
+// CreateFollowCache 创建关注缓存
+func (r *relationRepo) CreateFollowCache(ctx context.Context, userId uint32, toUserId uint32) (err error) {
+	if err = r.data.cache.followRelation.HSet(
+		ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId)), "").Err(); err != nil {
+		return errors.Join(errorX.ErrRedisSet, err)
+	}
+	return nil
+}
+
+// DeleteFollowCache 删除关注缓存
+func (r *relationRepo) DeleteFollowCache(ctx context.Context, userId uint32, toUserId uint32) error {
+	if err := r.data.cache.followRelation.HDel(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Err(); err != nil {
+		return errors.Join(errorX.ErrRedisDelete, err)
+	}
+	return nil
+}
+
+// GetFollowedCache 获取粉丝缓存
+func (r *relationRepo) GetFollowedCache(ctx context.Context, userId uint32) ([]string, error) {
+	followers, err := r.data.cache.followedRelation.HKeys(ctx, strconv.Itoa(int(userId))).Result()
+	if err != nil {
+		return nil, errors.Join(errorX.ErrRedisQuery, err)
+	}
+	return followers, nil
+}
+
+// AddFollowedCache 添加粉丝缓存
+func (r *relationRepo) AddFollowedCache(ctx context.Context, toUserId uint32, userId uint32) (err error) {
+	// 在redis缓存中查询是否存在
+	ok, err := r.CheckFollowedCache(ctx, toUserId, userId)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		// 如果不存在则创建
+		cl, err := r.GetFlrList(ctx, toUserId)
+		if err != nil {
+			return err
+		}
+		return CreateCacheByTran(ctx, r.data.cache.followedRelation, cl, toUserId)
+	}
+	return r.CreateFollowedCache(ctx, toUserId, userId)
+}
+
+// CheckFollowedCache 查询粉丝缓存
+func (r *relationRepo) CheckFollowedCache(ctx context.Context, toUserId uint32, userId uint32) (bool, error) {
+	ok, err := r.data.cache.followedRelation.HExists(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Result()
+	if err != nil {
+		return false, errors.Join(errorX.ErrRedisQuery, err)
+	}
+	return ok, nil
+}
+
+// CreateFollowedCache 创建粉丝缓存
+func (r *relationRepo) CreateFollowedCache(ctx context.Context, toUserId uint32, userId uint32) (err error) {
+	if err = r.data.cache.followedRelation.HSet(
+		ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId)), "").Err(); err != nil {
+		return errors.Join(errorX.ErrRedisSet, err)
+	}
+	return nil
+}
+
+// DeleteFollowedCache 删除粉丝缓存
+func (r *relationRepo) DeleteFollowedCache(ctx context.Context, toUserId uint32, userId uint32) error {
+	if err := r.data.cache.followedRelation.HDel(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Err(); err != nil {
+		return errors.Join(errorX.ErrRedisDelete, err)
+	}
+	return nil
 }
 
 // GetFlList 数据库获取关注列表
 func (r *relationRepo) GetFlList(ctx context.Context, userId uint32) (userIDs []uint32, err error) {
 	var follows []*Followers
-	result := r.data.db.WithContext(ctx).Where("follower_id = ?", userId).Find(&follows)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := r.data.db.WithContext(ctx).Where("follower_id = ?", userId).Find(&follows).Error; err != nil {
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	if result.RowsAffected == 0 {
+	if len(follows) == 0 {
 		return nil, nil
 	}
 	for _, follow := range follows {
@@ -324,11 +441,10 @@ func (r *relationRepo) GetFlList(ctx context.Context, userId uint32) (userIDs []
 // GetFlrList 数据库获取粉丝列表
 func (r *relationRepo) GetFlrList(ctx context.Context, userId uint32) ([]uint32, error) {
 	var followers []*Followers
-	result := r.data.db.WithContext(ctx).Where("user_id = ?", userId).Find(&followers)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := r.data.db.WithContext(ctx).Where("user_id = ?", userId).Find(&followers).Error; err != nil {
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	if result.RowsAffected == 0 {
+	if len(followers) == 0 {
 		return nil, nil
 	}
 	userIDs := make([]uint32, 0, len(followers))
@@ -338,46 +454,52 @@ func (r *relationRepo) GetFlrList(ctx context.Context, userId uint32) ([]uint32,
 	return userIDs, nil
 }
 
-// AddFollow 添加关注
+// AddFollow 数据库添加关注关系
 func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId uint32) error {
 	follow := &Followers{
 		UserId:     toUserId,
 		FollowerId: userId,
 	}
-	err := r.data.db.WithContext(ctx).Create(&follow).Error
-	if err != nil {
-		return fmt.Errorf("failed to create relation: %w", err)
+	result := r.data.db.WithContext(ctx).FirstOrCreate(&follow)
+	if result.RowsAffected == 0 {
+		return ErrExistRelation
+	}
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlInsert, result.Error)
 	}
 	go func() {
-		err = kafkaX.Update(r.kfk.follow, userId, 1)
+		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "1")
 		if err != nil {
-			r.log.Errorf("failed to update follow: %w", err)
+			r.log.Error(err)
 		}
 	}()
 	go func() {
-		err = kafkaX.Update(r.kfk.follower, toUserId, 1)
+		err := kafkaX.Update(r.kfk.follower, strconv.Itoa(int(toUserId)), "1")
 		if err != nil {
-			r.log.Errorf("failed to update follower: %w", err)
+			r.log.Error(err)
 		}
 	}()
 	return nil
 }
 
-// DelFollow 取消关注
+// DelFollow 数据库取消关注关系
 func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId uint32) error {
-	err := r.data.db.WithContext(ctx).Where(
-		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{}).Error
-	if err != nil {
-		return err
+	result := r.data.db.WithContext(ctx).Where(
+		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{})
+	if result.Error != nil {
+		return errors.Join(errorX.ErrMysqlDelete, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return ErrNotExistRelation
 	}
 	go func() {
-		err = kafkaX.Update(r.kfk.follow, userId, -1)
+		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "-1")
 		if err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
-		err = kafkaX.Update(r.kfk.follower, toUserId, -1)
+		err := kafkaX.Update(r.kfk.follower, strconv.Itoa(int(toUserId)), "-1")
 		if err != nil {
 			r.log.Error(err)
 		}
@@ -385,18 +507,19 @@ func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId ui
 	return nil
 }
 
-// SearchRelation 查询关注关系
+// SearchRelation 数据库查询关注关系
 func (r *relationRepo) SearchRelation(ctx context.Context, userId uint32, toUserId []uint32) ([]bool, error) {
 	var relation []*Followers
 	relationMap := make(map[uint32]bool, len(relation))
-	result := r.data.db.WithContext(ctx).Where("user_id IN ? AND follower_id = ?", toUserId, userId).Find(&relation)
-	if result.Error != nil {
-		return nil, result.Error
+	if err := r.data.db.WithContext(ctx).
+		Where("user_id IN ? AND follower_id = ?", toUserId, userId).
+		Find(&relation).Error; err != nil {
+		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
 	for _, follow := range relation {
 		relationMap[follow.UserId] = true
 	}
-	slice := make([]bool, len(toUserId))
+	slice := make([]bool, 0, len(toUserId))
 	for _, id := range toUserId {
 		if _, ok := relationMap[id]; !ok {
 			slice = append(slice, false)
@@ -407,8 +530,8 @@ func (r *relationRepo) SearchRelation(ctx context.Context, userId uint32, toUser
 	return slice, nil
 }
 
-// CacheCreateRelationTransaction 缓存创建事务
-func CacheCreateRelationTransaction(ctx context.Context, cache *redis.Client, ul []uint32, userId uint32) error {
+// CreateCacheByTran 缓存创建事务
+func CreateCacheByTran(ctx context.Context, cache *redis.Client, ul []uint32, userId uint32) error {
 	// 使用事务将列表存入redis缓存
 	_, err := cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		insertMap := make(map[string]interface{}, len(ul))
@@ -419,17 +542,20 @@ func CacheCreateRelationTransaction(ctx context.Context, cache *redis.Client, ul
 		}
 		err := pipe.HMSet(ctx, strconv.Itoa(int(userId)), insertMap).Err()
 		if err != nil {
-			return fmt.Errorf("redis store error, err : %w", err)
+			return errors.Join(errorX.ErrRedisSet, err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
 		begin, end := 360, 720
 		err = pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
-			return fmt.Errorf("redis expire error, err : %w", err)
+			return errors.Join(errorX.ErrRedisSet, err)
 		}
 		return nil
 	})
-	return err
+	if err != nil {
+		return errors.Join(errorX.ErrRedisTransaction, err)
+	}
+	return nil
 }
 
 // randomTime 随机生成时间
