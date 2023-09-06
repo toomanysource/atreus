@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/toomanysource/atreus/pkg/kafkaX"
@@ -271,32 +273,38 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 	if err != nil {
 		return err
 	}
-	result := r.data.db.WithContext(ctx).FirstOrCreate(&Favorite{
-		VideoID: videoId,
-		UserID:  userId,
-	})
-	if result.Error != nil {
-		return errors.Join(errorX.ErrMysqlInsert, result.Error)
+	err = r.data.db.WithContext(ctx).
+		Where("user_id = ? AND video_id = ?", userId, videoId).
+		First(&Favorite{}).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		result := r.data.db.WithContext(ctx).Create(&Favorite{
+			UserID:  userId,
+			VideoID: videoId,
+		})
+		if result.Error != nil {
+			return errors.Join(errorX.ErrMysqlInsert, result.Error)
+		}
+		go func() {
+			if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "1"); err != nil {
+				r.log.Error(err)
+			}
+		}()
+		go func() {
+			if err = kafkaX.Update(r.kfk.Favorite, strconv.Itoa(int(userId)), "1"); err != nil {
+				r.log.Error(err)
+			}
+		}()
+		go func() {
+			if err = kafkaX.Update(r.kfk.videoFavorite, strconv.Itoa(int(videoId)), "1"); err != nil {
+				r.log.Error(err)
+			}
+		}()
+		return nil
 	}
-	if result.RowsAffected == 0 {
-		return ErrExistFavorite
+	if err != nil {
+		return errors.Join(errorX.ErrMysqlQuery, err)
 	}
-	go func() {
-		if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "1"); err != nil {
-			r.log.Error(err)
-		}
-	}()
-	go func() {
-		if err = kafkaX.Update(r.kfk.Favorite, strconv.Itoa(int(userId)), "1"); err != nil {
-			r.log.Error(err)
-		}
-	}()
-	go func() {
-		if err = kafkaX.Update(r.kfk.videoFavorite, strconv.Itoa(int(videoId)), "1"); err != nil {
-			r.log.Error(err)
-		}
-	}()
-	return nil
+	return ErrExistFavorite
 }
 
 // DelFavorite 数据库删除喜爱关系
@@ -305,12 +313,16 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 	if err != nil {
 		return err
 	}
+	err = r.data.db.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).First(&Favorite{}).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotExistFavorite
+	}
+	if err != nil {
+		return errors.Join(errorX.ErrMysqlQuery, err)
+	}
 	result := r.data.db.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{})
 	if result.Error != nil {
 		return errors.Join(errorX.ErrMysqlDelete, result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return ErrNotExistFavorite
 	}
 	go func() {
 		if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "-1"); err != nil {

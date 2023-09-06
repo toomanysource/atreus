@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	"gorm.io/gorm"
+
 	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/toomanysource/atreus/middleware"
@@ -159,6 +161,7 @@ func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, toUserId []u
 		return oks, nil
 	}
 	go func() {
+		ctx := context.TODO()
 		// 如果不存在则创建
 		cl, err := r.GetFlList(ctx, userId)
 		if err != nil {
@@ -456,41 +459,53 @@ func (r *relationRepo) GetFlrList(ctx context.Context, userId uint32) ([]uint32,
 
 // AddFollow 数据库添加关注关系
 func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId uint32) error {
-	follow := &Followers{
-		UserId:     toUserId,
-		FollowerId: userId,
-	}
-	result := r.data.db.WithContext(ctx).FirstOrCreate(&follow)
-	if result.RowsAffected == 0 {
-		return ErrExistRelation
-	}
-	if result.Error != nil {
-		return errors.Join(errorX.ErrMysqlInsert, result.Error)
-	}
-	go func() {
-		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "1")
-		if err != nil {
-			r.log.Error(err)
+	err := r.data.db.WithContext(ctx).
+		Where("user_id = ? AND follower_id = ?", toUserId, userId).
+		First(&Followers{}).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		follow := &Followers{
+			UserId:     toUserId,
+			FollowerId: userId,
 		}
-	}()
-	go func() {
-		err := kafkaX.Update(r.kfk.follower, strconv.Itoa(int(toUserId)), "1")
-		if err != nil {
-			r.log.Error(err)
+		result := r.data.db.WithContext(ctx).Create(&follow)
+		if result.Error != nil {
+			return errors.Join(errorX.ErrMysqlInsert, result.Error)
 		}
-	}()
-	return nil
+		go func() {
+			err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "1")
+			if err != nil {
+				r.log.Error(err)
+			}
+		}()
+		go func() {
+			err := kafkaX.Update(r.kfk.follower, strconv.Itoa(int(toUserId)), "1")
+			if err != nil {
+				r.log.Error(err)
+			}
+		}()
+		return nil
+	}
+	if err != nil {
+		return errors.Join(errorX.ErrMysqlQuery, err)
+	}
+	return ErrExistRelation
 }
 
 // DelFollow 数据库取消关注关系
 func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId uint32) error {
+	err := r.data.db.WithContext(ctx).
+		Where("user_id = ? AND follower_id = ?", toUserId, userId).
+		First(&Followers{}).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotExistRelation
+	}
+	if err != nil {
+		return errors.Join(errorX.ErrMysqlQuery, err)
+	}
 	result := r.data.db.WithContext(ctx).Where(
 		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{})
 	if result.Error != nil {
 		return errors.Join(errorX.ErrMysqlDelete, result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return ErrNotExistRelation
 	}
 	go func() {
 		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "-1")
