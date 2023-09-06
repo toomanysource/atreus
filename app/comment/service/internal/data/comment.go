@@ -22,6 +22,7 @@ import (
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 
 	"github.com/jinzhu/copier"
+
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -32,9 +33,7 @@ const (
 	OccupyValue = ""
 )
 
-var (
-	ErrInvalidComment = errors.New("invalid comment")
-)
+var ErrInvalidComment = errors.New("invalid comment")
 
 type Comment struct {
 	Id       uint32 `gorm:"primary_key"`
