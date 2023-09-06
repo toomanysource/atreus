@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"errors"
 
 	"github.com/toomanysource/atreus/pkg/errorX"
 
@@ -10,6 +11,11 @@ import (
 
 const (
 	PublishMessage = 1
+)
+
+var (
+	ErrInValidUserId = errors.New("invalid user id")
+	ErrContentEmpty  = errors.New("content is empty")
 )
 
 type Message struct {
@@ -42,6 +48,9 @@ func NewMessageUseCase(repo MessageRepo, logger log.Logger) *MessageUseCase {
 func (uc *MessageUseCase) GetMessageList(
 	ctx context.Context, toUserId uint32, preMsgTime int64,
 ) ([]*Message, error) {
+	if toUserId == 0 {
+		return nil, ErrInValidUserId
+	}
 	messages, err := uc.repo.GetMessageList(ctx, toUserId, preMsgTime)
 	if err != nil {
 		uc.log.Errorf("GetMessageList error: %v", err)
@@ -52,6 +61,12 @@ func (uc *MessageUseCase) GetMessageList(
 func (uc *MessageUseCase) PublishMessage(
 	ctx context.Context, toUserId uint32, actionType uint32, content string,
 ) error {
+	if toUserId == 0 {
+		return ErrInValidUserId
+	}
+	if content == "" {
+		return ErrContentEmpty
+	}
 	switch actionType {
 	case PublishMessage:
 		err := uc.repo.PublishMessage(ctx, toUserId, content)

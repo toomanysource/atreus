@@ -14,7 +14,10 @@ const (
 	DeleteType uint32 = 2
 )
 
-var ErrCommentTextEmpty = errors.New("comment text is empty")
+var (
+	ErrCommentTextEmpty = errors.New("comment text is empty")
+	ErrInvalidId        = errors.New("invalid id")
+)
 
 type Comment struct {
 	Id         uint32
@@ -79,6 +82,9 @@ func (uc *CommentUseCase) CommentAction(
 		}
 		return comment, err
 	case DeleteType:
+		if commentId == 0 {
+			return nil, ErrInvalidId
+		}
 		comment, err := uc.repo.DeleteComment(ctx, videoId, commentId)
 		if err != nil {
 			uc.log.Errorf("DeleteComment err: %v", err)
