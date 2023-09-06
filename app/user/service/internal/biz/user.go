@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	ErrUserNotFound = errors.New("user not found")
-	ErrInternal     = errors.New("internal error")
+	ErrUserNotFound = errors.New("无法找到此用户")
+	ErrInternal     = errors.New("服务内部错误")
 )
 
 // User is a user model.
@@ -34,11 +34,11 @@ type User struct {
 	Token           string
 }
 
-// UserRepo is a user repo.
+// UserRepo 定义user存储的方法集合
 type UserRepo interface {
 	Create(context.Context, *User) (*User, error)
 	FindById(context.Context, uint32) (*User, error)
-	FindByIds(context.Context, uint32, []uint32) ([]*User, error)
+	FindByIds(context.Context, []uint32) ([]*User, error)
 	FindByUsername(context.Context, string) (*User, error)
 	InitUpdateFollowQueue()
 	InitUpdateFollowerQueue()
@@ -47,28 +47,36 @@ type UserRepo interface {
 	InitUpdateFavoriteQueue()
 }
 
-// UserUsecase is a user usecase.
-type UserUsecase struct {
-	repo UserRepo
-	conf *conf.JWT
-	log  *log.Helper
+// RelationRepo 定义向relation服务请求的方法集合
+type RelationRepo interface {
+	IsFollow(ctx context.Context, userId uint32, toUserId []uint32) ([]bool, error)
 }
 
-// NewUserUsecase new a user usecase.
-func NewUserUsecase(repo UserRepo, conf *conf.JWT, logger log.Logger) *UserUsecase {
-	go repo.InitUpdateFavoredQueue()
-	go repo.InitUpdateFollowQueue()
-	go repo.InitUpdateFollowerQueue()
-	go repo.InitUpdatePublishQueue()
-	go repo.InitUpdateFavoriteQueue()
-	return &UserUsecase{repo: repo, conf: conf, log: log.NewHelper(logger)}
+// UserUsecase 是user的用例
+type UserUsecase struct {
+	userRepo     UserRepo
+	relationRepo RelationRepo
+	conf         *conf.JWT
+	log          *log.Helper
+}
+
+func NewUserUsecase(userRepo UserRepo, relationRepo RelationRepo, conf *conf.JWT, logger log.Logger) *UserUsecase {
+	logs := log.NewHelper(log.With(logger, "biz", "user_usecase"))
+	uc := &UserUsecase{
+		userRepo:     userRepo,
+		relationRepo: relationRepo,
+		conf:         conf,
+		log:          logs,
+	}
+	uc.updateWorker()
+	return uc
 }
 
 // Register .
 func (uc *UserUsecase) Register(ctx context.Context, username, password string) (*User, error) {
-	_, err := uc.repo.FindByUsername(ctx, username)
+	_, err := uc.userRepo.FindByUsername(ctx, username)
 	if err == nil {
-		return nil, errors.New("the username has been registered")
+		return nil, errors.New("用户名已被注册")
 	}
 	if !errors.Is(err, ErrUserNotFound) {
 		return nil, ErrInternal
@@ -82,7 +90,7 @@ func (uc *UserUsecase) Register(ctx context.Context, username, password string) 
 		// Name与Username相同
 		Name: username,
 	}
-	user, err := uc.repo.Create(ctx, regUser)
+	user, err := uc.userRepo.Create(ctx, regUser)
 	if err != nil {
 		return nil, ErrInternal
 	}
@@ -98,9 +106,9 @@ func (uc *UserUsecase) Register(ctx context.Context, username, password string) 
 
 // Login .
 func (uc *UserUsecase) Login(ctx context.Context, username, password string) (*User, error) {
-	user, err := uc.repo.FindByUsername(ctx, username)
+	user, err := uc.userRepo.FindByUsername(ctx, username)
 	if errors.Is(err, ErrUserNotFound) {
-		return nil, errors.New("can not find registered user")
+		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		return nil, ErrInternal
@@ -108,7 +116,7 @@ func (uc *UserUsecase) Login(ctx context.Context, username, password string) (*U
 
 	password = common.GenSaltPassword(username, password)
 	if user.Password != password {
-		return nil, errors.New("incorrect password")
+		return nil, errors.New("密码不正确")
 	}
 
 	// 生成 token
@@ -122,26 +130,47 @@ func (uc *UserUsecase) Login(ctx context.Context, username, password string) (*U
 
 // GetInfo .
 func (uc *UserUsecase) GetInfo(ctx context.Context, userId uint32) (*User, error) {
-	user, err := uc.repo.FindById(ctx, userId)
+	user, err := uc.userRepo.FindById(ctx, userId)
 	if err != nil {
 		return nil, ErrInternal
 	}
 	if user.Username == "" {
-		return nil, errors.New("can not find the user")
+		return nil, ErrUserNotFound
 	}
 
 	return user, nil
 }
 
-// GetInfos .
+// GetInfos
 func (uc *UserUsecase) GetInfos(ctx context.Context, userId uint32, userIds []uint32) ([]*User, error) {
-	users, err := uc.repo.FindByIds(ctx, userId, userIds)
+	users, err := uc.userRepo.FindByIds(ctx, userIds)
 	if err != nil {
 		return nil, ErrInternal
 	}
 	if len(users) == 0 {
 		return []*User{}, nil
 	}
-
+	// 添加关注详情
+	follows, err := uc.relationRepo.IsFollow(ctx, userId, userIds)
+	if err != nil {
+		uc.log.Errorf("请求relation服务响应失败，原因: %s", err.Error())
+		return nil, ErrInternal
+	}
+	if len(follows) != len(users) {
+		uc.log.Error("来自relation服务的响应不匹配，原因: 响应的关注数组长度与待赋值的用户信息数组长度不一致")
+		return nil, ErrInternal
+	}
+	for i := range users {
+		users[i].IsFollow = follows[i]
+	}
 	return users, nil
+}
+
+// updateWorker 执行用户信息更新的监听器
+func (uc *UserUsecase) updateWorker() {
+	go uc.userRepo.InitUpdateFollowQueue()
+	go uc.userRepo.InitUpdateFollowerQueue()
+	go uc.userRepo.InitUpdatePublishQueue()
+	go uc.userRepo.InitUpdateFavoriteQueue()
+	go uc.userRepo.InitUpdateFavoredQueue()
 }

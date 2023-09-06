@@ -18,7 +18,7 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewGormDb, NewRedisConn, NewUserRepo)
+var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewGormDb, NewRedisConn, NewUserRepo, NewRelationRepo)
 
 var (
 	maxOpenConnection = 100

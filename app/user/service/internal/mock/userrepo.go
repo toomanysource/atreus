@@ -64,7 +64,7 @@ func (r *userRepo) FindById(ctx context.Context, uid uint32) (*biz.User, error) 
 	return nil, errors.New("user not found by this id")
 }
 
-func (r *userRepo) FindByIds(ctx context.Context, uid uint32, ids []uint32) ([]*biz.User, error) {
+func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, error) {
 	record := make(map[uint32]struct{}, len(ids))
 	for _, id := range ids {
 		record[id] = struct{}{}
