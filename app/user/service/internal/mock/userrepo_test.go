@@ -10,12 +10,10 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/mock"
 )
 
-var (
-	userRepo = mock.NewUserRepo()
-	ctx      = context.Background()
-)
+var userRepo = mock.NewUserRepo()
 
 func testCreate(t *testing.T) {
+	ctx := context.Background()
 	tests := []*biz.User{
 		{Id: 9, Username: "dajun", Password: "junda", Name: "dajun"},
 		{Id: 10, Username: "mimi", Password: "mimi", Name: "mimi"},
@@ -31,6 +29,7 @@ func testCreate(t *testing.T) {
 }
 
 func testFindById(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		id       uint32
 		username string
@@ -50,6 +49,7 @@ func testFindById(t *testing.T) {
 }
 
 func testFindByIds(t *testing.T) {
+	ctx := context.Background()
 	tests := map[uint32]string{
 		1: "xiaoming",
 		2: "xiaohong",
@@ -71,6 +71,7 @@ func testFindByIds(t *testing.T) {
 }
 
 func testFindByUsername(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		username string
 		id       uint32
