@@ -80,7 +80,7 @@ func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, er
 	return users, nil
 }
 
-func (r *userRepo) FindByUsername(ctx context.Context, username string) (*biz.User, error) {
+func (r *userRepo) FindKeyInfoByUsername(ctx context.Context, username string) (*biz.User, error) {
 	user := new(biz.User)
 	for i := range userTable {
 		if username == userTable[i].Username {

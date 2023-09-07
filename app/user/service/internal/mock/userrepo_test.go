@@ -84,7 +84,7 @@ func testFindByUsername(t *testing.T) {
 		{"erlengzi", 6},
 	}
 	for _, tt := range tests {
-		user, err := userRepo.FindByUsername(ctx, tt.username)
+		user, err := userRepo.FindKeyInfoByUsername(ctx, tt.username)
 		assert.NoError(t, err)
 		assert.Equal(t, tt.id, user.Id)
 	}
