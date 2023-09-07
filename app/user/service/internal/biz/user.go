@@ -40,11 +40,11 @@ type UserRepo interface {
 	FindById(context.Context, uint32) (*User, error)
 	FindByIds(context.Context, []uint32) ([]*User, error)
 	FindKeyInfoByUsername(context.Context, string) (*User, error)
-	InitUpdateFollowQueue()
-	InitUpdateFollowerQueue()
-	InitUpdateFavoredQueue()
-	InitUpdatePublishQueue()
-	InitUpdateFavoriteQueue()
+	RunUpdateFollowListener()
+	RunUpdateFollowerListener()
+	RunUpdateFavoriteListener()
+	RunUpdateFavoredListener()
+	RunUpdateWorkListener()
 }
 
 // RelationRepo 定义向relation服务请求的方法集合
@@ -167,9 +167,9 @@ func (uc *UserUsecase) GetInfos(ctx context.Context, userId uint32, userIds []ui
 
 // updateWorker 执行用户信息更新的监听器
 func (uc *UserUsecase) updateWorker() {
-	go uc.userRepo.InitUpdateFollowQueue()
-	go uc.userRepo.InitUpdateFollowerQueue()
-	go uc.userRepo.InitUpdatePublishQueue()
-	go uc.userRepo.InitUpdateFavoriteQueue()
-	go uc.userRepo.InitUpdateFavoredQueue()
+	go uc.userRepo.RunUpdateFollowListener()
+	go uc.userRepo.RunUpdateFollowerListener()
+	go uc.userRepo.RunUpdateFavoriteListener()
+	go uc.userRepo.RunUpdateFavoredListener()
+	go uc.userRepo.RunUpdateWorkListener()
 }
