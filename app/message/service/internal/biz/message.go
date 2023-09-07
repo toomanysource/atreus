@@ -13,7 +13,7 @@ const (
 )
 
 type Message struct {
-	UId        uint64 `copier:"Id"`
+	Id         uint64
 	ToUserId   uint32
 	FromUserId uint32
 	Content    string
