@@ -39,7 +39,7 @@ type UserRepo interface {
 	Create(context.Context, *User) (*User, error)
 	FindById(context.Context, uint32) (*User, error)
 	FindByIds(context.Context, []uint32) ([]*User, error)
-	FindByUsername(context.Context, string) (*User, error)
+	FindKeyInfoByUsername(context.Context, string) (*User, error)
 	InitUpdateFollowQueue()
 	InitUpdateFollowerQueue()
 	InitUpdateFavoredQueue()
@@ -74,7 +74,7 @@ func NewUserUsecase(userRepo UserRepo, relationRepo RelationRepo, conf *conf.JWT
 
 // Register .
 func (uc *UserUsecase) Register(ctx context.Context, username, password string) (*User, error) {
-	_, err := uc.userRepo.FindByUsername(ctx, username)
+	_, err := uc.userRepo.FindKeyInfoByUsername(ctx, username)
 	if err == nil {
 		return nil, errors.New("用户名已被注册")
 	}
@@ -83,12 +83,11 @@ func (uc *UserUsecase) Register(ctx context.Context, username, password string) 
 	}
 
 	password = common.GenSaltPassword(username, password)
-
+	// Name与Username相同
 	regUser := &User{
 		Username: username,
 		Password: password,
-		// Name与Username相同
-		Name: username,
+		Name:     username,
 	}
 	user, err := uc.userRepo.Create(ctx, regUser)
 	if err != nil {
@@ -106,7 +105,7 @@ func (uc *UserUsecase) Register(ctx context.Context, username, password string) 
 
 // Login .
 func (uc *UserUsecase) Login(ctx context.Context, username, password string) (*User, error) {
-	user, err := uc.userRepo.FindByUsername(ctx, username)
+	user, err := uc.userRepo.FindKeyInfoByUsername(ctx, username)
 	if errors.Is(err, ErrUserNotFound) {
 		return nil, ErrUserNotFound
 	}

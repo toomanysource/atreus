@@ -20,10 +20,7 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 )
 
-var (
-	FixedCacheExpire = 720
-	ErrUserNotFound  = errors.Join(biz.ErrUserNotFound)
-)
+var FixedCacheExpire = 720
 
 var userTableName = "users"
 
@@ -63,6 +60,14 @@ type UserDetail struct {
 	FavoriteCount   uint32 `grom:"column:favorite_count" json:"favorite_count"`
 }
 
+// UserKeyInfo 是用户信息中的关键信息
+// 这些关键信息包含 用户id、用户名和密码
+type UserKeyInfo struct {
+	Id       uint32 `gorm:"primary_key"`
+	Username string `gorm:"column:username"`
+	Password string `gorm:"column:password"`
+}
+
 type userRepo struct {
 	db  *gorm.DB
 	kfk KfkReader
@@ -95,6 +100,8 @@ func (r *userRepo) Create(ctx context.Context, user *biz.User) (*biz.User, error
 	if err != nil {
 		return nil, err
 	}
+	// 给user.Id赋值
+	user.Id = u.Id
 	// 缓存用户信息
 	go func() {
 		userDetail := new(UserDetail)
@@ -132,7 +139,7 @@ func (r *userRepo) findById(ctx context.Context, id uint32) (*UserDetail, error)
 		Where("id = ?", id).
 		First(userDetail).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrUserNotFound
+		return nil, biz.ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -190,20 +197,20 @@ func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, er
 	return result, nil
 }
 
-// FindByUsername .
-func (r *userRepo) FindByUsername(ctx context.Context, username string) (*biz.User, error) {
-	userDetail := new(UserDetail)
+// FindKeyInfoByUsername .
+func (r *userRepo) FindKeyInfoByUsername(ctx context.Context, username string) (*biz.User, error) {
+	keyInfo := new(UserKeyInfo)
 	err := r.db.WithContext(ctx).Model(&User{}).
 		Where("username = ?", username).
-		First(userDetail).Error
+		First(keyInfo).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, ErrUserNotFound
+		return nil, biz.ErrUserNotFound
 	}
 	if err != nil {
 		return nil, err
 	}
 	user := new(biz.User)
-	copier.Copy(user, userDetail)
+	copier.Copy(user, keyInfo)
 	return user, nil
 }
 
