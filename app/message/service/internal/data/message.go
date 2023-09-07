@@ -14,8 +14,6 @@ import (
 
 	"github.com/toomanysource/atreus/middleware"
 
-	"github.com/toomanysource/atreus/pkg/common"
-
 	"github.com/toomanysource/atreus/app/message/service/internal/biz"
 
 	"github.com/go-redis/redis/v8"
@@ -34,7 +32,7 @@ const (
 var ErrMsgYourself = errors.New("can't send message to yourself")
 
 type Message struct {
-	UId        uint64 `gorm:"column:uid;not null;default:0"`
+	Id         uint32 `gorm:"column:id;primary_key;auto_increment"`
 	FromUserId uint32 `gorm:"column:from_user_id;not null;index:idx_from_user_to_user"`
 	ToUserId   uint32 `gorm:"column:to_user_id;not null;index:idx_from_user_to_user"`
 	Content    string `gorm:"column:content;not null"`
@@ -64,38 +62,12 @@ func (r *messageRepo) PublishMessage(ctx context.Context, toUserId uint32, conte
 		return ErrMsgYourself
 	}
 	createTime := time.Now().UnixMilli()
-	// 生成消息uid,解决kafka发送数据库不及时，导致查询时没有数据的问题
-	uid := common.NewUUIDInt()
 	go func() {
-		err := r.MessageProducer(uid, userId, toUserId, content, createTime)
+		err := r.MessageProducer(userId, toUserId, content, createTime)
 		if err != nil {
 			r.log.Errorf("message producer error, err: %w", err)
 			return
 		}
-	}()
-	go func() {
-		ctx = context.Background()
-		key := setKey(userId, toUserId)
-		ml := &Message{
-			UId:        uid,
-			FromUserId: userId,
-			ToUserId:   toUserId,
-			Content:    content,
-			CreateTime: createTime,
-		}
-		data, err := json.Marshal(ml)
-		if err != nil {
-			r.log.Errorf("json marshal error %w", err)
-			return
-		}
-		if err = r.data.cache.ZAdd(ctx, key, &redis.Z{
-			Score:  float64(createTime),
-			Member: string(data),
-		}).Err(); err != nil {
-			r.log.Errorf("redis store error %w", err)
-			return
-		}
-		r.log.Info("redis store success")
 	}()
 	return nil
 }
@@ -110,7 +82,7 @@ func (r *messageRepo) GetMessageList(ctx context.Context, toUserId uint32, preMs
 		return nil, err
 	}
 	if ok {
-		return r.GetCache(ctx, key, preMsgTime)
+		return r.GetCache(ctx, userId, toUserId, preMsgTime)
 	}
 	// 加锁防止私聊两用户同时请求导致重复创建
 	ok, err = r.AddCacheMutex(ctx)
@@ -123,15 +95,11 @@ func (r *messageRepo) GetMessageList(ctx context.Context, toUserId uint32, preMs
 			return nil, err
 		}
 		if ok {
-			return r.GetCache(ctx, key, preMsgTime)
+			return r.GetCache(ctx, userId, toUserId, preMsgTime)
 		}
 		cl, err := r.GetMessages(ctx, userId, toUserId, preMsgTime)
 		if err != nil {
 			return nil, err
-		}
-		// 没有列表则不创建
-		if len(cl) == 0 {
-			return nil, nil
 		}
 		go func() {
 			if err = r.CreateCacheByTran(ctx, cl, key); err != nil {
@@ -178,8 +146,8 @@ func (r *messageRepo) CheckCache(ctx context.Context, key string) (bool, error) 
 }
 
 // GetCache 从缓存中获取聊天记录列表
-func (r *messageRepo) GetCache(ctx context.Context, key string, preMsgTime int64) ([]*biz.Message, error) {
-	msgList, err := r.data.cache.ZRangeByScore(ctx, key, &redis.ZRangeBy{
+func (r *messageRepo) GetCache(ctx context.Context, userId, toUserId uint32, preMsgTime int64) ([]*biz.Message, error) {
+	msgList, err := r.data.cache.ZRangeByScore(ctx, setKey(userId, toUserId), &redis.ZRangeBy{
 		Min: fmt.Sprintf("(%f", float64(preMsgTime)),
 		Max: "+inf",
 	}).Result()
@@ -196,15 +164,16 @@ func (r *messageRepo) GetCache(ctx context.Context, key string, preMsgTime int64
 		if err = json.Unmarshal([]byte(v), co); err != nil {
 			return nil, errors.Join(errorX.ErrJsonMarshal, err)
 		}
-		cl = append(cl, co)
+		if co.FromUserId != userId || preMsgTime == 0 {
+			cl = append(cl, co)
+		}
 	}
 	return cl, nil
 }
 
 // MessageProducer 生产消息
-func (r *messageRepo) MessageProducer(uid uint64, userId, toUserId uint32, content string, time int64) error {
+func (r *messageRepo) MessageProducer(userId, toUserId uint32, content string, time int64) error {
 	mg := &Message{
-		UId:        uid,
 		FromUserId: userId,
 		ToUserId:   toUserId,
 		Content:    content,
@@ -227,11 +196,28 @@ func (r *messageRepo) InitStoreMessageQueue() {
 			r.log.Error(errors.Join(errorX.ErrJsonMarshal, err))
 			return
 		}
-		err = r.InsertMessage(ctx, mg.UId, mg.FromUserId, mg.ToUserId, mg.Content)
+		m, err := r.InsertMessage(ctx, mg.FromUserId, mg.ToUserId, mg.Content, mg.CreateTime)
 		if err != nil {
 			r.log.Error(err)
 			return
 		}
+		go func() {
+			ctx = context.Background()
+			key := setKey(mg.FromUserId, mg.ToUserId)
+			data, err := json.Marshal(m)
+			if err != nil {
+				r.log.Errorf("json marshal error %w", err)
+				return
+			}
+			if err = r.data.cache.ZAdd(ctx, key, &redis.Z{
+				Score:  float64(mg.CreateTime),
+				Member: string(data),
+			}).Err(); err != nil {
+				r.log.Errorf("redis store error %w", err)
+				return
+			}
+			r.log.Info("redis store success")
+		}()
 	})
 }
 
@@ -252,18 +238,20 @@ func (r *messageRepo) GetMessages(ctx context.Context, userId, toUserId uint32, 
 }
 
 // InsertMessage 数据库插入消息
-func (r *messageRepo) InsertMessage(ctx context.Context, uid uint64, userId uint32, toUserId uint32, content string) error {
-	err := r.data.db.WithContext(ctx).Create(&Message{
-		UId:        uid,
+func (r *messageRepo) InsertMessage(
+	ctx context.Context, userId uint32, toUserId uint32, content string, createTime int64,
+) (*Message, error) {
+	m := &Message{
 		FromUserId: userId,
 		ToUserId:   toUserId,
 		Content:    content,
-		CreateTime: time.Now().UnixMilli(),
-	}).Error
-	if err != nil {
-		return errors.Join(errorX.ErrMysqlInsert, err)
+		CreateTime: createTime,
 	}
-	return nil
+	err := r.data.db.WithContext(ctx).Create(m).Error
+	if err != nil {
+		return nil, errors.Join(errorX.ErrMysqlInsert, err)
+	}
+	return m, nil
 }
 
 // CreateCacheByTran 缓存创建事务
@@ -279,6 +267,12 @@ func (r *messageRepo) CreateCacheByTran(ctx context.Context, ml []*biz.Message, 
 			insertList = append(insertList, &redis.Z{
 				Score:  float64(u.CreateTime),
 				Member: string(data),
+			})
+		}
+		if len(insertList) == 0 {
+			insertList = append(insertList, &redis.Z{
+				Score:  0,
+				Member: "",
 			})
 		}
 		if err := pipe.ZAdd(ctx, key, insertList...).Err(); err != nil {

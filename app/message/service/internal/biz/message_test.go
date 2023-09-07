@@ -16,7 +16,7 @@ type MockMessageRepo struct{}
 func (m *MockMessageRepo) GetMessageList(ctx context.Context, toUserId uint32, preMsgTime int64) ([]*Message, error) {
 	return []*Message{
 		{
-			UId: 1,
+			Id: 1,
 		},
 	}, nil
 }
