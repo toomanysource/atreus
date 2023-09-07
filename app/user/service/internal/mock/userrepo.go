@@ -100,15 +100,15 @@ func (r *userRepo) RunUpdateFollowerListener() {
 }
 
 func (r *userRepo) RunUpdateFavoriteListener() {
-	// update favored codes
+	// update favorite codes
 }
 
 func (r *userRepo) RunUpdateFavoredListener() {
-	// update publish codes
+	// update favored codes
 }
 
 func (r *userRepo) RunUpdateWorkListener() {
-	// update favorite codes
+	// update work codes
 }
 
 var _ biz.UserRepo = (*userRepo)(nil)
