@@ -91,23 +91,23 @@ func (r *userRepo) FindKeyInfoByUsername(ctx context.Context, username string) (
 	return nil, errors.New("user not found by username")
 }
 
-func (r *userRepo) InitUpdateFollowQueue() {
+func (r *userRepo) RunUpdateFollowListener() {
 	// update follow codes
 }
 
-func (r *userRepo) InitUpdateFollowerQueue() {
+func (r *userRepo) RunUpdateFollowerListener() {
 	// update follower codes
 }
 
-func (r *userRepo) InitUpdateFavoredQueue() {
+func (r *userRepo) RunUpdateFavoriteListener() {
 	// update favored codes
 }
 
-func (r *userRepo) InitUpdatePublishQueue() {
+func (r *userRepo) RunUpdateFavoredListener() {
 	// update publish codes
 }
 
-func (r *userRepo) InitUpdateFavoriteQueue() {
+func (r *userRepo) RunUpdateWorkListener() {
 	// update favorite codes
 }
 

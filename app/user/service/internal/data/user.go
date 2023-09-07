@@ -214,184 +214,194 @@ func (r *userRepo) FindKeyInfoByUsername(ctx context.Context, username string) (
 	return user, nil
 }
 
-func (r *userRepo) InitUpdateFollowQueue() {
+func (r *userRepo) RunUpdateFollowListener() {
 	kafkaX.Reader(r.kfk.follow, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		userId, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user follow count, get id value failed, reason: %v", err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user follow count, get change value failed, reason: %v", err)
 			return
 		}
 		err = r.UpdateFollow(ctx, uint32(userId), int32(change))
 		if err != nil {
-			r.log.Errorf("update favorite count error, err: %v", err)
-			return
+			r.log.Errorf("update user follow count failed, reason: %v", err)
 		}
 	})
 }
 
-func (r *userRepo) InitUpdateFollowerQueue() {
+func (r *userRepo) RunUpdateFollowerListener() {
 	kafkaX.Reader(r.kfk.follower, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		userId, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user follower count, get id value failed, reason: %v", err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user follower count, get change value failed, reason: %v", err)
 			return
 		}
 		err = r.UpdateFollower(ctx, uint32(userId), int32(change))
 		if err != nil {
-			r.log.Errorf("update favorite count error, err: %v", err)
-			return
+			r.log.Errorf("update user follower count failed, reason: %v", err)
 		}
 	})
 }
 
-func (r *userRepo) InitUpdateFavoriteQueue() {
+func (r *userRepo) RunUpdateFavoriteListener() {
 	kafkaX.Reader(r.kfk.favorite, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		id, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user favorite count, get id value failed, reason: %v", err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user favorite count, get change value failed, reason: %v", err)
 			return
 		}
 		err = r.UpdateFavorite(ctx, uint32(id), int32(change))
 		if err != nil {
-			r.log.Errorf("update favorite count error, err: %v", err)
-			return
+			r.log.Errorf("update user favorite count failed, reason: %v", err)
 		}
 	})
 }
 
-func (r *userRepo) InitUpdateFavoredQueue() {
+func (r *userRepo) RunUpdateFavoredListener() {
 	kafkaX.Reader(r.kfk.favored, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		id, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user favored count, get id value failed, reason: %v", err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user favored count, get change value failed, reason: %v", err)
 			return
 		}
 		err = r.UpdateFavorited(ctx, uint32(id), int32(change))
 		if err != nil {
-			r.log.Errorf("update favorite count error, err: %v", err)
-			return
+			r.log.Errorf("update user favored count failed, reason: %v", err)
 		}
 	})
 }
 
-func (r *userRepo) InitUpdatePublishQueue() {
+func (r *userRepo) RunUpdateWorkListener() {
 	kafkaX.Reader(r.kfk.publish, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		id, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user work count, get id value failed, reason: %v", err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Errorf("strconv.Atoi error, err: %v", err)
+			r.log.Errorf("update user work count, get change value failed, reason: %v", err)
 			return
 		}
 		err = r.UpdateWork(ctx, uint32(id), int32(change))
 		if err != nil {
-			r.log.Errorf("update favorite count error, err: %v", err)
-			return
+			r.log.Errorf("update user work count failed, reason: %v", err)
 		}
 	})
 }
 
 // UpdateFollow .
-func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, followChange int32) error {
-	userDetail, err := r.findById(ctx, id)
-	if err != nil {
-		return err
-	}
-	newValue := addUint32int32(userDetail.FollowCount, followChange)
-	userDetail.FollowCount = newValue
-	err = r.cacheDetail(userDetail)
-	if err != nil {
-		return err
-	}
-	return r.db.WithContext(ctx).Model(&User{}).
-		Update("follow_count", newValue).Error
+func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, change int32) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var origin uint32
+		err := tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Select("follow_count").
+			Take(&origin).Error
+		if err != nil {
+			return err
+		}
+		target := addUint32int32(origin, change)
+		return tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Update("follow_count", target).Error
+	})
+	return err
 }
 
 // UpdateFollower .
-func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, followerChange int32) error {
-	userDetail, err := r.findById(ctx, id)
-	if err != nil {
-		return err
-	}
-	newValue := addUint32int32(userDetail.FollowerCount, followerChange)
-	userDetail.FollowerCount = newValue
-	err = r.cacheDetail(userDetail)
-	if err != nil {
-		return err
-	}
-	return r.db.WithContext(ctx).Model(&User{}).
-		Update("follower_count", newValue).Error
+func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, change int32) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var origin uint32
+		err := tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Select("follower_count").
+			Take(&origin).Error
+		if err != nil {
+			return err
+		}
+		target := addUint32int32(origin, change)
+		return tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Update("follower_count", target).Error
+	})
+	return err
 }
 
 // UpdateFavorited .
-func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, favoritedChange int32) error {
-	userDetail, err := r.findById(ctx, id)
-	if err != nil {
-		return err
-	}
-	newValue := addUint32int32(userDetail.TotalFavorited, favoritedChange)
-	userDetail.TotalFavorited = newValue
-	err = r.cacheDetail(userDetail)
-	if err != nil {
-		return err
-	}
-	return r.db.WithContext(ctx).Model(&User{}).
-		Update("total_favorited", newValue).Error
+func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, change int32) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var origin uint32
+		err := tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Select("total_favorited").
+			Take(&origin).Error
+		if err != nil {
+			return err
+		}
+		target := addUint32int32(origin, change)
+		return tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Update("total_favorited", target).Error
+	})
+	return err
 }
 
 // UpdateWork .
-func (r *userRepo) UpdateWork(ctx context.Context, id uint32, workChange int32) error {
-	userDetail, err := r.findById(ctx, id)
-	if err != nil {
-		return err
-	}
-	newValue := addUint32int32(userDetail.WorkCount, workChange)
-	userDetail.WorkCount = newValue
-	err = r.cacheDetail(userDetail)
-	if err != nil {
-		return err
-	}
-	return r.db.WithContext(ctx).Model(&User{}).
-		Update("work_count", newValue).Error
+func (r *userRepo) UpdateWork(ctx context.Context, id uint32, change int32) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var origin uint32
+		err := tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Select("work_count").
+			Take(&origin).Error
+		if err != nil {
+			return err
+		}
+		target := addUint32int32(origin, change)
+		return tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Update("work_count", target).Error
+	})
+	return err
 }
 
 // UpdateFavorite .
-func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, favoriteChange int32) error {
-	userDetail, err := r.findById(ctx, id)
-	if err != nil {
-		return err
-	}
-	newValue := addUint32int32(userDetail.FavoriteCount, favoriteChange)
-	userDetail.FavoriteCount = newValue
-	err = r.cacheDetail(userDetail)
-	if err != nil {
-		return err
-	}
-	return r.db.WithContext(ctx).Model(&User{}).
-		Update("favorite_count", newValue).Error
+func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, change int32) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		var origin uint32
+		err := tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Select("favorite_count").
+			Take(&origin).Error
+		if err != nil {
+			return err
+		}
+		target := addUint32int32(origin, change)
+		return tx.WithContext(ctx).Model(&User{}).
+			Where("id = ?", id).
+			Update("favorite_count", target).Error
+	})
+	return err
 }
 
 // cacheDetail 根据用户信息内的id生成key，并用此key来缓存用户信息
