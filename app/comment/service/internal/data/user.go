@@ -17,7 +17,7 @@ type userRepo struct {
 	client pb.UserServiceClient
 }
 
-func NewUserRepo(conn server.UserConn) UserRepo {
+func NewUserRepo(conn server.UserConn) biz.UserRepo {
 	return &userRepo{
 		client: pb.NewUserServiceClient(conn),
 	}

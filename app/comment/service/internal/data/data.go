@@ -16,16 +16,17 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewCommentRepo, NewUserRepo, NewMysqlConn, NewRedisConn)
+var ProviderSet = wire.NewSet(
+	NewData, NewKafkaWriter, NewCommentRepo, NewMysqlConn, NewRedisConn,
+	NewDBRepo, NewCacheRepo, NewUserRepo,
+)
 
 type Data struct {
-	db    *gorm.DB
-	cache *redis.Client
-	kfk   *kafka.Writer
-	log   *log.Helper
+	kfk *kafka.Writer
+	log *log.Helper
 }
 
-func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger log.Logger) (*Data, func(), error) {
+func NewData(cacheClient *redis.Client, kfk *kafka.Writer, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data/data"))
 	// 并发关闭所有数据库连接
 	cleanup := func() {
@@ -55,10 +56,8 @@ func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger l
 	}
 
 	data := &Data{
-		db:    db.Model(&Comment{}),
-		cache: cacheClient,
-		kfk:   kfk,
-		log:   logHelper,
+		kfk: kfk,
+		log: logHelper,
 	}
 	return data, cleanup, nil
 }
@@ -74,7 +73,7 @@ func NewMysqlConn(c *conf.Data, l log.Logger) *gorm.DB {
 	}
 	InitDB(db)
 	logs.Info("database enabled successfully")
-	return db
+	return db.Model(&Comment{})
 }
 
 // NewRedisConn Redis数据库连接
