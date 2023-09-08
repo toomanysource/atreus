@@ -1,4 +1,4 @@
-package data
+package datastore
 
 import (
 	"context"
@@ -8,23 +8,25 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/toomanysource/atreus/app/comment/service/internal/data"
+
 	"github.com/go-redis/redis/v8"
 
 	"github.com/toomanysource/atreus/pkg/errorX"
 )
 
-type cacheRepo struct {
+type cacheStore struct {
 	cache *redis.Client
 }
 
-func NewCacheRepo(cache *redis.Client) CacheRepo {
-	return &cacheRepo{
+func NewCacheStore(cache *redis.Client) data.CacheStore {
+	return &cacheStore{
 		cache: cache,
 	}
 }
 
 // InsertComment 创建缓存
-func (r *cacheRepo) InsertComment(ctx context.Context, videoId uint32, co *Comment) error {
+func (r *cacheStore) InsertComment(ctx context.Context, videoId uint32, co *data.Comment) error {
 	// 在redis缓存中查询是否存在视频评论列表
 	ok, err := r.hasVideo(ctx, videoId)
 	if err != nil {
@@ -40,7 +42,7 @@ func (r *cacheRepo) InsertComment(ctx context.Context, videoId uint32, co *Comme
 }
 
 // DeleteComment 删除缓存
-func (r *cacheRepo) DeleteComment(ctx context.Context, videoId, commentId uint32) error {
+func (r *cacheStore) DeleteComment(ctx context.Context, videoId, commentId uint32) error {
 	// 在redis缓存中查询是否存在
 	ok, err := r.hasComment(ctx, videoId, commentId)
 	if err != nil {
@@ -56,22 +58,22 @@ func (r *cacheRepo) DeleteComment(ctx context.Context, videoId, commentId uint32
 }
 
 // GetComments 获取缓存
-func (r *cacheRepo) GetComments(ctx context.Context, videoId uint32) (cl []*Comment, err error) {
+func (r *cacheStore) GetComments(ctx context.Context, videoId uint32) (cl []*data.Comment, err error) {
 	return r.getComments(ctx, videoId)
 }
 
 // InsertComments 使用事务创建缓存
-func (r *cacheRepo) InsertComments(ctx context.Context, cl []*Comment, videoId uint32) error {
+func (r *cacheStore) InsertComments(ctx context.Context, cl []*data.Comment, videoId uint32) error {
 	return r.setComments(ctx, cl, videoId)
 }
 
 // HasVideo 是否存在Video缓存
-func (r *cacheRepo) HasVideo(ctx context.Context, videoId uint32) (bool, error) {
+func (r *cacheStore) HasVideo(ctx context.Context, videoId uint32) (bool, error) {
 	return r.hasVideo(ctx, videoId)
 }
 
 // HasVideo 是否存在Video缓存
-func (r *cacheRepo) hasVideo(ctx context.Context, videoId uint32) (bool, error) {
+func (r *cacheStore) hasVideo(ctx context.Context, videoId uint32) (bool, error) {
 	// 先在redis缓存中查询是否存在视频评论列表
 	count, err := r.cache.Exists(ctx, strconv.Itoa(int(videoId))).Result()
 	if err != nil {
@@ -81,7 +83,7 @@ func (r *cacheRepo) hasVideo(ctx context.Context, videoId uint32) (bool, error) 
 }
 
 // hasComment 是否存在Comment缓存
-func (r *cacheRepo) hasComment(ctx context.Context, videoId, commentId uint32) (bool, error) {
+func (r *cacheStore) hasComment(ctx context.Context, videoId, commentId uint32) (bool, error) {
 	ok, err := r.cache.HExists(
 		ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId)),
 	).Result()
@@ -92,17 +94,17 @@ func (r *cacheRepo) hasComment(ctx context.Context, videoId, commentId uint32) (
 }
 
 // getComments 获取缓存评论列表
-func (r *cacheRepo) getComments(ctx context.Context, videoId uint32) (cl []*Comment, err error) {
+func (r *cacheStore) getComments(ctx context.Context, videoId uint32) (cl []*data.Comment, err error) {
 	comments, err := r.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
 	if err != nil {
 		return nil, errors.Join(errorX.ErrRedisQuery, err)
 	}
 
 	for _, v := range comments {
-		if v == OccupyValue {
+		if v == data.OccupyValue {
 			continue
 		}
-		co := &Comment{}
+		co := &data.Comment{}
 		if err = json.Unmarshal([]byte(v), co); err != nil {
 			return nil, errors.Join(errorX.ErrJsonMarshal, err)
 		}
@@ -112,7 +114,7 @@ func (r *cacheRepo) getComments(ctx context.Context, videoId uint32) (cl []*Comm
 }
 
 // delComment 删除缓存评论
-func (r *cacheRepo) delComment(ctx context.Context, videoId, commentId uint32) error {
+func (r *cacheStore) delComment(ctx context.Context, videoId, commentId uint32) error {
 	if err := r.cache.HDel(
 		ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId)),
 	).Err(); err != nil {
@@ -122,7 +124,7 @@ func (r *cacheRepo) delComment(ctx context.Context, videoId, commentId uint32) e
 }
 
 // setComment 创建缓存评论
-func (r *cacheRepo) setComment(ctx context.Context, videoId uint32, co *Comment) error {
+func (r *cacheStore) setComment(ctx context.Context, videoId uint32, co *data.Comment) error {
 	marc, err := json.Marshal(co)
 	if err != nil {
 		return errors.Join(errorX.ErrJsonMarshal, err)
@@ -135,11 +137,11 @@ func (r *cacheRepo) setComment(ctx context.Context, videoId uint32, co *Comment)
 }
 
 // setComments 创建缓存评论列表
-func (r *cacheRepo) setComments(ctx context.Context, cl []*Comment, videoId uint32) error {
+func (r *cacheStore) setComments(ctx context.Context, cl []*data.Comment, videoId uint32) error {
 	// 使用事务将评论列表存入redis缓存
 	_, err := r.cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
 		insertMap := make(map[string]interface{}, len(cl))
-		insertMap[OccupyKey] = OccupyValue
+		insertMap[data.OccupyKey] = data.OccupyValue
 		for _, v := range cl {
 			marc, err := json.Marshal(v)
 			if err != nil {

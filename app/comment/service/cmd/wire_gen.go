@@ -13,6 +13,7 @@ import (
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 	"github.com/toomanysource/atreus/app/comment/service/internal/data"
+	"github.com/toomanysource/atreus/app/comment/service/internal/data/datastore"
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 	"github.com/toomanysource/atreus/app/comment/service/internal/service"
 
@@ -30,9 +31,9 @@ func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, 
 		return nil, nil, err
 	}
 	db := data.NewMysqlConn(confData, logger)
-	dbRepo := data.NewDBRepo(db)
-	cacheRepo := data.NewCacheRepo(redisClient)
-	commentRepo := data.NewCommentRepo(dataData, dbRepo, cacheRepo, logger)
+	dbStore := datastore.NewDBStore(db)
+	cacheStore := datastore.NewCacheStore(redisClient)
+	commentRepo := data.NewCommentRepo(dataData, dbStore, cacheStore, logger)
 	userConn := server.NewUserClient(client, logger)
 	userRepo := data.NewUserRepo(userConn)
 	commentUseCase := biz.NewCommentUseCase(commentRepo, userRepo, logger)

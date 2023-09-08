@@ -36,7 +36,7 @@ func (Comment) TableName() string {
 	return "comments"
 }
 
-type DBRepo interface {
+type DBStore interface {
 	InsertComment(
 		ctx context.Context, videoId uint32, commentText, createTime string,
 	) (*Comment, error)
@@ -44,7 +44,7 @@ type DBRepo interface {
 	GetComments(ctx context.Context, videoId uint32) (c []*Comment, err error)
 }
 
-type CacheRepo interface {
+type CacheStore interface {
 	InsertComment(ctx context.Context, videoId uint32, co *Comment) error
 	DeleteComment(ctx context.Context, videoId, commentId uint32) error
 	GetComments(ctx context.Context, videoId uint32) (cl []*Comment, err error)
@@ -54,12 +54,12 @@ type CacheRepo interface {
 
 type commentRepo struct {
 	kfk   *kafka.Writer
-	db    DBRepo
-	cache CacheRepo
+	db    DBStore
+	cache CacheStore
 	log   *log.Helper
 }
 
-func NewCommentRepo(data *Data, db DBRepo, cache CacheRepo, logger log.Logger) biz.CommentRepo {
+func NewCommentRepo(data *Data, db DBStore, cache CacheStore, logger log.Logger) biz.CommentRepo {
 	return &commentRepo{
 		kfk:   data.kfk,
 		db:    db,

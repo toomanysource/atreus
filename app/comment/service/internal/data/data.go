@@ -17,8 +17,7 @@ import (
 )
 
 var ProviderSet = wire.NewSet(
-	NewData, NewKafkaWriter, NewCommentRepo, NewMysqlConn, NewRedisConn,
-	NewDBRepo, NewCacheRepo, NewUserRepo,
+	NewData, NewKafkaWriter, NewCommentRepo, NewMysqlConn, NewRedisConn, NewUserRepo,
 )
 
 type Data struct {
