@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/rand"
+	"sort"
 	"strconv"
 	"time"
 
@@ -65,8 +66,13 @@ func (r *cacheStore) DeleteComment(ctx context.Context, videoId, commentId uint3
 }
 
 // GetComments 获取缓存
-func (r *cacheStore) GetComments(ctx context.Context, videoId uint32) (cl []*data.Comment, err error) {
-	return r.getComments(ctx, videoId)
+func (r *cacheStore) GetComments(ctx context.Context, videoId uint32) ([]*data.Comment, error) {
+	cl, err := r.getComments(ctx, videoId)
+	if err != nil {
+		return nil, err
+	}
+	sortComments(cl)
+	return cl, nil
 }
 
 // InsertComments 使用事务创建缓存
@@ -120,7 +126,7 @@ func (r *cacheStore) getComments(ctx context.Context, videoId uint32) (cl []*dat
 		}
 		cl = append(cl, co)
 	}
-	return cl, nil
+	return
 }
 
 // delComment 删除缓存评论
@@ -179,4 +185,12 @@ func (r *cacheStore) setExpire(ctx context.Context, videoId uint32) error {
 // randomTime 随机生成时间
 func randomTime(timeType time.Duration, begin, end int) time.Duration {
 	return timeType * time.Duration(rand.Intn(end-begin+1)+begin)
+}
+
+// sortComments 对评论列表进行排序
+func sortComments(cl []*data.Comment) {
+	// 对原始切片进行排序
+	sort.Slice(cl, func(i, j int) bool {
+		return cl[i].Id > cl[j].Id
+	})
 }

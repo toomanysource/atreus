@@ -97,7 +97,7 @@ func (uc *CommentUseCase) GetCommentList(
 func (uc *CommentUseCase) CommentAction(
 	ctx context.Context, videoId, commentId uint32,
 	actionType uint32, commentText string,
-) (*Comment, error) {
+) (c *Comment, err error) {
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	switch actionType {
 	case CreateType:
@@ -105,7 +105,7 @@ func (uc *CommentUseCase) CommentAction(
 			return nil, ErrCommentTextEmpty
 		}
 		createTime := time.Now().Format("01-02")
-		comment, err := uc.repo.CreateComment(ctx, videoId, commentText, createTime)
+		c, err = uc.repo.CreateComment(ctx, videoId, commentText, createTime)
 		if err != nil {
 			uc.log.Errorf("CreateComment err: %v", err)
 			return nil, err
@@ -115,18 +115,18 @@ func (uc *CommentUseCase) CommentAction(
 			uc.log.Errorf("CreateComment err: %v", err)
 			return nil, err
 		}
-		comment.User = users[0]
-		return comment, nil
+		c.User = users[0]
+		return
 	case DeleteType:
 		if commentId == 0 {
 			return nil, ErrInvalidId
 		}
-		err := uc.repo.DeleteComment(ctx, videoId, commentId)
+		err = uc.repo.DeleteComment(ctx, videoId, commentId)
 		if err != nil {
 			uc.log.Errorf("DeleteComment err: %v", err)
 			return nil, err
 		}
-		return nil, nil
+		return
 	default:
 		return nil, errorX.ErrInValidActionType
 	}

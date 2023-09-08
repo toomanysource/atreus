@@ -60,7 +60,7 @@ func (r *dbStore) InsertComment(
 
 // GetComments 数据库搜索评论列表
 func (r *dbStore) GetComments(ctx context.Context, videoId uint32) (c []*data.Comment, err error) {
-	if err = r.db.WithContext(ctx).Where("video_id = ?", videoId).Find(&c).Error; err != nil {
+	if err = r.db.WithContext(ctx).Where("video_id = ?", videoId).Order("id Desc").Find(&c).Error; err != nil {
 		return nil, errors.Join(errorX.ErrMysqlQuery, err)
 	}
 	return c, nil

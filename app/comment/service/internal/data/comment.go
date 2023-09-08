@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"sort"
 	"strconv"
 
 	"github.com/jinzhu/copier"
@@ -138,7 +137,6 @@ func (r *commentRepo) GetComments(
 	if len(cl) == 0 {
 		return nil, nil
 	}
-	sortComments(cl)
 	for _, comment := range cl {
 		cls = append(cls, &biz.Comment{
 			Id: comment.Id,
@@ -150,12 +148,4 @@ func (r *commentRepo) GetComments(
 		})
 	}
 	return cls, nil
-}
-
-// sortComments 对评论列表进行排序
-func sortComments(cl []*Comment) {
-	// 对原始切片进行排序
-	sort.Slice(cl, func(i, j int) bool {
-		return cl[i].Id > cl[j].Id
-	})
 }
