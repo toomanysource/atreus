@@ -12,6 +12,8 @@ import (
 	"github.com/toomanysource/atreus/pkg/errorX"
 )
 
+var ErrProvideInfo = errors.New("incorrect information provided by the user")
+
 type dbStore struct {
 	db *gorm.DB
 }
@@ -34,7 +36,7 @@ func (r *dbStore) DeleteComment(
 		return errors.Join(errorX.ErrMysqlDelete, result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return data.ErrProvideInfo
+		return ErrProvideInfo
 	}
 	return nil
 }

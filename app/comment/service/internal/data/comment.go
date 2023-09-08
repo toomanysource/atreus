@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"errors"
 	"sort"
 	"strconv"
 
@@ -16,13 +15,6 @@ import (
 
 	"github.com/go-kratos/kratos/v2/log"
 )
-
-const (
-	OccupyKey   = "-1"
-	OccupyValue = ""
-)
-
-var ErrProvideInfo = errors.New("incorrect information provided by the user")
 
 type Comment struct {
 	Id       uint32 `gorm:"primary_key;index:idx_id_user_video"`
@@ -78,14 +70,13 @@ func (r *commentRepo) DeleteComment(
 		return err
 	}
 	go func() {
-		if err := kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "-1"); err != nil {
+		if err = kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "-1"); err != nil {
 			r.log.Error(err)
 		}
 	}()
 	go func() {
 		if err = r.cache.DeleteComment(context.Background(), videoId, commentId); err != nil {
 			r.log.Error(err)
-			return
 		}
 	}()
 	return nil
@@ -101,7 +92,7 @@ func (r *commentRepo) CreateComment(
 		return nil, err
 	}
 	go func() {
-		if err := kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "1"); err != nil {
+		if err = kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "1"); err != nil {
 			r.log.Error(err)
 		}
 	}()

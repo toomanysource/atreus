@@ -15,6 +15,13 @@ import (
 	"github.com/toomanysource/atreus/pkg/errorX"
 )
 
+const (
+	ExpireBegin = 360
+	ExpireEnd   = 720
+	OccupyKey   = "-1"
+	OccupyValue = ""
+)
+
 type cacheStore struct {
 	cache *redis.Client
 }
@@ -64,7 +71,10 @@ func (r *cacheStore) GetComments(ctx context.Context, videoId uint32) (cl []*dat
 
 // InsertComments 使用事务创建缓存
 func (r *cacheStore) InsertComments(ctx context.Context, cl []*data.Comment, videoId uint32) error {
-	return r.setComments(ctx, cl, videoId)
+	if err := r.setComments(ctx, videoId, cl); err != nil {
+		return err
+	}
+	return r.setExpire(ctx, videoId)
 }
 
 // HasVideo 是否存在Video缓存
@@ -101,7 +111,7 @@ func (r *cacheStore) getComments(ctx context.Context, videoId uint32) (cl []*dat
 	}
 
 	for _, v := range comments {
-		if v == data.OccupyValue {
+		if v == OccupyValue {
 			continue
 		}
 		co := &data.Comment{}
@@ -137,33 +147,31 @@ func (r *cacheStore) setComment(ctx context.Context, videoId uint32, co *data.Co
 }
 
 // setComments 创建缓存评论列表
-func (r *cacheStore) setComments(ctx context.Context, cl []*data.Comment, videoId uint32) error {
-	// 使用事务将评论列表存入redis缓存
-	_, err := r.cache.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-		insertMap := make(map[string]interface{}, len(cl))
-		insertMap[data.OccupyKey] = data.OccupyValue
-		for _, v := range cl {
-			marc, err := json.Marshal(v)
-			if err != nil {
-				return errors.Join(errorX.ErrJsonMarshal, err)
-			}
-			insertMap[strconv.Itoa(int(v.Id))] = marc
-		}
-		err := pipe.HMSet(ctx, strconv.Itoa(int(videoId)), insertMap).Err()
+func (r *cacheStore) setComments(ctx context.Context, videoId uint32, cl []*data.Comment) error {
+	insertMap := make(map[string]interface{}, len(cl))
+	// 设置占位键值，防止缓存穿透
+	insertMap[OccupyKey] = OccupyValue
+	for _, v := range cl {
+		marc, err := json.Marshal(v)
 		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(errorX.ErrJsonMarshal, err)
 		}
-		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
-		// 随机生成时间范围
-		begin, end := 360, 720
-		err = pipe.Expire(ctx, strconv.Itoa(int(videoId)), randomTime(time.Minute, begin, end)).Err()
-		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
-		}
-		return nil
-	})
+		insertMap[strconv.Itoa(int(v.Id))] = marc
+	}
+	err := r.cache.HMSet(ctx, strconv.Itoa(int(videoId)), insertMap).Err()
 	if err != nil {
-		return errors.Join(errorX.ErrRedisTransaction, err)
+		return errors.Join(errorX.ErrRedisSet, err)
+	}
+	return nil
+}
+
+// setExpire 设置Key过期时间
+func (r *cacheStore) setExpire(ctx context.Context, videoId uint32) error {
+	// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
+	if err := r.cache.Expire(
+		ctx, strconv.Itoa(int(videoId)), randomTime(time.Minute, ExpireBegin, ExpireEnd)).
+		Err(); err != nil {
+		return errors.Join(errorX.ErrRedisSet, err)
 	}
 	return nil
 }
