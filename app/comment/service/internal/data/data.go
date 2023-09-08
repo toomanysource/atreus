@@ -4,12 +4,13 @@ import (
 	"context"
 	"sync"
 
+	"github.com/go-redis/redis/v8"
+
 	"github.com/segmentio/kafka-go"
 
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-redis/redis/v8"
 	"github.com/google/wire"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
