@@ -158,7 +158,7 @@ func (r *userRepo) FindByIds(ctx context.Context, ids []uint32) ([]*biz.User, er
 	for i, id := range ids {
 		// 重复id无需查询，从已查询的结果中获取
 		if idx, ok := once[id]; ok {
-			result = append(result, result[idx])
+			result[i] = result[idx]
 			continue
 		}
 		// 先查看缓存有无对应的user信息
