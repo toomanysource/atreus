@@ -12,14 +12,6 @@ import (
 )
 
 func Update(writer *kafka.Writer, key, value string) error {
-	//keys, err := json.Marshal(key)
-	//if err != nil {
-	//	return errors.Join(errorX.ErrJsonMarshal, err)
-	//}
-	//values, err := json.Marshal(value)
-	//if err != nil {
-	//	return errors.Join(errorX.ErrJsonMarshal, err)
-	//}
 	err := writer.WriteMessages(context.TODO(),
 		kafka.Message{
 			Partition: 0,
