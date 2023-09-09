@@ -19,6 +19,10 @@ services:
       --collation-server=utf8mb4_general_ci
       --explicit_defaults_for_timestamp=true
       --lower_case_table_names=1
+    healthcheck:
+      test: ["CMD", "mysql", "-uroot", "-ptoomanysource"]
+      interval: 5s
+      retries: 3
     networks:
       - atreus_net
 
@@ -34,6 +38,10 @@ services:
     volumes:
       - ../../_data/redis/data:/data:rw
     command: "redis-server --requirepass atreus  --appendonly yes"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "atreus", "ping"]
+      interval: 5s
+      retries: 3
     networks:
       - atreus_net
 
@@ -50,47 +58,39 @@ services:
     command: server /data --console-address ":9090"
     volumes:
       - ../../_data/minio/data:/data:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      retries: 3
     networks:
       - atreus_net
-
-  zookeeper:
-    image: docker.io/bitnami/zookeeper:3.8.2
-    container_name: zookeeper
-    restart: always
-    user: root
-    ports:
-      - "12181:2181"
-    volumes:
-      - ../../_data/kafka/zookeeper:/bitnami/zookeeper:rw #持久化数据
-    environment:
-      - TZ=Asia/Shanghai
-      - ALLOW_ANONYMOUS_LOGIN=yes
-    networks:
-      - atreus_net
-
   kafka:
     image: docker.io/bitnami/kafka:3.5.1
     restart: always
     user: root
     container_name: kafka
-    ports:
-      - "19092:9092"
     volumes:
       - ../../_data/kafka:/bitnami/kafka:rw #持久化数据
     environment:
-      - TZ=Asia/Shanghai
-      # Listeners
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
       - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-      # - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_KRAFT_CLUSTER_ID=LelM2dIFQkiUFvXCEcqRWA
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_HEAP_OPTS=-Xmx512M -Xms256M
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      # broker.id，必须唯一
+      - KAFKA_BROKER_ID=1
+    healthcheck:
+      test: ["CMD", "/opt/bitnami/kafka/bin/kafka-topics.sh", "--list", "--bootstrap-server=localhost:9092"]
+      interval: 5s
+      retries: 3
     networks:
       - atreus_net
-    depends_on:
-      - zookeeper
-
   user-service:
     build:
       context: ../../
@@ -102,16 +102,15 @@ services:
     restart: always
     ports:
       - "18001:8001"
-      - "19001:9001"
     networks:
       - atreus_net
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
 
   publish-service:
     build:
@@ -124,18 +123,15 @@ services:
     restart: always
     ports:
       - "18002:8002"
-      - "19002:9002"
     networks:
       - atreus_net
     depends_on:
       mysql:
         condition: service_healthy
       kafka:
-        condition: service_started
-      redis:
-        condition: service_started
+        condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
 
   comment-service:
     build:
@@ -148,16 +144,15 @@ services:
     restart: always
     ports:
       - "18003:8003"
-      - "19003:9003"
     networks:
       - atreus_net
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
 
   favorite-service:
     build:
@@ -170,16 +165,15 @@ services:
     restart: always
     ports:
       - "18004:8004"
-      - "19004:9004"
     networks:
       - atreus_net
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
 
   relation-service:
     build:
@@ -192,16 +186,15 @@ services:
     restart: always
     ports:
       - "18005:8005"
-      - "19005:9005"
     networks:
       - atreus_net
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
 
   message-service:
     build:
@@ -214,16 +207,15 @@ services:
     restart: always
     ports:
       - "18006:8006"
-      - "19006:9006"
     networks:
       - atreus_net
     depends_on:
       mysql:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       kafka:
-        condition: service_started
+        condition: service_healthy
 
 networks:
   atreus_net:
