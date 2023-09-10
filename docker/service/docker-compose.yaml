@@ -1,5 +1,29 @@
 version: "3"
 services:
+  nginx:
+    image: nginx:1.24.0
+    container_name: nginx
+    restart: always
+    ports:
+      - "32796:80"
+    volumes:
+      - "../../configs/nginx/nginx.conf:/etc/nginx/nginx.conf"
+      - "../../_data/nginx/logs:/var/log/nginx"
+    networks:
+      - atreus_net
+    depends_on:
+        user-service:
+            condition: service_started
+        publish-service:
+            condition: service_started
+        comment-service:
+            condition: service_started
+        favorite-service:
+            condition: service_started
+        relation-service:
+            condition: service_started
+        message-service:
+            condition: service_started
   mysql:
     image: mysql/mysql-server:8.0.32
     container_name: mysql
@@ -100,8 +124,6 @@ services:
     container_name: user-service
     privileged: true
     restart: always
-    ports:
-      - "18001:8001"
     networks:
       - atreus_net
     depends_on:
@@ -121,8 +143,6 @@ services:
     container_name: publish-service
     privileged: true
     restart: always
-    ports:
-      - "18002:8002"
     networks:
       - atreus_net
     depends_on:
@@ -142,8 +162,6 @@ services:
     container_name: comment-service
     privileged: true
     restart: always
-    ports:
-      - "18003:8003"
     networks:
       - atreus_net
     depends_on:
@@ -163,8 +181,6 @@ services:
     container_name: favorite-service
     privileged: true
     restart: always
-    ports:
-      - "18004:8004"
     networks:
       - atreus_net
     depends_on:
@@ -184,8 +200,6 @@ services:
     container_name: relation-service
     privileged: true
     restart: always
-    ports:
-      - "18005:8005"
     networks:
       - atreus_net
     depends_on:
@@ -205,8 +219,6 @@ services:
     container_name: message-service
     privileged: true
     restart: always
-    ports:
-      - "18006:8006"
     networks:
       - atreus_net
     depends_on:
