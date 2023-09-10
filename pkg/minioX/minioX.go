@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	ErrBucketMiss = errors.New("bucket miss")
-	ErrFileUpload = errors.New("file upload error")
-	ErrGetFileURL = errors.New("get file url error")
+	ErrMinioServer = errors.New("minio server error")
+	ErrFileUpload  = errors.New("file upload error")
+	ErrGetFileURL  = errors.New("get file url error")
 )
 
 // ExtraConn 外网连接返回文件Url
@@ -47,11 +47,25 @@ func NewClient(extraConn ExtraConn, intraConn IntraConn) *Client {
 	}
 }
 
-func (c *Client) ExistBucket(ctx context.Context, bucketName string) (bool, error) {
-	if exists, err := c.intraConn.conn.BucketExists(ctx, bucketName); !exists || err != nil {
-		return false, errors.Join(ErrBucketMiss, err)
+// CreateBucket 创建bucket
+func (c *Client) CreateBucket(ctx context.Context, bucketName string) error {
+	exists, err := c.ExistBucket(ctx, bucketName)
+	if err != nil {
+		return errors.Join(ErrMinioServer, err)
 	}
-	return true, nil
+	if !exists {
+		return c.MakeBucket(ctx, bucketName)
+	}
+	return nil
+}
+
+// ExistBucket 判断bucket是否存在
+func (c *Client) ExistBucket(ctx context.Context, bucketName string) (bool, error) {
+	exists, err := c.intraConn.conn.BucketExists(ctx, bucketName)
+	if err != nil {
+		return false, errors.Join(ErrMinioServer, err)
+	}
+	return exists, nil
 }
 
 // UploadLocalFile 将本地文件上传至minio
@@ -90,4 +104,11 @@ func (c *Client) GetFileURL(ctx context.Context, bucketName string, fileName str
 	}
 	fmt.Println("successfully generated url")
 	return preSignedURL, nil
+}
+
+// MakeBucket 创建bucket
+func (c *Client) MakeBucket(ctx context.Context, bucketName string) error {
+	return c.intraConn.conn.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{
+		Region: "cn-south",
+	})
 }

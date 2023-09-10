@@ -11,8 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Option func(*Log)
-
 type Log struct {
 	Logger *log.Logger
 }

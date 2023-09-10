@@ -89,8 +89,8 @@ func NewMysqlConn(c *conf.Data, l log.Logger) *gorm.DB {
 func NewMinioConn(c *conf.Minio, extraConn minioX.ExtraConn, intraConn minioX.IntraConn, l log.Logger) *minioX.Client {
 	logs := log.NewHelper(log.With(l, "module", "data/data/minio"))
 	client := minioX.NewClient(extraConn, intraConn)
-	if exists, err := client.ExistBucket(context.Background(), c.BucketName); !exists || err != nil {
-		logs.Fatalf("minio bucket %s miss,err: %v", c.BucketName, err)
+	if err := client.CreateBucket(context.Background(), c.BucketName); err != nil {
+		logs.Fatal(err)
 	}
 	logs.Info("minio enabled successfully")
 	return client
