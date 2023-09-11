@@ -22,4 +22,5 @@ endif
 .PHONY: wire.gen
 wire.gen: wire.init
 	@echo "======> Generating wire_gen code"
-	@echo $(abspath $(dir $(shell find app -name wire.go))) | xargs -I{} sh -c 'wire gen {}'
+	@echo $(abspath $(dir $(shell find $(ROOT_DIR) -path $(DATA_DIR) -prune -false -o -name wire.go))) | xargs -I{} sh -c 'wire gen {}'
+	@$(MAKE) format
