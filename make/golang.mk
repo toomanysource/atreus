@@ -92,6 +92,6 @@ endif
 .PHONY: go.format
 go.format: go.format.verify
 	@echo "======> Formatting go codes"
-	$(GO_FMT) -w .
-	$(GOPATH)/bin/$(GO_IMPORTS) -w -local $(GO_MODULE) .
-	go mod tidy
+	@find $(ROOT_DIR) -path $(DATA_DIR) -prune -false -o -name '*.go' -not -name '*.pb.*' | xargs -I{} sh -c '$(GO_FMT) -w {}'
+	@find $(ROOT_DIR) -path $(DATA_DIR) -prune -false -o -name '*.go' | xargs -I{} sh -c '$(GOPATH)/bin/$(GO_IMPORTS) -w -local $(GO_MODULE) {}'
+	@go mod tidy
