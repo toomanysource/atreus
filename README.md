@@ -69,7 +69,7 @@ make docker-compose-up
 
 ## How to Contribute
 
-You can view more details to [contribute](./docs/contribute).
+Read [issue](https://github.com/toomanysource/atreus/issues/103) first. You can view more details to [contribute](./docs/contribute).
 
 ## Contributors
 
