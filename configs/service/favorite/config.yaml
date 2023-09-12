@@ -7,9 +7,9 @@ server:
     timeout: 1s
 client:
   user:
-    to: 0.0.0.0:19001
+    to: user-service:9001
   publish:
-    to: 0.0.0.0:19002
+    to: publish-service:9002
 data:
   mysql:
     driver: mysql
