@@ -67,7 +67,7 @@ We build the project in Docker. You just run the following command:
 make docker-compose-up
 ```
 
-> Attation! You need change your local host ip to minio config field `endpointExtra` in `/configs/service/publish/config.yaml`.
+> Attation! You need change the value of field `endpointExtra` in minio configation to your local host ip. File in `/configs/service/publish/config.yaml`.
 
 ## How to Contribute
 
