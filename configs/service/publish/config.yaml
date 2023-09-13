@@ -24,7 +24,7 @@ data:
   kafka:
     addr: kafka:9092
     comment_topic: "comment"
-    favorite_topic: "favorite"
+    favorite_topic: "video_favorite"
     publish_topic: "publish"
     partition: 0
     read_timeout: 0.2s
