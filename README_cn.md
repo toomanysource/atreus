@@ -66,7 +66,7 @@ Atreus 参照了[Kratos Layout](https://github.com/go-kratos/kratos-layout). 这
 ```
 make docker-compose-up
 ```
-
+>  注意! 你需要将`/configs/service/publish/config.yaml`里的 minio `endpointExtra` 字段改成自己本机IP.
 ## 如何贡献
 
 更多详情，请访问[contribute](./docs/contribute).
