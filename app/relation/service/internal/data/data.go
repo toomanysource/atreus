@@ -116,9 +116,8 @@ func NewRedisConn(c *conf.Data, l log.Logger) (cache *CacheClient) {
 	go func() {
 		defer wg.Done()
 		cache.followedRelation = redis.NewClient(&redis.Options{
-			DB:           int(c.Redis.FollowedRelationDb),
+			DB:           int(c.Redis.FollowedDb),
 			Addr:         c.Redis.Addr,
-			Username:     c.Redis.Username,
 			WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
 			ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
 			Password:     c.Redis.Password,
@@ -134,9 +133,8 @@ func NewRedisConn(c *conf.Data, l log.Logger) (cache *CacheClient) {
 	go func() {
 		defer wg.Done()
 		cache.followRelation = redis.NewClient(&redis.Options{
-			DB:           int(c.Redis.FollowRelationDb),
+			DB:           int(c.Redis.FollowDb),
 			Addr:         c.Redis.Addr,
-			Username:     c.Redis.Username,
 			WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
 			ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
 			Password:     c.Redis.Password,
