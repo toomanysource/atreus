@@ -131,7 +131,6 @@ func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
 	client := redis.NewClient(&redis.Options{
 		DB:           int(c.Redis.Db),
 		Addr:         c.Redis.Addr,
-		Username:     c.Redis.Username,
 		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
 		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
 		Password:     c.Redis.Password,

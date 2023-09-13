@@ -81,9 +81,8 @@ func NewMysqlConn(c *conf.Data, l log.Logger) *gorm.DB {
 func NewRedisConn(c *conf.Data, l log.Logger) *redis.Client {
 	logs := log.NewHelper(log.With(l, "module", "data/data/redis"))
 	client := redis.NewClient(&redis.Options{
-		DB:           int(c.Redis.CommentDb),
+		DB:           int(c.Redis.Db),
 		Addr:         c.Redis.Addr,
-		Username:     c.Redis.Username,
 		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
 		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
 		Password:     c.Redis.Password,
