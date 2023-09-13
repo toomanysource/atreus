@@ -8,8 +8,6 @@ server:
 client:
   user:
     to: 0.0.0.0:9005
-  favorite:
-    to: 0.0.0.0:9001
 data:
   mysql:
     driver: mysql

@@ -67,9 +67,11 @@ We build the project in Docker. You just run the following command:
 make docker-compose-up
 ```
 
+> Attation! You need change the value of field `endpointExtra` in minio configation to your local host ip. File in `/configs/service/publish/config.yaml`.
+
 ## How to Contribute
 
-You can view more details to [contribute](./docs/contribute).
+Read [issue](https://github.com/toomanysource/atreus/issues/103) first. You can view more details to [contribute](./docs/contribute).
 
 ## Contributors
 

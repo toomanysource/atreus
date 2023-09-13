@@ -7,9 +7,9 @@ server:
     timeout: 1s
 client:
   user:
-    to: 0.0.0.0:19001
+    to: user-service:9001
   favorite:
-    to: 0.0.0.0:19004
+    to: favorite-service:9004
 data:
   mysql:
     driver: mysql
@@ -35,7 +35,7 @@ jwt:
   grpc:
     token_key: "ToOMaNySoUrCe"
 minio:
-  endpointExtra: minio:9000
+  endpointExtra: 192.168.124.102:19000
   endpointIntra: minio:9000
   #  Need have 8 character
   accessKeyId: "toomanysource"
