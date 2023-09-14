@@ -17,7 +17,6 @@ message Server {
     string network = 1;
     string addr = 2;
     google.protobuf.Duration timeout = 3;
-
   }
   message GRPC {
     string network = 1;
@@ -44,17 +43,16 @@ message Data {
     string driver = 1;
     string dsn = 2;
   }
-   message Redis {
-    int32 comment_db = 1;
+  message Redis {
+    int32 db = 1;
     string addr = 2;
     string password = 3;
-    string username = 4;
-    google.protobuf.Duration read_timeout = 5;
-    google.protobuf.Duration write_timeout = 6;
-   }
+    google.protobuf.Duration read_timeout = 4;
+    google.protobuf.Duration write_timeout = 5;
+  }
   message Kafka {
     string addr = 1;
-    string topic = 2;
+    string comment_topic = 2;
     int32 partition = 3;
     google.protobuf.Duration read_timeout = 4;
     google.protobuf.Duration write_timeout = 5;

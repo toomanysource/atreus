@@ -15,7 +15,7 @@ data:
     driver: mysql
     dsn: "root:toomanysource@tcp(mysql:3306)/atreus?charset=utf8mb4&parseTime=True&loc=Local"
   redis:
-    db: 4
+    db: 5
     addr: redis:6379
     password: "atreus"
     read_timeout: 0.2s
@@ -24,8 +24,8 @@ data:
   kafka:
     addr: kafka:9092
     video_favorite_topic: "video_favorite"
-    user_favorite_topic: "user_favorite"
-    author_favorite_topic: "author_favorite"
+    favorite_topic: "favorite"
+    favored_topic: "favored"
     partition: 0
     read_timeout: 0.2s
     write_timeout: 0.2s

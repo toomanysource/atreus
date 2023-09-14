@@ -105,9 +105,8 @@ func NewRedisConn(c *conf.Data, l log.Logger) (cacheClient *redis.Client) {
 	logs := log.NewHelper(log.With(l, "module", "data/data/redis"))
 	// 初始化点赞数Redis客户端
 	cache := redis.NewClient(&redis.Options{
-		DB:           int(c.Redis.FavoriteDb),
+		DB:           int(c.Redis.Db),
 		Addr:         c.Redis.Addr,
-		Username:     c.Redis.Username,
 		WriteTimeout: c.Redis.WriteTimeout.AsDuration(),
 		ReadTimeout:  c.Redis.ReadTimeout.AsDuration(),
 		Password:     c.Redis.Password,
