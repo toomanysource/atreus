@@ -328,7 +328,9 @@ func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, change int32) er
 			Where("id = ?", id).
 			Update("follow_count", target).Error
 	})
-	go r.removeCache(DelayRemoveCache, id)
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -348,7 +350,9 @@ func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, change int32) 
 			Where("id = ?", id).
 			Update("follower_count", target).Error
 	})
-	go r.removeCache(DelayRemoveCache, id)
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -368,7 +372,9 @@ func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, change int32)
 			Where("id = ?", id).
 			Update("total_favorited", target).Error
 	})
-	go r.removeCache(DelayRemoveCache, id)
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -388,7 +394,9 @@ func (r *userRepo) UpdateWork(ctx context.Context, id uint32, change int32) erro
 			Where("id = ?", id).
 			Update("work_count", target).Error
 	})
-	go r.removeCache(DelayRemoveCache, id)
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -408,7 +416,9 @@ func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, change int32) 
 			Where("id = ?", id).
 			Update("favorite_count", target).Error
 	})
-	go r.removeCache(DelayRemoveCache, id)
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
