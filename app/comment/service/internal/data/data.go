@@ -100,7 +100,7 @@ func NewKafkaWriter(c *conf.Data, l log.Logger) *kafka.Writer {
 	logs := log.NewHelper(log.With(l, "module", "data/data/kafka"))
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(c.Kafka.Addr),
-		Topic:                  c.Kafka.Topic,
+		Topic:                  c.Kafka.CommentTopic,
 		Balancer:               &kafka.LeastBytes{},
 		WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
 		ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),

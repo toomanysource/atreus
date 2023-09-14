@@ -20,7 +20,10 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 )
 
-var FixedCacheExpire = 720
+var (
+	FixedCacheExpire = 720
+	DelayRemoveCache = 500 * time.Millisecond
+)
 
 var userTableName = "users"
 
@@ -325,6 +328,9 @@ func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, change int32) er
 			Where("id = ?", id).
 			Update("follow_count", target).Error
 	})
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -344,6 +350,9 @@ func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, change int32) 
 			Where("id = ?", id).
 			Update("follower_count", target).Error
 	})
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -363,6 +372,9 @@ func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, change int32)
 			Where("id = ?", id).
 			Update("total_favorited", target).Error
 	})
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -382,6 +394,9 @@ func (r *userRepo) UpdateWork(ctx context.Context, id uint32, change int32) erro
 			Where("id = ?", id).
 			Update("work_count", target).Error
 	})
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -401,6 +416,9 @@ func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, change int32) 
 			Where("id = ?", id).
 			Update("favorite_count", target).Error
 	})
+	if err != nil {
+		go r.removeCache(DelayRemoveCache, id)
+	}
 	return err
 }
 
@@ -432,6 +450,17 @@ func (r *userRepo) getCachedDetailById(ctx context.Context, id uint32) (*UserDet
 	}
 	err = json.Unmarshal(bs, userDetail)
 	return userDetail, err
+}
+
+// removeCache 延迟删除缓存信息
+// 无返回值，错误会输出至日志
+func (r *userRepo) removeCache(delay time.Duration, id uint32) {
+	time.Sleep(delay)
+	key := genCacheKeyById(id)
+	err := r.rdb.Del(context.Background(), key).Err()
+	if err != nil {
+		r.log.Errorf("remove user cache by id %d failed: %s", id, err.Error())
+	}
 }
 
 // genCacheKeyById 生成根据id拼接成用于缓存用户信息的key
