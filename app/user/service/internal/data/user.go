@@ -283,7 +283,7 @@ func (r *userRepo) RunUpdateFavoredListener() {
 			r.log.Errorf("update user favored count, get change value failed, reason: %v", err)
 			return
 		}
-		err = r.UpdateFavorited(ctx, uint32(id), int32(change))
+		err = r.UpdateFavored(ctx, uint32(id), int32(change))
 		if err != nil {
 			r.log.Errorf("update user favored count failed, reason: %v", err)
 		}
@@ -311,7 +311,7 @@ func (r *userRepo) RunUpdateWorkListener() {
 
 // UpdateFollow .
 func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, change int32) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		var origin uint32
 		err := tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
@@ -324,13 +324,21 @@ func (r *userRepo) UpdateFollow(ctx context.Context, id uint32, change int32) er
 		return tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
 			Update("follow_count", target).Error
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	go func() {
+		err := r.cacheDelete(id)
+		if err != nil {
+			r.log.Errorf("delete user cache by id %d failed: %s", id, err.Error())
+		}
+	}()
+	return nil
 }
 
 // UpdateFollower .
 func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, change int32) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		var origin uint32
 		err := tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
@@ -343,13 +351,21 @@ func (r *userRepo) UpdateFollower(ctx context.Context, id uint32, change int32) 
 		return tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
 			Update("follower_count", target).Error
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	go func() {
+		err := r.cacheDelete(id)
+		if err != nil {
+			r.log.Errorf("delete user cache by id %d failed: %s", id, err.Error())
+		}
+	}()
+	return nil
 }
 
-// UpdateFavorited .
-func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, change int32) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+// UpdateFavored .
+func (r *userRepo) UpdateFavored(ctx context.Context, id uint32, change int32) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		var origin uint32
 		err := tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
@@ -362,13 +378,21 @@ func (r *userRepo) UpdateFavorited(ctx context.Context, id uint32, change int32)
 		return tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
 			Update("total_favorited", target).Error
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	go func() {
+		err := r.cacheDelete(id)
+		if err != nil {
+			r.log.Errorf("delete user cache by id %d failed: %s", id, err.Error())
+		}
+	}()
+	return nil
 }
 
 // UpdateWork .
 func (r *userRepo) UpdateWork(ctx context.Context, id uint32, change int32) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		var origin uint32
 		err := tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
@@ -381,13 +405,21 @@ func (r *userRepo) UpdateWork(ctx context.Context, id uint32, change int32) erro
 		return tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
 			Update("work_count", target).Error
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	go func() {
+		err := r.cacheDelete(id)
+		if err != nil {
+			r.log.Errorf("delete user cache by id %d failed: %s", id, err.Error())
+		}
+	}()
+	return nil
 }
 
 // UpdateFavorite .
 func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, change int32) error {
-	err := r.db.Transaction(func(tx *gorm.DB) error {
+	if err := r.db.Transaction(func(tx *gorm.DB) error {
 		var origin uint32
 		err := tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
@@ -400,8 +432,21 @@ func (r *userRepo) UpdateFavorite(ctx context.Context, id uint32, change int32) 
 		return tx.WithContext(ctx).Model(&User{}).
 			Where("id = ?", id).
 			Update("favorite_count", target).Error
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+	go func() {
+		err := r.cacheDelete(id)
+		if err != nil {
+			r.log.Errorf("delete user cache by id %d failed: %s", id, err.Error())
+		}
+	}()
+	return nil
+}
+
+// cacheDelete 根据用户id来删除缓存的User信息
+func (r *userRepo) cacheDelete(id uint32) error {
+	return r.rdb.Del(context.Background(), genCacheKeyById(id)).Err()
 }
 
 // cacheDetail 根据用户信息内的id生成key，并用此key来缓存用户信息
