@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/segmentio/kafka-go"
@@ -18,6 +19,21 @@ import (
 )
 
 var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewFavoriteRepo, NewPublishRepo, NewMysqlConn, NewRedisConn)
+
+var (
+	ErrCopy                   = errors.New("copy error")
+	ErrRedisSet               = errors.New("redis set error")
+	ErrRedisQuery             = errors.New("redis query error")
+	ErrMysqlDelete            = errors.New("mysql delete error")
+	ErrMysqlInsert            = errors.New("mysql insert error")
+	ErrMysqlQuery             = errors.New("mysql query error")
+	ErrRedisDelete            = errors.New("redis delete error")
+	ErrRedisTransaction       = errors.New("redis transaction error")
+	ErrStrconvParse           = errors.New("strconv parse error")
+	ErrExistFavorite          = errors.New("exist favorite relation")
+	ErrPublishServiceResponse = errors.New("publish service response error")
+	ErrNotExistFavorite       = errors.New("not exist favorite relation")
+)
 
 type KfkWriter struct {
 	Favorite      *kafka.Writer

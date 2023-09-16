@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/toomanysource/atreus/app/message/service/internal/conf"
@@ -16,6 +17,17 @@ import (
 )
 
 var ProviderSet = wire.NewSet(NewData, NewMessageRepo, NewMysqlConn, NewKafkaConn, NewRedisConn)
+
+var (
+	ErrCopy             = errors.New("copy error")
+	ErrJsonMarshal      = errors.New("json marshal error")
+	ErrRedisSet         = errors.New("redis set error")
+	ErrRedisQuery       = errors.New("redis query error")
+	ErrMysqlInsert      = errors.New("mysql insert error")
+	ErrMysqlQuery       = errors.New("mysql query error")
+	ErrRedisDelete      = errors.New("redis delete error")
+	ErrRedisTransaction = errors.New("redis transaction error")
+)
 
 type KafkaConn struct {
 	writer *kafka.Writer

@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/segmentio/kafka-go"
@@ -17,6 +18,20 @@ import (
 )
 
 var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewCommentRepo, NewUserRepo, NewMysqlConn, NewRedisConn)
+
+var (
+	ErrInvalidComment      = errors.New("invalid comment")
+	ErrCopy                = errors.New("copy error")
+	ErrJsonMarshal         = errors.New("json marshal error")
+	ErrRedisSet            = errors.New("redis set error")
+	ErrRedisQuery          = errors.New("redis query error")
+	ErrMysqlDelete         = errors.New("mysql delete error")
+	ErrMysqlInsert         = errors.New("mysql insert error")
+	ErrMysqlQuery          = errors.New("mysql query error")
+	ErrRedisDelete         = errors.New("redis delete error")
+	ErrRedisTransaction    = errors.New("redis transaction error")
+	ErrUserServiceResponse = errors.New("user service response error")
+)
 
 type Data struct {
 	db    *gorm.DB

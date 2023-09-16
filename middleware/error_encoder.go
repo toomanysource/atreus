@@ -1,4 +1,4 @@
-package errorX
+package middleware
 
 import (
 	"fmt"
@@ -6,6 +6,10 @@ import (
 
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/transport/http"
+)
+
+const (
+	CodeFailed = 300
 )
 
 type Error struct {

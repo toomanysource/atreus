@@ -4,14 +4,8 @@ import (
 	"context"
 
 	"github.com/toomanysource/atreus/middleware"
-	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/go-kratos/kratos/v2/log"
-)
-
-const (
-	FollowType   uint32 = 1
-	UnfollowType uint32 = 2
 )
 
 type User struct {
@@ -95,7 +89,7 @@ func (uc *RelationUseCase) Action(ctx context.Context, toUserId uint32, actionTy
 		}
 		return err
 	default:
-		return errorX.ErrInValidActionType
+		return ErrInValidActionType
 	}
 }
 

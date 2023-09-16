@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/segmentio/kafka-go"
@@ -19,6 +20,19 @@ import (
 )
 
 var ProviderSet = wire.NewSet(NewData, NewKafkaReader, NewKafkaWriter, NewPublishRepo, NewMysqlConn, NewMinioConn, NewMinioExtraConn, NewMinioIntraConn)
+
+var (
+	ErrCopy                    = errors.New("copy error")
+	ErrMysqlInsert             = errors.New("mysql insert error")
+	ErrMysqlQuery              = errors.New("mysql query error")
+	ErrUserServiceResponse     = errors.New("user service response error")
+	ErrKafkaReader             = errors.New("kafka reader error")
+	ErrFileCreate              = errors.New("file create error")
+	ErrFileRead                = errors.New("file read error")
+	ErrFileWrite               = errors.New("file write error")
+	ErrMysqlUpdate             = errors.New("mysql update error")
+	ErrFavoriteServiceResponse = errors.New("favorite service response error")
+)
 
 type KfkReader struct {
 	comment  *kafka.Reader
