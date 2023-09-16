@@ -12,13 +12,12 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 	"github.com/toomanysource/atreus/app/user/service/internal/service"
 	"github.com/toomanysource/atreus/middleware"
-	"github.com/toomanysource/atreus/pkg/errorX"
 )
 
 // NewHTTPServer new a user service HTTP server.
 func NewHTTPServer(c *conf.Server, t *conf.JWT, user *service.UserService, logger log.Logger) *http.Server {
 	opts := []http.ServerOption{
-		http.ErrorEncoder(errorX.ErrorEncoder),
+		http.ErrorEncoder(middleware.ErrorEncoder),
 		http.Middleware(
 			validate.Validator(),
 			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {

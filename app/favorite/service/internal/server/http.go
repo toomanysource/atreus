@@ -4,22 +4,21 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/validate"
 	"github.com/golang-jwt/jwt/v4"
 
-	v1 "github.com/toomanysource/atreus/api/favorite/service/v1"
-	"github.com/toomanysource/atreus/app/favorite/service/internal/conf"
-	"github.com/toomanysource/atreus/app/favorite/service/internal/service"
-	"github.com/toomanysource/atreus/middleware"
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
+
+	v1 "github.com/toomanysource/atreus/api/favorite/service/v1"
+	"github.com/toomanysource/atreus/app/favorite/service/internal/conf"
+	"github.com/toomanysource/atreus/app/favorite/service/internal/service"
+	"github.com/toomanysource/atreus/middleware"
 )
 
 // NewHTTPServer new an HTTP server.
 func NewHTTPServer(c *conf.Server, t *conf.JWT, greeter *service.FavoriteService, logger log.Logger) *http.Server {
 	opts := []http.ServerOption{
-		http.ErrorEncoder(errorX.ErrorEncoder),
+		http.ErrorEncoder(middleware.ErrorEncoder),
 		http.Middleware(
 			validate.Validator(),
 			middleware.TokenParseAll(func(token *jwt.Token) (interface{}, error) {

@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/segmentio/kafka-go"
@@ -32,8 +30,6 @@ const (
 	OccupyKey   = "-1"
 	OccupyValue = ""
 )
-
-var ErrInvalidComment = errors.New("invalid comment")
 
 type Comment struct {
 	Id       uint32 `gorm:"primary_key"`
@@ -118,12 +114,12 @@ func (r *commentRepo) CreateComment(
 	user := new(biz.User)
 	err = copier.Copy(user, users[0])
 	if err != nil {
-		return nil, errors.Join(errorX.ErrCopy, err)
+		return nil, errors.Join(ErrCopy, err)
 	}
 	user.IsFollow = false
 	c := new(biz.Comment)
 	if err = copier.Copy(c, co); err != nil {
-		return nil, errors.Join(errorX.ErrCopy, err)
+		return nil, errors.Join(ErrCopy, err)
 	}
 	c.User = user
 
@@ -204,11 +200,11 @@ func (r *commentRepo) InsertCache(ctx context.Context, videoId uint32, co *Comme
 		// 将评论存入redis缓存
 		marc, err := json.Marshal(co)
 		if err != nil {
-			return errors.Join(errorX.ErrJsonMarshal, err)
+			return errors.Join(ErrJsonMarshal, err)
 		}
 		if err = r.data.cache.HSet(
 			ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(co.Id)), marc).Err(); err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 	}
 	return nil
@@ -219,12 +215,12 @@ func (r *commentRepo) DeleteCache(ctx context.Context, videoId, commentId uint32
 	// 在redis缓存中查询是否存在
 	ok, err := r.data.cache.HExists(ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId))).Result()
 	if err != nil {
-		return errors.Join(errorX.ErrRedisQuery, err)
+		return errors.Join(ErrRedisQuery, err)
 	}
 	if ok {
 		// 如果存在则删除
 		if err = r.data.cache.HDel(ctx, strconv.Itoa(int(videoId)), strconv.Itoa(int(commentId))).Err(); err != nil {
-			return errors.Join(errorX.ErrRedisDelete, err)
+			return errors.Join(ErrRedisDelete, err)
 		}
 	}
 	return nil
@@ -234,7 +230,7 @@ func (r *commentRepo) DeleteCache(ctx context.Context, videoId, commentId uint32
 func (r *commentRepo) GetCache(ctx context.Context, videoId uint32) (cl []*Comment, err error) {
 	comments, err := r.data.cache.HVals(ctx, strconv.Itoa(int(videoId))).Result()
 	if err != nil {
-		return nil, errors.Join(errorX.ErrRedisQuery, err)
+		return nil, errors.Join(ErrRedisQuery, err)
 	}
 
 	for _, v := range comments {
@@ -243,7 +239,7 @@ func (r *commentRepo) GetCache(ctx context.Context, videoId uint32) (cl []*Comme
 		}
 		co := &Comment{}
 		if err = json.Unmarshal([]byte(v), co); err != nil {
-			return nil, errors.Join(errorX.ErrJsonMarshal, err)
+			return nil, errors.Join(ErrJsonMarshal, err)
 		}
 		cl = append(cl, co)
 	}
@@ -255,7 +251,7 @@ func (r *commentRepo) CheckCache(ctx context.Context, videoId uint32) (bool, err
 	// 先在redis缓存中查询是否存在视频评论列表
 	count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(videoId))).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisQuery, err)
+		return false, errors.Join(ErrRedisQuery, err)
 	}
 	return count > 0, nil
 }
@@ -266,7 +262,7 @@ func (r *commentRepo) DeleteCommentById(
 ) error {
 	result := r.data.db.WithContext(ctx).Select("id").Delete(&Comment{}, commentId)
 	if result.Error != nil {
-		return errors.Join(errorX.ErrMysqlDelete, result.Error)
+		return errors.Join(ErrMysqlDelete, result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return ErrInvalidComment
@@ -290,7 +286,7 @@ func (r *commentRepo) InsertComment(
 		CreateAt: time.Now().Format("01-02"),
 	}
 	if err := r.data.db.WithContext(ctx).Create(comment).Error; err != nil {
-		return nil, errors.Join(errorX.ErrMysqlInsert, err)
+		return nil, errors.Join(ErrMysqlInsert, err)
 	}
 	go func() {
 		strconv.Itoa(int(videoId))
@@ -304,7 +300,7 @@ func (r *commentRepo) InsertComment(
 // GetCommentsByVideoId 数据库搜索评论列表
 func (r *commentRepo) GetCommentsByVideoId(ctx context.Context, videoId uint32) (c []*Comment, err error) {
 	if err = r.data.db.WithContext(ctx).Where("video_id = ?", videoId).Find(&c).Error; err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	return c, nil
 }
@@ -318,25 +314,25 @@ func (r *commentRepo) CreateCacheByTrans(ctx context.Context, cl []*Comment, vid
 		for _, v := range cl {
 			marc, err := json.Marshal(v)
 			if err != nil {
-				return errors.Join(errorX.ErrJsonMarshal, err)
+				return errors.Join(ErrJsonMarshal, err)
 			}
 			insertMap[strconv.Itoa(int(v.Id))] = marc
 		}
 		err := pipe.HMSet(ctx, strconv.Itoa(int(videoId)), insertMap).Err()
 		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
 		// 随机生成时间范围
 		begin, end := 360, 720
 		err = pipe.Expire(ctx, strconv.Itoa(int(videoId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		return nil
 	})
 	if err != nil {
-		return errors.Join(errorX.ErrRedisTransaction, err)
+		return errors.Join(ErrRedisTransaction, err)
 	}
 	return nil
 }
