@@ -7,10 +7,9 @@ import (
 
 	"github.com/go-kratos/kratos/v2/middleware/validate"
 
-	"github.com/toomanysource/atreus/middleware"
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/toomanysource/atreus/middleware"
 
 	v1 "github.com/toomanysource/atreus/api/publish/service/v1"
 	"github.com/toomanysource/atreus/app/publish/service/internal/conf"
@@ -26,7 +25,7 @@ import (
 // NewHTTPServer new a user service HTTP server.
 func NewHTTPServer(c *conf.Server, t *conf.JWT, publish *service.PublishService, logger log.Logger) *http.Server {
 	opts := []http.ServerOption{
-		http.ErrorEncoder(errorX.ErrorEncoder),
+		http.ErrorEncoder(middleware.ErrorEncoder),
 		http.RequestDecoder(MultipartFormDataDecoder),
 		http.Middleware(
 			validate.Validator(),

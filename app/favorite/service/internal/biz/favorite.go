@@ -4,14 +4,8 @@ import (
 	"context"
 
 	"github.com/toomanysource/atreus/middleware"
-	"github.com/toomanysource/atreus/pkg/errorX"
 
 	"github.com/go-kratos/kratos/v2/log"
-)
-
-const (
-	Favorite   uint32 = 1
-	UnFavorite uint32 = 2
 )
 
 type Video struct {
@@ -75,7 +69,7 @@ func (uc *FavoriteUseCase) FavoriteAction(ctx context.Context, videoId, actionTy
 		}
 		return err
 	default:
-		return errorX.ErrInValidActionType
+		return ErrInValidActionType
 	}
 }
 
