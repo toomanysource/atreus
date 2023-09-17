@@ -1,5 +1,30 @@
 version: "3"
 services:
+  consul:
+    image: consul:1.12.2
+    container_name: consul
+    restart: always
+    ports:
+      - 18500:8500
+    volumes:
+      - ../../_data/consul/data:/consul/data:rw
+    # command: ["executable", "arg"]
+    networks:
+      - atreus_net
+    depends_on:
+      user-service:
+        condition: service_started
+      publish-service:
+        condition: service_started
+      comment-service:
+        condition: service_started
+      favorite-service:
+        condition: service_started
+      relation-service:
+        condition: service_started
+      message-service:
+        condition: service_started
+
   nginx:
     image: nginx:1.24.0
     container_name: nginx
@@ -12,18 +37,19 @@ services:
     networks:
       - atreus_net
     depends_on:
-        user-service:
-            condition: service_started
-        publish-service:
-            condition: service_started
-        comment-service:
-            condition: service_started
-        favorite-service:
-            condition: service_started
-        relation-service:
-            condition: service_started
-        message-service:
-            condition: service_started
+      user-service:
+        condition: service_started
+      publish-service:
+        condition: service_started
+      comment-service:
+        condition: service_started
+      favorite-service:
+        condition: service_started
+      relation-service:
+        condition: service_started
+      message-service:
+        condition: service_started
+
   mysql:
     image: mysql/mysql-server:8.0.32
     container_name: mysql
@@ -88,6 +114,7 @@ services:
       retries: 3
     networks:
       - atreus_net
+
   kafka:
     image: docker.io/bitnami/kafka:3.5.1
     restart: always
@@ -110,11 +137,18 @@ services:
       # broker.id，必须唯一
       - KAFKA_BROKER_ID=1
     healthcheck:
-      test: ["CMD", "/opt/bitnami/kafka/bin/kafka-topics.sh", "--list", "--bootstrap-server=localhost:9092"]
+      test:
+        [
+          "CMD",
+          "/opt/bitnami/kafka/bin/kafka-topics.sh",
+          "--list",
+          "--bootstrap-server=localhost:9092",
+        ]
       interval: 5s
       retries: 3
     networks:
       - atreus_net
+
   user-service:
     build:
       context: ../../
