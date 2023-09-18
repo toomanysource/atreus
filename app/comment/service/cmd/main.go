@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	Name     = "comment"
+	Name     = "atreus.comment.service"
 	flagConf string
 )
 
