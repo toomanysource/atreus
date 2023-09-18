@@ -3,8 +3,6 @@ package middleware
 import (
 	"context"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/go-kratos/kratos/v2/transport/http"
@@ -34,10 +32,10 @@ func TokenParseAll(keyFunc jwt.Keyfunc) middleware.Middleware {
 					}
 					token, err := jwt.Parse(tokenString, keyFunc)
 					if err != nil {
-						return nil, errorX.New(-1, err.Error())
+						return nil, New(-1, err.Error())
 					}
 					if !token.Valid {
-						return nil, errorX.New(-1, "token is invalid")
+						return nil, New(-1, "token is invalid")
 					}
 					ctx = context.WithValue(ctx, key, uint32(token.Claims.(jwt.MapClaims)["user_id"].(float64)))
 				}

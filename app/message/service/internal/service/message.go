@@ -5,8 +5,6 @@ import (
 
 	"github.com/jinzhu/copier"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	pb "github.com/toomanysource/atreus/api/message/service/v1"
 	"github.com/toomanysource/atreus/app/message/service/internal/biz"
 
@@ -27,17 +25,17 @@ func NewMessageService(mu *biz.MessageUseCase, logger log.Logger) *MessageServic
 }
 
 func (s *MessageService) GetMessageList(ctx context.Context, req *pb.MessageListRequest) (*pb.MessageListReply, error) {
-	reply := &pb.MessageListReply{StatusCode: errorX.CodeSuccess, StatusMsg: "success", MessageList: make([]*pb.Message, 0)}
+	reply := &pb.MessageListReply{StatusCode: CodeSuccess, StatusMsg: "success", MessageList: make([]*pb.Message, 0)}
 	message, err := s.mu.GetMessageList(ctx, req.ToUserId, req.PreMsgTime)
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
 	ml := make([]*pb.Message, 0, len(message))
 	err = copier.Copy(&ml, &message)
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
@@ -46,10 +44,10 @@ func (s *MessageService) GetMessageList(ctx context.Context, req *pb.MessageList
 }
 
 func (s *MessageService) MessageAction(ctx context.Context, req *pb.MessageActionRequest) (*pb.MessageActionReply, error) {
-	reply := &pb.MessageActionReply{StatusCode: errorX.CodeSuccess, StatusMsg: "success"}
+	reply := &pb.MessageActionReply{StatusCode: CodeSuccess, StatusMsg: "success"}
 	err := s.mu.PublishMessage(ctx, req.ToUserId, req.ActionType, req.Content)
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}

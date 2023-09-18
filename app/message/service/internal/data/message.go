@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/toomanysource/atreus/middleware"
@@ -121,7 +120,7 @@ func (r *messageRepo) GetMessageList(ctx context.Context, toUserId uint32, preMs
 func (r *messageRepo) AddCacheMutex(ctx context.Context) (bool, error) {
 	ok, err := r.data.cache.SetNX(ctx, "mutex", "", time.Second*time.Duration(timeFactor)).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisSet, err)
+		return false, errors.Join(ErrRedisSet, err)
 	}
 	return ok, nil
 }
@@ -130,7 +129,7 @@ func (r *messageRepo) AddCacheMutex(ctx context.Context) (bool, error) {
 func (r *messageRepo) DelCacheMutex(ctx context.Context) error {
 	_, err := r.data.cache.Del(ctx, "mutex").Result()
 	if err != nil {
-		return errors.Join(errorX.ErrRedisDelete, err)
+		return errors.Join(ErrRedisDelete, err)
 	}
 	return nil
 }
@@ -140,7 +139,7 @@ func (r *messageRepo) CheckCache(ctx context.Context, key string) (bool, error) 
 	// 先在redis缓存中查询是否存在聊天记录列表
 	count, err := r.data.cache.Exists(ctx, key).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisQuery, err)
+		return false, errors.Join(ErrRedisQuery, err)
 	}
 	return count > 0, nil
 }
@@ -152,7 +151,7 @@ func (r *messageRepo) GetCache(ctx context.Context, userId, toUserId uint32, pre
 		Max: "+inf",
 	}).Result()
 	if err != nil {
-		return nil, errors.Join(errorX.ErrRedisQuery, err)
+		return nil, errors.Join(ErrRedisQuery, err)
 	}
 	if len(msgList) == 0 {
 		return nil, nil
@@ -162,7 +161,7 @@ func (r *messageRepo) GetCache(ctx context.Context, userId, toUserId uint32, pre
 	for _, v := range msgList {
 		co := &biz.Message{}
 		if err = json.Unmarshal([]byte(v), co); err != nil {
-			return nil, errors.Join(errorX.ErrJsonMarshal, err)
+			return nil, errors.Join(ErrJsonMarshal, err)
 		}
 		if co.FromUserId != userId || preMsgTime == 0 {
 			cl = append(cl, co)
@@ -181,7 +180,7 @@ func (r *messageRepo) MessageProducer(userId, toUserId uint32, content string, t
 	}
 	byteValue, err := json.Marshal(mg)
 	if err != nil {
-		return errors.Join(errorX.ErrJsonMarshal, err)
+		return errors.Join(ErrJsonMarshal, err)
 	}
 	return kafkaX.Update(r.data.kfk.writer, "", string(byteValue))
 }
@@ -193,7 +192,7 @@ func (r *messageRepo) InitStoreMessageQueue() {
 		var mg *Message
 		err := json.Unmarshal(value, &mg)
 		if err != nil {
-			r.log.Error(errors.Join(errorX.ErrJsonMarshal, err))
+			r.log.Error(errors.Join(ErrJsonMarshal, err))
 			return
 		}
 		m, err := r.InsertMessage(ctx, mg.FromUserId, mg.ToUserId, mg.Content, mg.CreateTime)
@@ -229,10 +228,10 @@ func (r *messageRepo) GetMessages(ctx context.Context, userId, toUserId uint32, 
 		userId, toUserId, toUserId, userId).Where("created_at >= ?", preMsgTime).
 		Order("created_at").Find(&mel).Error
 	if err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	if err = copier.Copy(&ml, &mel); err != nil {
-		return nil, errors.Join(errorX.ErrCopy, err)
+		return nil, errors.Join(ErrCopy, err)
 	}
 	return
 }
@@ -249,7 +248,7 @@ func (r *messageRepo) InsertMessage(
 	}
 	err := r.data.db.WithContext(ctx).Create(m).Error
 	if err != nil {
-		return nil, errors.Join(errorX.ErrMysqlInsert, err)
+		return nil, errors.Join(ErrMysqlInsert, err)
 	}
 	return m, nil
 }
@@ -262,7 +261,7 @@ func (r *messageRepo) CreateCacheByTran(ctx context.Context, ml []*biz.Message, 
 		for _, u := range ml {
 			data, err := json.Marshal(u)
 			if err != nil {
-				return errors.Join(errorX.ErrJsonMarshal, err)
+				return errors.Join(ErrJsonMarshal, err)
 			}
 			insertList = append(insertList, &redis.Z{
 				Score:  float64(u.CreateTime),
@@ -276,17 +275,17 @@ func (r *messageRepo) CreateCacheByTran(ctx context.Context, ml []*biz.Message, 
 			})
 		}
 		if err := pipe.ZAdd(ctx, key, insertList...).Err(); err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
 		err := pipe.Expire(ctx, key, randomTime(time.Minute, RandTimeBegin, RandTimeEnd)).Err()
 		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		return nil
 	})
 	if err != nil {
-		return errors.Join(errorX.ErrRedisTransaction, err)
+		return errors.Join(ErrRedisTransaction, err)
 	}
 	return nil
 }
