@@ -17,7 +17,7 @@ import (
 
 // go build -ldflags "-X main.Version=x.y.z"
 var (
-	Name     = "relation"
+	Name     = "atreus.relation.service"
 	flagConf string
 )
 
