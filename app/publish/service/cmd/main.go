@@ -20,7 +20,7 @@ import (
 
 // go build -ldflags "-X main.Version=x.y.z"
 var (
-	Name     = "publish"
+	Name     = "atreus.publish.service"
 	flagConf string
 )
 
