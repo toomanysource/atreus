@@ -12,8 +12,9 @@ import (
 
 	consul "github.com/go-kratos/kratos/contrib/registry/consul/v2"
 	consulAPI "github.com/hashicorp/consul/api"
-	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 	stdgrpc "google.golang.org/grpc"
+
+	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 )
 
 // ProviderSet is server providers.
