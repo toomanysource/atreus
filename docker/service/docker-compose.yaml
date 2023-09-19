@@ -14,19 +14,19 @@ services:
     # command: "agent -server -ui -node=n1 -bootstrap-expect=1 -client=0.0.0.0"
     networks:
       - atreus_net
-    # depends_on:
-      # user-service:
-      #   condition: service_started
-      # publish-service:
-      #   condition: service_started
-      # comment-service:
-      #   condition: service_started
-      # favorite-service:
-      #   condition: service_started
-      # relation-service:
-      #   condition: service_started
-      # message-service:
-      #   condition: service_started
+    depends_on:
+      user-service:
+        condition: service_started
+      publish-service:
+        condition: service_started
+      comment-service:
+        condition: service_started
+      favorite-service:
+        condition: service_started
+      relation-service:
+        condition: service_started
+      message-service:
+        condition: service_started
 
   nginx:
     image: nginx:1.24.0
