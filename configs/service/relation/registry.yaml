@@ -1,4 +1,4 @@
 consul:
-  # address: consul:8500
-  address: 127.0.0.1:18500
+  address: consul:8500
+  # address: 127.0.0.1:18500
   scheme: http
