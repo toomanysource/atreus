@@ -77,3 +77,11 @@ message Minio {
   bool use_ssl = 5;
   string bucket_name = 6;
 }
+
+message Registry {
+  message Consul {
+    string address = 1;
+    string scheme = 2;
+  }
+  Consul consul = 1;
+}

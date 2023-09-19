@@ -409,6 +409,53 @@ func (x *Minio) GetBucketName() string {
 	return ""
 }
 
+type Registry struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Consul *Registry_Consul `protobuf:"bytes,1,opt,name=consul,proto3" json:"consul,omitempty"`
+}
+
+func (x *Registry) Reset() {
+	*x = Registry{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Registry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Registry) ProtoMessage() {}
+
+func (x *Registry) ProtoReflect() protoreflect.Message {
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Registry.ProtoReflect.Descriptor instead.
+func (*Registry) Descriptor() ([]byte, []int) {
+	return file_publish_service_internal_conf_conf_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Registry) GetConsul() *Registry_Consul {
+	if x != nil {
+		return x.Consul
+	}
+	return nil
+}
+
 type Server_HTTP struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -422,7 +469,7 @@ type Server_HTTP struct {
 func (x *Server_HTTP) Reset() {
 	*x = Server_HTTP{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[6]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -435,7 +482,7 @@ func (x *Server_HTTP) String() string {
 func (*Server_HTTP) ProtoMessage() {}
 
 func (x *Server_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[6]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -485,7 +532,7 @@ type Server_GRPC struct {
 func (x *Server_GRPC) Reset() {
 	*x = Server_GRPC{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[7]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -498,7 +545,7 @@ func (x *Server_GRPC) String() string {
 func (*Server_GRPC) ProtoMessage() {}
 
 func (x *Server_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[7]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -546,7 +593,7 @@ type Client_User struct {
 func (x *Client_User) Reset() {
 	*x = Client_User{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[8]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -559,7 +606,7 @@ func (x *Client_User) String() string {
 func (*Client_User) ProtoMessage() {}
 
 func (x *Client_User) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[8]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -593,7 +640,7 @@ type Client_Favorite struct {
 func (x *Client_Favorite) Reset() {
 	*x = Client_Favorite{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[9]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -606,7 +653,7 @@ func (x *Client_Favorite) String() string {
 func (*Client_Favorite) ProtoMessage() {}
 
 func (x *Client_Favorite) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[9]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -641,7 +688,7 @@ type Data_Mysql struct {
 func (x *Data_Mysql) Reset() {
 	*x = Data_Mysql{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[10]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -654,7 +701,7 @@ func (x *Data_Mysql) String() string {
 func (*Data_Mysql) ProtoMessage() {}
 
 func (x *Data_Mysql) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[10]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -701,7 +748,7 @@ type Data_Kafka struct {
 func (x *Data_Kafka) Reset() {
 	*x = Data_Kafka{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[11]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -714,7 +761,7 @@ func (x *Data_Kafka) String() string {
 func (*Data_Kafka) ProtoMessage() {}
 
 func (x *Data_Kafka) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[11]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -790,7 +837,7 @@ type JWT_HTTP struct {
 func (x *JWT_HTTP) Reset() {
 	*x = JWT_HTTP{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[12]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -803,7 +850,7 @@ func (x *JWT_HTTP) String() string {
 func (*JWT_HTTP) ProtoMessage() {}
 
 func (x *JWT_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[12]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -837,7 +884,7 @@ type JWT_GRPC struct {
 func (x *JWT_GRPC) Reset() {
 	*x = JWT_GRPC{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[13]
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -850,7 +897,7 @@ func (x *JWT_GRPC) String() string {
 func (*JWT_GRPC) ProtoMessage() {}
 
 func (x *JWT_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[13]
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -869,6 +916,61 @@ func (*JWT_GRPC) Descriptor() ([]byte, []int) {
 func (x *JWT_GRPC) GetTokenKey() string {
 	if x != nil {
 		return x.TokenKey
+	}
+	return ""
+}
+
+type Registry_Consul struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Scheme  string `protobuf:"bytes,2,opt,name=scheme,proto3" json:"scheme,omitempty"`
+}
+
+func (x *Registry_Consul) Reset() {
+	*x = Registry_Consul{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_publish_service_internal_conf_conf_proto_msgTypes[15]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Registry_Consul) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Registry_Consul) ProtoMessage() {}
+
+func (x *Registry_Consul) ProtoReflect() protoreflect.Message {
+	mi := &file_publish_service_internal_conf_conf_proto_msgTypes[15]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Registry_Consul.ProtoReflect.Descriptor instead.
+func (*Registry_Consul) Descriptor() ([]byte, []int) {
+	return file_publish_service_internal_conf_conf_proto_rawDescGZIP(), []int{6, 0}
+}
+
+func (x *Registry_Consul) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Registry_Consul) GetScheme() string {
+	if x != nil {
+		return x.Scheme
 	}
 	return ""
 }
@@ -993,12 +1095,21 @@ var file_publish_service_internal_conf_conf_proto_rawDesc = []byte{
 	0x65, 0x74, 0x12, 0x17, 0x0a, 0x07, 0x75, 0x73, 0x65, 0x5f, 0x73, 0x73, 0x6c, 0x18, 0x05, 0x20,
 	0x01, 0x28, 0x08, 0x52, 0x06, 0x75, 0x73, 0x65, 0x53, 0x73, 0x6c, 0x12, 0x1f, 0x0a, 0x0b, 0x62,
 	0x75, 0x63, 0x6b, 0x65, 0x74, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x09,
-	0x52, 0x0a, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x42, 0x48, 0x5a, 0x46,
-	0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x6f, 0x6f, 0x6d, 0x61,
-	0x6e, 0x79, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2f, 0x61, 0x74, 0x72, 0x65, 0x75, 0x73, 0x2f,
-	0x61, 0x70, 0x70, 0x2f, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x2f, 0x73, 0x65, 0x72, 0x76,
-	0x69, 0x63, 0x65, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x63, 0x6f, 0x6e,
-	0x66, 0x3b, 0x63, 0x6f, 0x6e, 0x66, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x52, 0x0a, 0x62, 0x75, 0x63, 0x6b, 0x65, 0x74, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x8e, 0x01, 0x0a,
+	0x08, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x72, 0x79, 0x12, 0x46, 0x0a, 0x06, 0x63, 0x6f, 0x6e,
+	0x73, 0x75, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2e, 0x2e, 0x70, 0x75, 0x62, 0x6c,
+	0x69, 0x73, 0x68, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2e, 0x69, 0x6e, 0x74, 0x65,
+	0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e, 0x66, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74,
+	0x72, 0x79, 0x2e, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x73, 0x75,
+	0x6c, 0x1a, 0x3a, 0x0a, 0x06, 0x43, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x12, 0x18, 0x0a, 0x07, 0x61,
+	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x65, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x65, 0x42, 0x48, 0x5a,
+	0x46, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x6f, 0x6f, 0x6d,
+	0x61, 0x6e, 0x79, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2f, 0x61, 0x74, 0x72, 0x65, 0x75, 0x73,
+	0x2f, 0x61, 0x70, 0x70, 0x2f, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x2f, 0x73, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x63, 0x6f,
+	0x6e, 0x66, 0x3b, 0x63, 0x6f, 0x6e, 0x66, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1013,7 +1124,7 @@ func file_publish_service_internal_conf_conf_proto_rawDescGZIP() []byte {
 	return file_publish_service_internal_conf_conf_proto_rawDescData
 }
 
-var file_publish_service_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_publish_service_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_publish_service_internal_conf_conf_proto_goTypes = []interface{}{
 	(*Bootstrap)(nil),           // 0: publish.service.internal.conf.Bootstrap
 	(*Server)(nil),              // 1: publish.service.internal.conf.Server
@@ -1021,15 +1132,17 @@ var file_publish_service_internal_conf_conf_proto_goTypes = []interface{}{
 	(*Data)(nil),                // 3: publish.service.internal.conf.Data
 	(*JWT)(nil),                 // 4: publish.service.internal.conf.JWT
 	(*Minio)(nil),               // 5: publish.service.internal.conf.Minio
-	(*Server_HTTP)(nil),         // 6: publish.service.internal.conf.Server.HTTP
-	(*Server_GRPC)(nil),         // 7: publish.service.internal.conf.Server.GRPC
-	(*Client_User)(nil),         // 8: publish.service.internal.conf.Client.User
-	(*Client_Favorite)(nil),     // 9: publish.service.internal.conf.Client.Favorite
-	(*Data_Mysql)(nil),          // 10: publish.service.internal.conf.Data.Mysql
-	(*Data_Kafka)(nil),          // 11: publish.service.internal.conf.Data.Kafka
-	(*JWT_HTTP)(nil),            // 12: publish.service.internal.conf.JWT.HTTP
-	(*JWT_GRPC)(nil),            // 13: publish.service.internal.conf.JWT.GRPC
-	(*durationpb.Duration)(nil), // 14: google.protobuf.Duration
+	(*Registry)(nil),            // 6: publish.service.internal.conf.Registry
+	(*Server_HTTP)(nil),         // 7: publish.service.internal.conf.Server.HTTP
+	(*Server_GRPC)(nil),         // 8: publish.service.internal.conf.Server.GRPC
+	(*Client_User)(nil),         // 9: publish.service.internal.conf.Client.User
+	(*Client_Favorite)(nil),     // 10: publish.service.internal.conf.Client.Favorite
+	(*Data_Mysql)(nil),          // 11: publish.service.internal.conf.Data.Mysql
+	(*Data_Kafka)(nil),          // 12: publish.service.internal.conf.Data.Kafka
+	(*JWT_HTTP)(nil),            // 13: publish.service.internal.conf.JWT.HTTP
+	(*JWT_GRPC)(nil),            // 14: publish.service.internal.conf.JWT.GRPC
+	(*Registry_Consul)(nil),     // 15: publish.service.internal.conf.Registry.Consul
+	(*durationpb.Duration)(nil), // 16: google.protobuf.Duration
 }
 var file_publish_service_internal_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: publish.service.internal.conf.Bootstrap.server:type_name -> publish.service.internal.conf.Server
@@ -1037,23 +1150,24 @@ var file_publish_service_internal_conf_conf_proto_depIdxs = []int32{
 	3,  // 2: publish.service.internal.conf.Bootstrap.data:type_name -> publish.service.internal.conf.Data
 	4,  // 3: publish.service.internal.conf.Bootstrap.jwt:type_name -> publish.service.internal.conf.JWT
 	5,  // 4: publish.service.internal.conf.Bootstrap.minio:type_name -> publish.service.internal.conf.Minio
-	6,  // 5: publish.service.internal.conf.Server.http:type_name -> publish.service.internal.conf.Server.HTTP
-	7,  // 6: publish.service.internal.conf.Server.grpc:type_name -> publish.service.internal.conf.Server.GRPC
-	8,  // 7: publish.service.internal.conf.Client.user:type_name -> publish.service.internal.conf.Client.User
-	9,  // 8: publish.service.internal.conf.Client.favorite:type_name -> publish.service.internal.conf.Client.Favorite
-	10, // 9: publish.service.internal.conf.Data.mysql:type_name -> publish.service.internal.conf.Data.Mysql
-	11, // 10: publish.service.internal.conf.Data.kafka:type_name -> publish.service.internal.conf.Data.Kafka
-	12, // 11: publish.service.internal.conf.JWT.http:type_name -> publish.service.internal.conf.JWT.HTTP
-	13, // 12: publish.service.internal.conf.JWT.grpc:type_name -> publish.service.internal.conf.JWT.GRPC
-	14, // 13: publish.service.internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	14, // 14: publish.service.internal.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	14, // 15: publish.service.internal.conf.Data.Kafka.read_timeout:type_name -> google.protobuf.Duration
-	14, // 16: publish.service.internal.conf.Data.Kafka.write_timeout:type_name -> google.protobuf.Duration
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	7,  // 5: publish.service.internal.conf.Server.http:type_name -> publish.service.internal.conf.Server.HTTP
+	8,  // 6: publish.service.internal.conf.Server.grpc:type_name -> publish.service.internal.conf.Server.GRPC
+	9,  // 7: publish.service.internal.conf.Client.user:type_name -> publish.service.internal.conf.Client.User
+	10, // 8: publish.service.internal.conf.Client.favorite:type_name -> publish.service.internal.conf.Client.Favorite
+	11, // 9: publish.service.internal.conf.Data.mysql:type_name -> publish.service.internal.conf.Data.Mysql
+	12, // 10: publish.service.internal.conf.Data.kafka:type_name -> publish.service.internal.conf.Data.Kafka
+	13, // 11: publish.service.internal.conf.JWT.http:type_name -> publish.service.internal.conf.JWT.HTTP
+	14, // 12: publish.service.internal.conf.JWT.grpc:type_name -> publish.service.internal.conf.JWT.GRPC
+	15, // 13: publish.service.internal.conf.Registry.consul:type_name -> publish.service.internal.conf.Registry.Consul
+	16, // 14: publish.service.internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	16, // 15: publish.service.internal.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	16, // 16: publish.service.internal.conf.Data.Kafka.read_timeout:type_name -> google.protobuf.Duration
+	16, // 17: publish.service.internal.conf.Data.Kafka.write_timeout:type_name -> google.protobuf.Duration
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_publish_service_internal_conf_conf_proto_init() }
@@ -1135,7 +1249,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Server_HTTP); i {
+			switch v := v.(*Registry); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1147,7 +1261,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Server_GRPC); i {
+			switch v := v.(*Server_HTTP); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1159,7 +1273,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Client_User); i {
+			switch v := v.(*Server_GRPC); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1171,7 +1285,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Client_Favorite); i {
+			switch v := v.(*Client_User); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1183,7 +1297,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Mysql); i {
+			switch v := v.(*Client_Favorite); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1195,7 +1309,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Kafka); i {
+			switch v := v.(*Data_Mysql); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1207,7 +1321,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*JWT_HTTP); i {
+			switch v := v.(*Data_Kafka); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1219,7 +1333,31 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_publish_service_internal_conf_conf_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*JWT_HTTP); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_publish_service_internal_conf_conf_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JWT_GRPC); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_publish_service_internal_conf_conf_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Registry_Consul); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1237,7 +1375,7 @@ func file_publish_service_internal_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_publish_service_internal_conf_conf_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

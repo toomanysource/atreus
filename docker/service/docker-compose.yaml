@@ -6,12 +6,9 @@ services:
     restart: always
     ports:
       - "18500:8500"
-      - "8600:8600/tcp"
-      - "8600:8600/udp"
     volumes:
       - ../../_data/consul/data:/consul/data:rw
-    command: "agent"
-    # command: "agent -server -ui -node=n1 -bootstrap-expect=1 -client=0.0.0.0"
+    command: "agent -server -ui -node=n1 -bootstrap-expect=1 -client=0.0.0.0" # -bind=127.0.0.1 
     networks:
       - atreus_net
     depends_on:
