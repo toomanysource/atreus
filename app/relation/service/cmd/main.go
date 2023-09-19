@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"github.com/toomanysource/atreus/app/relation/service/internal/conf"
 	"github.com/toomanysource/atreus/pkg/logX"
@@ -38,9 +37,7 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
 
 func main() {
 	flag.Parse()
-	l := logX.NewDefaultLogger()
-	l.SetOutput(os.Stdout)
-	l.SetLevel(log.LevelDebug)
+	l := logX.Logger()
 	logger := log.With(l,
 		"service", Name,
 		"caller", log.DefaultCaller,

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
@@ -40,9 +39,7 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
 
 func main() {
 	flag.Parse()
-	l := logX.NewDefaultLogger()
-	l.SetOutput(os.Stdout)
-	l.SetLevel(log.LevelDebug)
+	l := logX.Logger()
 	logger := log.With(l,
 		"service", Name,
 		"caller", log.DefaultCaller,
