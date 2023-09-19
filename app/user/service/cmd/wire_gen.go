@@ -9,20 +9,21 @@ package main
 import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 	"github.com/toomanysource/atreus/app/user/service/internal/data"
 	"github.com/toomanysource/atreus/app/user/service/internal/server"
 	"github.com/toomanysource/atreus/app/user/service/internal/service"
+)
 
+import (
 	_ "go.uber.org/automaxprocs"
 )
 
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewGormDb(confData, logger)
 	redisClient := data.NewRedisConn(confData, logger)
 	kfkReader := data.NewKafkaReader(confData)
@@ -37,7 +38,8 @@ func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, 
 	userService := service.NewUserService(userUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, userService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	registrar := server.NewRegistrar(registry)
+	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {
 		cleanup()
 	}, nil

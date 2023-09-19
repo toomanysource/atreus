@@ -313,6 +313,53 @@ func (x *JWT) GetGrpc() *JWT_Grpc {
 	return nil
 }
 
+type Registry struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Consul *Registry_Consul `protobuf:"bytes,1,opt,name=consul,proto3" json:"consul,omitempty"`
+}
+
+func (x *Registry) Reset() {
+	*x = Registry{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Registry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Registry) ProtoMessage() {}
+
+func (x *Registry) ProtoReflect() protoreflect.Message {
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Registry.ProtoReflect.Descriptor instead.
+func (*Registry) Descriptor() ([]byte, []int) {
+	return file_user_service_internal_conf_conf_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Registry) GetConsul() *Registry_Consul {
+	if x != nil {
+		return x.Consul
+	}
+	return nil
+}
+
 type Server_HTTP struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -326,7 +373,7 @@ type Server_HTTP struct {
 func (x *Server_HTTP) Reset() {
 	*x = Server_HTTP{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[5]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -339,7 +386,7 @@ func (x *Server_HTTP) String() string {
 func (*Server_HTTP) ProtoMessage() {}
 
 func (x *Server_HTTP) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[5]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -389,7 +436,7 @@ type Server_GRPC struct {
 func (x *Server_GRPC) Reset() {
 	*x = Server_GRPC{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[6]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -402,7 +449,7 @@ func (x *Server_GRPC) String() string {
 func (*Server_GRPC) ProtoMessage() {}
 
 func (x *Server_GRPC) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[6]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -450,7 +497,7 @@ type Client_Relation struct {
 func (x *Client_Relation) Reset() {
 	*x = Client_Relation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[7]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -463,7 +510,7 @@ func (x *Client_Relation) String() string {
 func (*Client_Relation) ProtoMessage() {}
 
 func (x *Client_Relation) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[7]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -498,7 +545,7 @@ type Data_Database struct {
 func (x *Data_Database) Reset() {
 	*x = Data_Database{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[8]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -511,7 +558,7 @@ func (x *Data_Database) String() string {
 func (*Data_Database) ProtoMessage() {}
 
 func (x *Data_Database) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[8]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -556,7 +603,7 @@ type Data_Redis struct {
 func (x *Data_Redis) Reset() {
 	*x = Data_Redis{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[9]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -569,7 +616,7 @@ func (x *Data_Redis) String() string {
 func (*Data_Redis) ProtoMessage() {}
 
 func (x *Data_Redis) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[9]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -639,7 +686,7 @@ type Data_Kafka struct {
 func (x *Data_Kafka) Reset() {
 	*x = Data_Kafka{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[10]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -652,7 +699,7 @@ func (x *Data_Kafka) String() string {
 func (*Data_Kafka) ProtoMessage() {}
 
 func (x *Data_Kafka) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[10]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -742,7 +789,7 @@ type JWT_Http struct {
 func (x *JWT_Http) Reset() {
 	*x = JWT_Http{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[11]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -755,7 +802,7 @@ func (x *JWT_Http) String() string {
 func (*JWT_Http) ProtoMessage() {}
 
 func (x *JWT_Http) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[11]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -789,7 +836,7 @@ type JWT_Grpc struct {
 func (x *JWT_Grpc) Reset() {
 	*x = JWT_Grpc{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_user_service_internal_conf_conf_proto_msgTypes[12]
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -802,7 +849,7 @@ func (x *JWT_Grpc) String() string {
 func (*JWT_Grpc) ProtoMessage() {}
 
 func (x *JWT_Grpc) ProtoReflect() protoreflect.Message {
-	mi := &file_user_service_internal_conf_conf_proto_msgTypes[12]
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -821,6 +868,61 @@ func (*JWT_Grpc) Descriptor() ([]byte, []int) {
 func (x *JWT_Grpc) GetTokenKey() string {
 	if x != nil {
 		return x.TokenKey
+	}
+	return ""
+}
+
+type Registry_Consul struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Address string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Scheme  string `protobuf:"bytes,2,opt,name=scheme,proto3" json:"scheme,omitempty"`
+}
+
+func (x *Registry_Consul) Reset() {
+	*x = Registry_Consul{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_user_service_internal_conf_conf_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Registry_Consul) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Registry_Consul) ProtoMessage() {}
+
+func (x *Registry_Consul) ProtoReflect() protoreflect.Message {
+	mi := &file_user_service_internal_conf_conf_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Registry_Consul.ProtoReflect.Descriptor instead.
+func (*Registry_Consul) Descriptor() ([]byte, []int) {
+	return file_user_service_internal_conf_conf_proto_rawDescGZIP(), []int{5, 0}
+}
+
+func (x *Registry_Consul) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Registry_Consul) GetScheme() string {
+	if x != nil {
+		return x.Scheme
 	}
 	return ""
 }
@@ -942,12 +1044,21 @@ var file_user_service_internal_conf_conf_proto_rawDesc = []byte{
 	0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x4b,
 	0x65, 0x79, 0x1a, 0x23, 0x0a, 0x04, 0x47, 0x72, 0x70, 0x63, 0x12, 0x1b, 0x0a, 0x09, 0x74, 0x6f,
 	0x6b, 0x65, 0x6e, 0x5f, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x74,
-	0x6f, 0x6b, 0x65, 0x6e, 0x4b, 0x65, 0x79, 0x42, 0x45, 0x5a, 0x43, 0x67, 0x69, 0x74, 0x68, 0x75,
-	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x6f, 0x6f, 0x6d, 0x61, 0x6e, 0x79, 0x73, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x2f, 0x61, 0x74, 0x72, 0x65, 0x75, 0x73, 0x2f, 0x61, 0x70, 0x70, 0x2f, 0x75,
-	0x73, 0x65, 0x72, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2f, 0x69, 0x6e, 0x74, 0x65,
-	0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x3b, 0x63, 0x6f, 0x6e, 0x66, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6f, 0x6b, 0x65, 0x6e, 0x4b, 0x65, 0x79, 0x22, 0x8b, 0x01, 0x0a, 0x08, 0x52, 0x65, 0x67, 0x69,
+	0x73, 0x74, 0x72, 0x79, 0x12, 0x43, 0x0a, 0x06, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x2b, 0x2e, 0x75, 0x73, 0x65, 0x72, 0x2e, 0x73, 0x65, 0x72, 0x76,
+	0x69, 0x63, 0x65, 0x2e, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2e, 0x63, 0x6f, 0x6e,
+	0x66, 0x2e, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x72, 0x79, 0x2e, 0x43, 0x6f, 0x6e, 0x73, 0x75,
+	0x6c, 0x52, 0x06, 0x63, 0x6f, 0x6e, 0x73, 0x75, 0x6c, 0x1a, 0x3a, 0x0a, 0x06, 0x43, 0x6f, 0x6e,
+	0x73, 0x75, 0x6c, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x16, 0x0a,
+	0x06, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73,
+	0x63, 0x68, 0x65, 0x6d, 0x65, 0x42, 0x45, 0x5a, 0x43, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
+	0x63, 0x6f, 0x6d, 0x2f, 0x74, 0x6f, 0x6f, 0x6d, 0x61, 0x6e, 0x79, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x2f, 0x61, 0x74, 0x72, 0x65, 0x75, 0x73, 0x2f, 0x61, 0x70, 0x70, 0x2f, 0x75, 0x73, 0x65,
+	0x72, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
+	0x61, 0x6c, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x3b, 0x63, 0x6f, 0x6e, 0x66, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -962,47 +1073,50 @@ func file_user_service_internal_conf_conf_proto_rawDescGZIP() []byte {
 	return file_user_service_internal_conf_conf_proto_rawDescData
 }
 
-var file_user_service_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_user_service_internal_conf_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_user_service_internal_conf_conf_proto_goTypes = []interface{}{
 	(*Bootstrap)(nil),           // 0: user.service.internal.conf.Bootstrap
 	(*Server)(nil),              // 1: user.service.internal.conf.Server
 	(*Client)(nil),              // 2: user.service.internal.conf.Client
 	(*Data)(nil),                // 3: user.service.internal.conf.Data
 	(*JWT)(nil),                 // 4: user.service.internal.conf.JWT
-	(*Server_HTTP)(nil),         // 5: user.service.internal.conf.Server.HTTP
-	(*Server_GRPC)(nil),         // 6: user.service.internal.conf.Server.GRPC
-	(*Client_Relation)(nil),     // 7: user.service.internal.conf.Client.Relation
-	(*Data_Database)(nil),       // 8: user.service.internal.conf.Data.Database
-	(*Data_Redis)(nil),          // 9: user.service.internal.conf.Data.Redis
-	(*Data_Kafka)(nil),          // 10: user.service.internal.conf.Data.Kafka
-	(*JWT_Http)(nil),            // 11: user.service.internal.conf.JWT.Http
-	(*JWT_Grpc)(nil),            // 12: user.service.internal.conf.JWT.Grpc
-	(*durationpb.Duration)(nil), // 13: google.protobuf.Duration
+	(*Registry)(nil),            // 5: user.service.internal.conf.Registry
+	(*Server_HTTP)(nil),         // 6: user.service.internal.conf.Server.HTTP
+	(*Server_GRPC)(nil),         // 7: user.service.internal.conf.Server.GRPC
+	(*Client_Relation)(nil),     // 8: user.service.internal.conf.Client.Relation
+	(*Data_Database)(nil),       // 9: user.service.internal.conf.Data.Database
+	(*Data_Redis)(nil),          // 10: user.service.internal.conf.Data.Redis
+	(*Data_Kafka)(nil),          // 11: user.service.internal.conf.Data.Kafka
+	(*JWT_Http)(nil),            // 12: user.service.internal.conf.JWT.Http
+	(*JWT_Grpc)(nil),            // 13: user.service.internal.conf.JWT.Grpc
+	(*Registry_Consul)(nil),     // 14: user.service.internal.conf.Registry.Consul
+	(*durationpb.Duration)(nil), // 15: google.protobuf.Duration
 }
 var file_user_service_internal_conf_conf_proto_depIdxs = []int32{
 	1,  // 0: user.service.internal.conf.Bootstrap.server:type_name -> user.service.internal.conf.Server
 	2,  // 1: user.service.internal.conf.Bootstrap.client:type_name -> user.service.internal.conf.Client
 	3,  // 2: user.service.internal.conf.Bootstrap.data:type_name -> user.service.internal.conf.Data
 	4,  // 3: user.service.internal.conf.Bootstrap.jwt:type_name -> user.service.internal.conf.JWT
-	5,  // 4: user.service.internal.conf.Server.http:type_name -> user.service.internal.conf.Server.HTTP
-	6,  // 5: user.service.internal.conf.Server.grpc:type_name -> user.service.internal.conf.Server.GRPC
-	7,  // 6: user.service.internal.conf.Client.relation:type_name -> user.service.internal.conf.Client.Relation
-	8,  // 7: user.service.internal.conf.Data.database:type_name -> user.service.internal.conf.Data.Database
-	9,  // 8: user.service.internal.conf.Data.redis:type_name -> user.service.internal.conf.Data.Redis
-	10, // 9: user.service.internal.conf.Data.kafka:type_name -> user.service.internal.conf.Data.Kafka
-	11, // 10: user.service.internal.conf.JWT.http:type_name -> user.service.internal.conf.JWT.Http
-	12, // 11: user.service.internal.conf.JWT.grpc:type_name -> user.service.internal.conf.JWT.Grpc
-	13, // 12: user.service.internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	13, // 13: user.service.internal.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	13, // 14: user.service.internal.conf.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
-	13, // 15: user.service.internal.conf.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
-	13, // 16: user.service.internal.conf.Data.Kafka.read_timeout:type_name -> google.protobuf.Duration
-	13, // 17: user.service.internal.conf.Data.Kafka.write_timeout:type_name -> google.protobuf.Duration
-	18, // [18:18] is the sub-list for method output_type
-	18, // [18:18] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	6,  // 4: user.service.internal.conf.Server.http:type_name -> user.service.internal.conf.Server.HTTP
+	7,  // 5: user.service.internal.conf.Server.grpc:type_name -> user.service.internal.conf.Server.GRPC
+	8,  // 6: user.service.internal.conf.Client.relation:type_name -> user.service.internal.conf.Client.Relation
+	9,  // 7: user.service.internal.conf.Data.database:type_name -> user.service.internal.conf.Data.Database
+	10, // 8: user.service.internal.conf.Data.redis:type_name -> user.service.internal.conf.Data.Redis
+	11, // 9: user.service.internal.conf.Data.kafka:type_name -> user.service.internal.conf.Data.Kafka
+	12, // 10: user.service.internal.conf.JWT.http:type_name -> user.service.internal.conf.JWT.Http
+	13, // 11: user.service.internal.conf.JWT.grpc:type_name -> user.service.internal.conf.JWT.Grpc
+	14, // 12: user.service.internal.conf.Registry.consul:type_name -> user.service.internal.conf.Registry.Consul
+	15, // 13: user.service.internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	15, // 14: user.service.internal.conf.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	15, // 15: user.service.internal.conf.Data.Redis.read_timeout:type_name -> google.protobuf.Duration
+	15, // 16: user.service.internal.conf.Data.Redis.write_timeout:type_name -> google.protobuf.Duration
+	15, // 17: user.service.internal.conf.Data.Kafka.read_timeout:type_name -> google.protobuf.Duration
+	15, // 18: user.service.internal.conf.Data.Kafka.write_timeout:type_name -> google.protobuf.Duration
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_user_service_internal_conf_conf_proto_init() }
@@ -1072,7 +1186,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Server_HTTP); i {
+			switch v := v.(*Registry); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1084,7 +1198,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Server_GRPC); i {
+			switch v := v.(*Server_HTTP); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1096,7 +1210,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Client_Relation); i {
+			switch v := v.(*Server_GRPC); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1108,7 +1222,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Database); i {
+			switch v := v.(*Client_Relation); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1120,7 +1234,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Redis); i {
+			switch v := v.(*Data_Database); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1132,7 +1246,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Data_Kafka); i {
+			switch v := v.(*Data_Redis); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1144,7 +1258,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*JWT_Http); i {
+			switch v := v.(*Data_Kafka); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1156,7 +1270,31 @@ func file_user_service_internal_conf_conf_proto_init() {
 			}
 		}
 		file_user_service_internal_conf_conf_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*JWT_Http); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_user_service_internal_conf_conf_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*JWT_Grpc); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_user_service_internal_conf_conf_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Registry_Consul); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1174,7 +1312,7 @@ func file_user_service_internal_conf_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_user_service_internal_conf_conf_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
