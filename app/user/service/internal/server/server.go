@@ -10,20 +10,18 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/google/wire"
 
-	consul "github.com/go-kratos/kratos/contrib/registry/consul/v2"
-	consulAPI "github.com/hashicorp/consul/api"
-	stdgrpc "google.golang.org/grpc"
+	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
+	"github.com/hashicorp/consul/api"
 
+	relationv1 "github.com/toomanysource/atreus/api/relation/service/v1"
 	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 )
 
 // ProviderSet is server providers.
 var ProviderSet = wire.NewSet(NewGRPCServer, NewHTTPServer, NewRelationClient, NewDiscovery, NewRegistrar)
 
-type RelationConn stdgrpc.ClientConnInterface
-
 // NewRelationClient 创建一个Relation服务客户端，接收Relation服务数据
-func NewRelationClient(r registry.Discovery, c *conf.Client, logger log.Logger) RelationConn {
+func NewRelationClient(r registry.Discovery, logger log.Logger) relationv1.RelationServiceClient {
 	logs := log.NewHelper(log.With(logger, "module", "server/relation"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
@@ -38,14 +36,14 @@ func NewRelationClient(r registry.Discovery, c *conf.Client, logger log.Logger) 
 		logs.Fatalf("Relation service connect error, %v", err)
 	}
 	logs.Info("user service connect successfully")
-	return conn
+	return relationv1.NewRelationServiceClient(conn)
 }
 
 func NewDiscovery(conf *conf.Registry) registry.Discovery {
-	c := consulAPI.DefaultConfig()
+	c := api.DefaultConfig()
 	c.Address = conf.Consul.Address
 	c.Scheme = conf.Consul.Scheme
-	cli, err := consulAPI.NewClient(c)
+	cli, err := api.NewClient(c)
 	if err != nil {
 		panic(err)
 	}
@@ -54,10 +52,10 @@ func NewDiscovery(conf *conf.Registry) registry.Discovery {
 }
 
 func NewRegistrar(conf *conf.Registry) registry.Registrar {
-	c := consulAPI.DefaultConfig()
+	c := api.DefaultConfig()
 	c.Address = conf.Consul.Address
 	c.Scheme = conf.Consul.Scheme
-	cli, err := consulAPI.NewClient(c)
+	cli, err := api.NewClient(c)
 	if err != nil {
 		panic(err)
 	}

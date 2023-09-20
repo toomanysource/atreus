@@ -8,7 +8,7 @@ services:
       - "18500:8500"
     volumes:
       - ../../_data/consul/data:/consul/data:rw
-    command: "agent -server -ui -node=n1 -bootstrap-expect=1 -client=0.0.0.0" # -bind=127.0.0.1 
+    command: ['agent', '-server', '-bootstrap', '-ui', '-client', '0.0.0.0']
     networks:
       - atreus_net
     depends_on:
@@ -48,6 +48,8 @@ services:
       relation-service:
         condition: service_started
       message-service:
+        condition: service_started
+      consul:
         condition: service_started
 
   mysql:
