@@ -9,14 +9,13 @@ package main
 import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
+
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
 	"github.com/toomanysource/atreus/app/publish/service/internal/conf"
 	"github.com/toomanysource/atreus/app/publish/service/internal/data"
 	"github.com/toomanysource/atreus/app/publish/service/internal/server"
 	"github.com/toomanysource/atreus/app/publish/service/internal/service"
-)
 
-import (
 	_ "go.uber.org/automaxprocs"
 )
 

@@ -31,7 +31,8 @@ func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Clie
 		return nil, nil, err
 	}
 	userRepo := data.NewUserRepo(dataData, logger)
-	relationConn := server.NewRelationClient(client, logger)
+	discovery := server.NewDiscovery(registry)
+	relationConn := server.NewRelationClient(discovery, client, logger)
 	relationRepo := data.NewRelationRepo(relationConn)
 	userUsecase := biz.NewUserUsecase(userRepo, relationRepo, jwt, logger)
 	userService := service.NewUserService(userUsecase, logger)
