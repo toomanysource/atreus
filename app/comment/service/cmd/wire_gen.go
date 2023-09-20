@@ -22,11 +22,11 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData, logger)
-	redisClient := data.NewRedisConn(confData, logger)
+	client := data.NewRedisConn(confData, logger)
 	writer := data.NewKafkaWriter(confData, logger)
-	dataData, cleanup, err := data.NewData(db, redisClient, writer, logger)
+	dataData, cleanup, err := data.NewData(db, client, writer, logger)
 	if err != nil {
 		return nil, nil, err
 	}

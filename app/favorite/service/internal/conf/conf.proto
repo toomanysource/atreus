@@ -7,9 +7,8 @@ option go_package = "github.com/toomanysource/atreus/app/favorite/service/intern
 
 message Bootstrap {
   Server server = 1;
-  Client client = 2;
-  Data data = 3;
-  JWT jwt = 4;
+  Data data = 2;
+  JWT jwt = 3;
 }
 
 message Server {

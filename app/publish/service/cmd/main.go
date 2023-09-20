@@ -70,7 +70,7 @@ func main() {
 		panic(err)
 	}
 
-	app, cleanup, err := wireApp(bc.Server, &rc, bc.Client, bc.Minio, bc.Jwt, bc.Data, logger)
+	app, cleanup, err := wireApp(bc.Server, &rc, bc.Minio, bc.Jwt, bc.Data, logger)
 	if err != nil {
 		panic(err)
 	}

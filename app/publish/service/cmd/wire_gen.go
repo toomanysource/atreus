@@ -22,14 +22,14 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Client, minio *conf.Minio, jwt *conf.JWT, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, minio *conf.Minio, jwt *conf.JWT, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData, logger)
 	extraConn := data.NewMinioExtraConn(minio, logger)
 	intraConn := data.NewMinioIntraConn(minio, logger)
-	minioXClient := data.NewMinioConn(minio, extraConn, intraConn, logger)
+	client := data.NewMinioConn(minio, extraConn, intraConn, logger)
 	writer := data.NewKafkaWriter(confData, logger)
 	kfkReader := data.NewKafkaReader(confData, logger)
-	dataData, cleanup, err := data.NewData(db, minioXClient, writer, kfkReader, logger)
+	dataData, cleanup, err := data.NewData(db, client, writer, kfkReader, logger)
 	if err != nil {
 		return nil, nil, err
 	}
