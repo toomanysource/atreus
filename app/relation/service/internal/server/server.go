@@ -25,7 +25,6 @@ func NewUserClient(r registry.Discovery, c *conf.Client, logger log.Logger) *std
 	logs := log.NewHelper(log.With(logger, "module", "server/user"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
-		// grpc.WithEndpoint(c.User.To),
 		grpc.WithEndpoint("discovery:///atreus.user.service"),
 		grpc.WithDiscovery(r),
 		grpc.WithMiddleware(
