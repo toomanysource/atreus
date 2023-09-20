@@ -8,7 +8,7 @@ services:
       - "18500:8500"
     volumes:
       - ../../_data/consul/data:/consul/data:rw
-    command: ['agent', '-server', '-bootstrap', '-ui', '-client', '0.0.0.0']
+    command: "agent -server -ui -bootstrap-expect=1 -client=0.0.0.0"
     networks:
       - atreus_net
     depends_on:
