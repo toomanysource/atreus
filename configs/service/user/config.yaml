@@ -5,9 +5,6 @@ server:
   grpc:
     addr: 0.0.0.0:9001
     timeout: 1s
-client:
-  relation:
-    to: relation-service:9005
 data:
   database:
     driver: mysql
