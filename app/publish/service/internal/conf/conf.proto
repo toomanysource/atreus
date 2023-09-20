@@ -8,10 +8,9 @@ option go_package = "github.com/toomanysource/atreus/app/publish/service/interna
 
 message Bootstrap {
   Server server = 1;
-  Client client = 2;
-  Data data = 3;
-  JWT jwt = 4;
-  Minio minio = 5;
+  Data data = 2;
+  JWT jwt = 3;
+  Minio minio = 4;
 }
 
 message Server {
@@ -27,16 +26,6 @@ message Server {
   }
   HTTP http = 1;
   GRPC grpc = 2;
-}
-message Client {
-  message User {
-    string to = 1;
-  }
-  message Favorite {
-    string to = 1;
-  }
-  User user = 1;
-  Favorite favorite = 2;
 }
 
 // Data
@@ -76,4 +65,12 @@ message Minio {
   string access_secret = 4;
   bool use_ssl = 5;
   string bucket_name = 6;
+}
+
+message Registry {
+  message Consul {
+    string address = 1;
+    string scheme = 2;
+  }
+  Consul consul = 1;
 }

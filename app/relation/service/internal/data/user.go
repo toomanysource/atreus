@@ -8,17 +8,15 @@ import (
 
 	pb "github.com/toomanysource/atreus/api/user/service/v1"
 	"github.com/toomanysource/atreus/app/relation/service/internal/biz"
-
-	"google.golang.org/grpc"
 )
 
 type userRepo struct {
 	client pb.UserServiceClient
 }
 
-func NewUserRepo(conn *grpc.ClientConn) UserRepo {
+func NewUserRepo(conn pb.UserServiceClient) UserRepo {
 	return &userRepo{
-		client: pb.NewUserServiceClient(conn),
+		client: conn,
 	}
 }
 

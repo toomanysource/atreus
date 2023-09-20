@@ -7,9 +7,8 @@ option go_package = "github.com/toomanysource/atreus/app/comment/service/interna
 
 message Bootstrap {
   Server server = 1;
-  Client client = 2;
-  Data data = 3;
-  JWT jwt = 4;
+  Data data = 2;
+  JWT jwt = 3;
 }
 
 message Server {
@@ -25,17 +24,6 @@ message Server {
   }
   HTTP http = 1;
   GRPC grpc = 2;
-}
-
-message Client {
-  message User {
-    string to = 1;
-  }
-  message Publish {
-    string to = 1;
-  }
-  User user = 1;
-  Publish publish = 2;
 }
 
 message Data {
@@ -71,4 +59,12 @@ message JWT {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+}
+
+message Registry {
+  message Consul {
+    string address = 1;
+    string scheme = 2;
+  }
+  Consul consul = 1;
 }

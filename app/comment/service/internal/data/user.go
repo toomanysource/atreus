@@ -8,16 +8,15 @@ import (
 
 	pb "github.com/toomanysource/atreus/api/user/service/v1"
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
-	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 )
 
 type userRepo struct {
 	client pb.UserServiceClient
 }
 
-func NewUserRepo(conn server.UserConn) UserRepo {
+func NewUserRepo(conn pb.UserServiceClient) UserRepo {
 	return &userRepo{
-		client: pb.NewUserServiceClient(conn),
+		client: conn,
 	}
 }
 

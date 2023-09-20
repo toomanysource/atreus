@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	userv1 "github.com/toomanysource/atreus/api/user/service/v1"
+
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/segmentio/kafka-go"
@@ -16,8 +18,6 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/toomanysource/atreus/middleware"
-
-	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 
 	"github.com/jinzhu/copier"
 
@@ -55,7 +55,7 @@ type commentRepo struct {
 }
 
 func NewCommentRepo(
-	data *Data, userConn server.UserConn, logger log.Logger,
+	data *Data, userConn userv1.UserServiceClient, logger log.Logger,
 ) biz.CommentRepo {
 	return &commentRepo{
 		data:     data,

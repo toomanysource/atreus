@@ -12,6 +12,9 @@ import (
 	"sync"
 	"time"
 
+	favoritev1 "github.com/toomanysource/atreus/api/favorite/service/v1"
+	userv1 "github.com/toomanysource/atreus/api/user/service/v1"
+
 	"github.com/toomanysource/atreus/middleware"
 
 	"github.com/segmentio/kafka-go"
@@ -19,7 +22,6 @@ import (
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
-	"github.com/toomanysource/atreus/app/publish/service/internal/server"
 	"github.com/toomanysource/atreus/pkg/ffmpegX"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -61,7 +63,7 @@ type publishRepo struct {
 }
 
 func NewPublishRepo(
-	data *Data, userConn server.UserConn, favoriteConn server.FavoriteConn, logger log.Logger,
+	data *Data, userConn userv1.UserServiceClient, favoriteConn favoritev1.FavoriteServiceClient, logger log.Logger,
 ) biz.PublishRepo {
 	return &publishRepo{
 		data:         data,

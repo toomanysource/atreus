@@ -8,16 +8,17 @@ import (
 	"strconv"
 	"time"
 
+	publishv1 "github.com/toomanysource/atreus/api/publish/service/v1"
+
 	"gorm.io/gorm"
 
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
-	"github.com/toomanysource/atreus/app/favorite/service/internal/server"
-
 	"github.com/go-kratos/kratos/v2/log"
+
+	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
 )
 
 const (
@@ -43,7 +44,7 @@ type favoriteRepo struct {
 }
 
 func NewFavoriteRepo(
-	data *Data, publishConn server.PublishConn, logger log.Logger,
+	data *Data, publishConn publishv1.PublishServiceClient, logger log.Logger,
 ) biz.FavoriteRepo {
 	return &favoriteRepo{
 		data:        data,

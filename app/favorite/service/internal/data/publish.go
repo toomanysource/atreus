@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
-	"github.com/toomanysource/atreus/app/favorite/service/internal/server"
-
 	pb "github.com/toomanysource/atreus/api/publish/service/v1"
+	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
 
 	"github.com/jinzhu/copier"
 )
@@ -16,9 +14,9 @@ type publishRepo struct {
 	client pb.PublishServiceClient
 }
 
-func NewPublishRepo(conn server.PublishConn) biz.PublishRepo {
+func NewPublishRepo(conn pb.PublishServiceClient) biz.PublishRepo {
 	return &publishRepo{
-		client: pb.NewPublishServiceClient(conn),
+		client: conn,
 	}
 }
 

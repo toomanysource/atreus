@@ -5,16 +5,15 @@ import (
 	"errors"
 
 	pb "github.com/toomanysource/atreus/api/favorite/service/v1"
-	"github.com/toomanysource/atreus/app/publish/service/internal/server"
 )
 
 type favoriteRepo struct {
 	client pb.FavoriteServiceClient
 }
 
-func NewFavoriteRepo(conn server.FavoriteConn) FavoriteRepo {
+func NewFavoriteRepo(conn pb.FavoriteServiceClient) FavoriteRepo {
 	return &favoriteRepo{
-		client: pb.NewFavoriteServiceClient(conn),
+		client: conn,
 	}
 }
 
