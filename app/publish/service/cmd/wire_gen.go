@@ -9,20 +9,21 @@ package main
 import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
 	"github.com/toomanysource/atreus/app/publish/service/internal/conf"
 	"github.com/toomanysource/atreus/app/publish/service/internal/data"
 	"github.com/toomanysource/atreus/app/publish/service/internal/server"
 	"github.com/toomanysource/atreus/app/publish/service/internal/service"
+)
 
+import (
 	_ "go.uber.org/automaxprocs"
 )
 
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, client *conf.Client, minio *conf.Minio, jwt *conf.JWT, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Client, minio *conf.Minio, jwt *conf.JWT, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData, logger)
 	extraConn := data.NewMinioExtraConn(minio, logger)
 	intraConn := data.NewMinioIntraConn(minio, logger)
@@ -33,14 +34,16 @@ func wireApp(confServer *conf.Server, client *conf.Client, minio *conf.Minio, jw
 	if err != nil {
 		return nil, nil, err
 	}
-	userConn := server.NewUserClient(client, logger)
-	favoriteConn := server.NewFavoriteClient(client, logger)
+	discovery := server.NewDiscovery(registry)
+	userConn := server.NewUserClient(discovery, client, logger)
+	favoriteConn := server.NewFavoriteClient(discovery, client, logger)
 	publishRepo := data.NewPublishRepo(dataData, userConn, favoriteConn, logger)
 	publishUseCase := biz.NewPublishUseCase(publishRepo, logger)
 	publishService := service.NewPublishService(publishUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, publishService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, publishService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	registrar := server.NewRegistrar(registry)
+	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {
 		cleanup()
 	}, nil

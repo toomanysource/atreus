@@ -64,7 +64,7 @@ func main() {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
-	var rc conf.registry
+	var rc conf.Registry
 	if err := c.Scan(&rc); err != nil {
 		panic(err)
 	}

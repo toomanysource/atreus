@@ -9,20 +9,21 @@ package main
 import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 	"github.com/toomanysource/atreus/app/comment/service/internal/data"
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 	"github.com/toomanysource/atreus/app/comment/service/internal/service"
+)
 
+import (
 	_ "go.uber.org/automaxprocs"
 )
 
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData, logger)
 	redisClient := data.NewRedisConn(confData, logger)
 	writer := data.NewKafkaWriter(confData, logger)
@@ -30,13 +31,15 @@ func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, 
 	if err != nil {
 		return nil, nil, err
 	}
-	userConn := server.NewUserClient(client, logger)
+	discovery := server.NewDiscovery(registry)
+	userConn := server.NewUserClient(discovery, client, logger)
 	commentRepo := data.NewCommentRepo(dataData, userConn, logger)
 	commentUseCase := biz.NewCommentUseCase(commentRepo, logger)
 	commentService := service.NewCommentService(commentUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, commentService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, commentService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	registrar := server.NewRegistrar(registry)
+	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {
 		cleanup()
 	}, nil
