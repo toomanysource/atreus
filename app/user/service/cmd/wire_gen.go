@@ -32,8 +32,8 @@ func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Clie
 	}
 	userRepo := data.NewUserRepo(dataData, logger)
 	discovery := server.NewDiscovery(registry)
-	relationConn := server.NewRelationClient(discovery, client, logger)
-	relationRepo := data.NewRelationRepo(relationConn)
+	relationServiceClient := server.NewRelationClient(discovery, logger)
+	relationRepo := data.NewRelationRepo(relationServiceClient)
 	userUsecase := biz.NewUserUsecase(userRepo, relationRepo, jwt, logger)
 	userService := service.NewUserService(userUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)

@@ -31,8 +31,8 @@ func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Clie
 		return nil, nil, err
 	}
 	discovery := server.NewDiscovery(registry)
-	userConn := server.NewUserClient(discovery, client, logger)
-	commentRepo := data.NewCommentRepo(dataData, userConn, logger)
+	userServiceClient := server.NewUserClient(discovery, logger)
+	commentRepo := data.NewCommentRepo(dataData, userServiceClient, logger)
 	commentUseCase := biz.NewCommentUseCase(commentRepo, logger)
 	commentService := service.NewCommentService(commentUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, commentService, logger)

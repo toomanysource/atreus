@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"time"
 
+	userv1 "github.com/toomanysource/atreus/api/user/service/v1"
+
 	"gorm.io/gorm"
 
 	"github.com/toomanysource/atreus/middleware"
@@ -17,7 +19,6 @@ import (
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis/v8"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -52,11 +53,11 @@ type relationRepo struct {
 	log      *log.Helper
 }
 
-func NewRelationRepo(data *Data, conn *grpc.ClientConn, logger log.Logger) biz.RelationRepo {
+func NewRelationRepo(data *Data, userConn userv1.UserServiceClient, logger log.Logger) biz.RelationRepo {
 	return &relationRepo{
 		data:     data,
 		kfk:      data.kfk,
-		userRepo: NewUserRepo(conn),
+		userRepo: NewUserRepo(userConn),
 		log:      log.NewHelper(logger),
 	}
 }

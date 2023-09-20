@@ -31,8 +31,8 @@ func wireApp(confServer *conf.Server, registry *conf.Registry, client *conf.Clie
 		return nil, nil, err
 	}
 	discovery := server.NewDiscovery(registry)
-	publishConn := server.NewPublishClient(discovery, client, logger)
-	favoriteRepo := data.NewFavoriteRepo(dataData, publishConn, logger)
+	publishServiceClient := server.NewPublishClient(discovery, logger)
+	favoriteRepo := data.NewFavoriteRepo(dataData, publishServiceClient, logger)
 	favoriteUseCase := biz.NewFavoriteUseCase(favoriteRepo, logger)
 	favoriteService := service.NewFavoriteService(favoriteUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, favoriteService, logger)
