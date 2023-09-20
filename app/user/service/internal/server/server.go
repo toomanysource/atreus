@@ -23,19 +23,21 @@ var ProviderSet = wire.NewSet(NewGRPCServer, NewHTTPServer, NewRelationClient, N
 type RelationConn stdgrpc.ClientConnInterface
 
 // NewRelationClient 创建一个Relation服务客户端，接收Relation服务数据
-func NewRelationClient(c *conf.Client, logger log.Logger) RelationConn {
+func NewRelationClient(r registry.Discovery, c *conf.Client, logger log.Logger) RelationConn {
+	logs := log.NewHelper(log.With(logger, "module", "server/relation"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
-		grpc.WithEndpoint(c.Relation.To),
+		grpc.WithEndpoint("discovery:///atreus.relation.service"),
+		grpc.WithDiscovery(r),
 		grpc.WithMiddleware(
 			recovery.Recovery(),
 			logging.Client(logger),
 		),
 	)
 	if err != nil {
-		log.Fatalf("Error connecting to Relation Services, err : %v", err)
+		logs.Fatalf("Relation service connect error, %v", err)
 	}
-	log.Info("Relation Services connected.")
+	logs.Info("user service connect successfully")
 	return conn
 }
 
