@@ -31,9 +31,9 @@ type User struct {
 }
 
 type CommentRepo interface {
-	CreateComment(context.Context, uint32, string, string) (*Comment, error)
-	DeleteComment(context.Context, uint32, uint32) error
-	GetComments(context.Context, uint32) ([]*Comment, error)
+	CreateComment(ctx context.Context, userId, videoId uint32, commentText string, createTime string) (*Comment, error)
+	DeleteComment(ctx context.Context, userId, videoId, commentId uint32) error
+	GetComments(ctx context.Context, videoId uint32) (cls []*Comment, err error)
 }
 
 type UserRepo interface {
@@ -60,8 +60,8 @@ func (uc *CommentUseCase) GetCommentList(
 	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	cls, err := uc.repo.GetComments(ctx, videoId)
 	if err != nil {
-		uc.log.Errorf("GetComments err: %v", err)
-		return nil, err
+		uc.log.Errorf("%v: %v", ErrGetCommentList, err)
+		return nil, ErrGetCommentList
 	}
 	// 获取评论列表中的所有用户id
 	userIds := make([]uint32, 0, len(cls))
@@ -72,8 +72,8 @@ func (uc *CommentUseCase) GetCommentList(
 	// 统一查询，减少网络IO
 	users, err := uc.userRepo.GetUserInfos(ctx, userId, userIds)
 	if err != nil {
-		uc.log.Errorf("GetComments err: %v", err)
-		return nil, err
+		uc.log.Errorf("%v: %v", ErrGetCommentList, err)
+		return nil, ErrGetCommentList
 	}
 	for i, comment := range cls {
 		comment.User = users[i]
@@ -92,26 +92,23 @@ func (uc *CommentUseCase) CommentAction(
 			return nil, ErrCommentTextEmpty
 		}
 		createTime := time.Now().Format("01-02")
-		c, err := uc.repo.CreateComment(ctx, videoId, commentText, createTime)
+		c, err := uc.repo.CreateComment(ctx, userId, videoId, commentText, createTime)
 		if err != nil {
-			uc.log.Errorf("CreateComment err: %v", err)
-			return nil, err
+			uc.log.Errorf("%v: %v", ErrCreateComment, err)
+			return nil, ErrCreateComment
 		}
 		users, err := uc.userRepo.GetUserInfos(ctx, userId, []uint32{userId})
 		if err != nil {
-			uc.log.Errorf("CreateComment err: %v", err)
-			return nil, err
+			uc.log.Errorf("%v: %v", ErrCreateComment, err)
+			return nil, ErrCreateComment
 		}
 		c.User = users[0]
 		return c, nil
 	case DeleteType:
-		if commentId == 0 {
-			return nil, ErrInvalidId
-		}
-		err := uc.repo.DeleteComment(ctx, videoId, commentId)
+		err := uc.repo.DeleteComment(ctx, userId, videoId, commentId)
 		if err != nil {
-			uc.log.Errorf("DeleteComment err: %v", err)
-			return nil, err
+			uc.log.Errorf("%v: %v", ErrDeleteComment, err)
+			return nil, ErrDeleteComment
 		}
 		return nil, nil
 	default:

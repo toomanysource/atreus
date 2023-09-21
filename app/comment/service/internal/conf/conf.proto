@@ -40,7 +40,7 @@ message Data {
   }
   message Kafka {
     string addr = 1;
-    string comment_topic = 2;
+    string topic = 2;
     int32 partition = 3;
     google.protobuf.Duration read_timeout = 4;
     google.protobuf.Duration write_timeout = 5;

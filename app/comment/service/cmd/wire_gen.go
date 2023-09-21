@@ -23,24 +23,26 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
-	redisClient := data.NewRedisConn(confData, logger)
+func wireApp(confServer *conf.Server, registry *conf.Registry, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
+	client := data.NewRedisConn(confData, logger)
 	writer := data.NewKafkaWriter(confData, logger)
-	dataData, cleanup, err := data.NewData(redisClient, writer, logger)
+	dataData, cleanup, err := data.NewData(client, writer, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	db := data.NewMysqlConn(confData, logger)
 	dbStore := datastore.NewDBStore(db)
-	cacheStore := datastore.NewCacheStore(redisClient)
+	cacheStore := datastore.NewCacheStore(client)
 	commentRepo := data.NewCommentRepo(dataData, dbStore, cacheStore, logger)
-	userConn := server.NewUserClient(client, logger)
-	userRepo := data.NewUserRepo(userConn)
+	discovery := server.NewDiscovery(registry)
+	userServiceClient := server.NewUserClient(discovery, logger)
+	userRepo := data.NewUserRepo(userServiceClient)
 	commentUseCase := biz.NewCommentUseCase(commentRepo, userRepo, logger)
 	commentService := service.NewCommentService(commentUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, commentService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, commentService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	registrar := server.NewRegistrar(registry)
+	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {
 		cleanup()
 	}, nil

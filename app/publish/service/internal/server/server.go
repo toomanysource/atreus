@@ -27,7 +27,7 @@ func NewUserClient(r registry.Discovery, logger log.Logger) userv1.UserServiceCl
 	logs := log.NewHelper(log.With(logger, "module", "server/user"))
 	conn, err := grpc.DialInsecure(
 		context.Background(),
-		grpc.WithEndpoint("discovery:///user"),
+		grpc.WithEndpoint("discovery:///atreus.user.service"),
 		grpc.WithDiscovery(r),
 		grpc.WithMiddleware(
 			recovery.Recovery(),
