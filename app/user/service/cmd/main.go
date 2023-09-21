@@ -11,6 +11,8 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/go-kratos/kratos/v2/transport/http"
 
+	"github.com/go-kratos/kratos/v2/registry"
+
 	"github.com/toomanysource/atreus/app/user/service/internal/conf"
 	"github.com/toomanysource/atreus/pkg/logX"
 
@@ -20,7 +22,7 @@ import (
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name     = "user"
+	Name     = "atreus.user.service"
 	flagConf string
 )
 
@@ -28,7 +30,7 @@ func init() {
 	flag.StringVar(&flagConf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
+func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, rr registry.Registrar) *kratos.App {
 	return kratos.New(
 		kratos.Name(Name),
 		kratos.Logger(logger),
@@ -36,6 +38,7 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server) *kratos.App {
 			gs,
 			hs,
 		),
+		kratos.Registrar(rr),
 	)
 }
 
@@ -63,8 +66,12 @@ func main() {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
+	var rc conf.Registry
+	if err := c.Scan(&rc); err != nil {
+		panic(err)
+	}
 
-	app, cleanup, err := wireApp(bc.Server, bc.Client, bc.Data, bc.Jwt, logger)
+	app, cleanup, err := wireApp(bc.Server, &rc, bc.Data, bc.Jwt, logger)
 	if err != nil {
 		panic(err)
 	}

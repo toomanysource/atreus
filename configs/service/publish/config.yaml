@@ -5,11 +5,6 @@ server:
   grpc:
     addr: 0.0.0.0:9002
     timeout: 1s
-client:
-  user:
-    to: user-service:9001
-  favorite:
-    to: favorite-service:9004
 data:
   mysql:
     driver: mysql

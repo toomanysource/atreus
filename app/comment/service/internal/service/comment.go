@@ -5,8 +5,6 @@ import (
 
 	"github.com/jinzhu/copier"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	pb "github.com/toomanysource/atreus/api/comment/service/v1"
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 
@@ -27,16 +25,16 @@ func NewCommentService(cu *biz.CommentUseCase, logger log.Logger) *CommentServic
 }
 
 func (s *CommentService) GetCommentList(ctx context.Context, req *pb.CommentListRequest) (*pb.CommentListReply, error) {
-	reply := &pb.CommentListReply{StatusCode: errorX.CodeSuccess, StatusMsg: "success", CommentList: make([]*pb.Comment, 0)}
+	reply := &pb.CommentListReply{StatusCode: CodeSuccess, StatusMsg: "success", CommentList: make([]*pb.Comment, 0)}
 	commentList, err := s.cu.GetCommentList(ctx, req.VideoId)
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
 	err = copier.CopyWithOption(&reply.CommentList, &commentList, copier.Option{DeepCopy: true})
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
@@ -44,10 +42,10 @@ func (s *CommentService) GetCommentList(ctx context.Context, req *pb.CommentList
 }
 
 func (s *CommentService) CommentAction(ctx context.Context, req *pb.CommentActionRequest) (*pb.CommentActionReply, error) {
-	reply := &pb.CommentActionReply{StatusCode: errorX.CodeSuccess, StatusMsg: "success", Comment: &pb.Comment{}}
+	reply := &pb.CommentActionReply{StatusCode: CodeSuccess, StatusMsg: "success", Comment: &pb.Comment{}}
 	comment, err := s.cu.CommentAction(ctx, req.VideoId, req.CommentId, req.ActionType, req.CommentText)
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}
@@ -57,7 +55,7 @@ func (s *CommentService) CommentAction(ctx context.Context, req *pb.CommentActio
 	}
 	err = copier.CopyWithOption(&reply.Comment, &comment, copier.Option{DeepCopy: true})
 	if err != nil {
-		reply.StatusCode = errorX.CodeFailed
+		reply.StatusCode = CodeFailed
 		reply.StatusMsg = err.Error()
 		return reply, nil
 	}

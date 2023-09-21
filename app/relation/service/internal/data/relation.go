@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"gorm.io/gorm"
+	userv1 "github.com/toomanysource/atreus/api/user/service/v1"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
+	"gorm.io/gorm"
 
 	"github.com/toomanysource/atreus/middleware"
 
@@ -19,7 +19,6 @@ import (
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis/v8"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -54,11 +53,11 @@ type relationRepo struct {
 	log      *log.Helper
 }
 
-func NewRelationRepo(data *Data, conn *grpc.ClientConn, logger log.Logger) biz.RelationRepo {
+func NewRelationRepo(data *Data, userConn userv1.UserServiceClient, logger log.Logger) biz.RelationRepo {
 	return &relationRepo{
 		data:     data,
 		kfk:      data.kfk,
-		userRepo: NewUserRepo(conn),
+		userRepo: NewUserRepo(userConn),
 		log:      log.NewHelper(logger),
 	}
 }
@@ -142,7 +141,7 @@ func (r *relationRepo) UnFollow(ctx context.Context, toUserId uint32) error {
 func (r *relationRepo) IsFollow(ctx context.Context, userId uint32, toUserId []uint32) (oks []bool, err error) {
 	count, err := r.data.cache.followRelation.Exists(ctx, strconv.Itoa(int(userId))).Result()
 	if err != nil {
-		return nil, errors.Join(errorX.ErrRedisQuery, err)
+		return nil, errors.Join(ErrRedisQuery, err)
 	}
 	if count > 0 {
 		once := make(map[uint32]bool)
@@ -320,7 +319,7 @@ func (r *relationRepo) GetFollowerList(ctx context.Context, userId uint32) (ul [
 func (r *relationRepo) GetFollowCache(ctx context.Context, userId uint32) ([]string, error) {
 	follows, err := r.data.cache.followRelation.HKeys(ctx, strconv.Itoa(int(userId))).Result()
 	if err != nil {
-		return nil, errors.Join(errorX.ErrRedisQuery, err)
+		return nil, errors.Join(ErrRedisQuery, err)
 	}
 	return follows, nil
 }
@@ -351,7 +350,7 @@ func (r *relationRepo) AddFollowCache(ctx context.Context, userId uint32, toUser
 func (r *relationRepo) CheckFollowCache(ctx context.Context, userId uint32, toUserId uint32) (bool, error) {
 	ok, err := r.data.cache.followRelation.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisQuery, err)
+		return false, errors.Join(ErrRedisQuery, err)
 	}
 	return ok, nil
 }
@@ -360,7 +359,7 @@ func (r *relationRepo) CheckFollowCache(ctx context.Context, userId uint32, toUs
 func (r *relationRepo) CreateFollowCache(ctx context.Context, userId uint32, toUserId uint32) (err error) {
 	if err = r.data.cache.followRelation.HSet(
 		ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId)), "").Err(); err != nil {
-		return errors.Join(errorX.ErrRedisSet, err)
+		return errors.Join(ErrRedisSet, err)
 	}
 	return nil
 }
@@ -368,7 +367,7 @@ func (r *relationRepo) CreateFollowCache(ctx context.Context, userId uint32, toU
 // DeleteFollowCache 删除关注缓存
 func (r *relationRepo) DeleteFollowCache(ctx context.Context, userId uint32, toUserId uint32) error {
 	if err := r.data.cache.followRelation.HDel(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(toUserId))).Err(); err != nil {
-		return errors.Join(errorX.ErrRedisDelete, err)
+		return errors.Join(ErrRedisDelete, err)
 	}
 	return nil
 }
@@ -377,7 +376,7 @@ func (r *relationRepo) DeleteFollowCache(ctx context.Context, userId uint32, toU
 func (r *relationRepo) GetFollowedCache(ctx context.Context, userId uint32) ([]string, error) {
 	followers, err := r.data.cache.followedRelation.HKeys(ctx, strconv.Itoa(int(userId))).Result()
 	if err != nil {
-		return nil, errors.Join(errorX.ErrRedisQuery, err)
+		return nil, errors.Join(ErrRedisQuery, err)
 	}
 	return followers, nil
 }
@@ -404,7 +403,7 @@ func (r *relationRepo) AddFollowedCache(ctx context.Context, toUserId uint32, us
 func (r *relationRepo) CheckFollowedCache(ctx context.Context, toUserId uint32, userId uint32) (bool, error) {
 	ok, err := r.data.cache.followedRelation.HExists(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisQuery, err)
+		return false, errors.Join(ErrRedisQuery, err)
 	}
 	return ok, nil
 }
@@ -413,7 +412,7 @@ func (r *relationRepo) CheckFollowedCache(ctx context.Context, toUserId uint32, 
 func (r *relationRepo) CreateFollowedCache(ctx context.Context, toUserId uint32, userId uint32) (err error) {
 	if err = r.data.cache.followedRelation.HSet(
 		ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId)), "").Err(); err != nil {
-		return errors.Join(errorX.ErrRedisSet, err)
+		return errors.Join(ErrRedisSet, err)
 	}
 	return nil
 }
@@ -421,7 +420,7 @@ func (r *relationRepo) CreateFollowedCache(ctx context.Context, toUserId uint32,
 // DeleteFollowedCache 删除粉丝缓存
 func (r *relationRepo) DeleteFollowedCache(ctx context.Context, toUserId uint32, userId uint32) error {
 	if err := r.data.cache.followedRelation.HDel(ctx, strconv.Itoa(int(toUserId)), strconv.Itoa(int(userId))).Err(); err != nil {
-		return errors.Join(errorX.ErrRedisDelete, err)
+		return errors.Join(ErrRedisDelete, err)
 	}
 	return nil
 }
@@ -430,7 +429,7 @@ func (r *relationRepo) DeleteFollowedCache(ctx context.Context, toUserId uint32,
 func (r *relationRepo) GetFlList(ctx context.Context, userId uint32) (userIDs []uint32, err error) {
 	var follows []*Followers
 	if err := r.data.db.WithContext(ctx).Where("follower_id = ?", userId).Find(&follows).Error; err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	if len(follows) == 0 {
 		return nil, nil
@@ -445,7 +444,7 @@ func (r *relationRepo) GetFlList(ctx context.Context, userId uint32) (userIDs []
 func (r *relationRepo) GetFlrList(ctx context.Context, userId uint32) ([]uint32, error) {
 	var followers []*Followers
 	if err := r.data.db.WithContext(ctx).Where("user_id = ?", userId).Find(&followers).Error; err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	if len(followers) == 0 {
 		return nil, nil
@@ -469,7 +468,7 @@ func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId ui
 		}
 		result := r.data.db.WithContext(ctx).Create(&follow)
 		if result.Error != nil {
-			return errors.Join(errorX.ErrMysqlInsert, result.Error)
+			return errors.Join(ErrMysqlInsert, result.Error)
 		}
 		go func() {
 			err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "1")
@@ -486,7 +485,7 @@ func (r *relationRepo) AddFollow(ctx context.Context, userId uint32, toUserId ui
 		return nil
 	}
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
+		return errors.Join(ErrMysqlQuery, err)
 	}
 	return ErrExistRelation
 }
@@ -500,12 +499,12 @@ func (r *relationRepo) DelFollow(ctx context.Context, userId uint32, toUserId ui
 		return ErrNotExistRelation
 	}
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
+		return errors.Join(ErrMysqlQuery, err)
 	}
 	result := r.data.db.WithContext(ctx).Where(
 		"user_id = ? AND follower_id = ?", toUserId, userId).Delete(&Followers{})
 	if result.Error != nil {
-		return errors.Join(errorX.ErrMysqlDelete, result.Error)
+		return errors.Join(ErrMysqlDelete, result.Error)
 	}
 	go func() {
 		err := kafkaX.Update(r.kfk.follow, strconv.Itoa(int(userId)), "-1")
@@ -529,7 +528,7 @@ func (r *relationRepo) SearchRelation(ctx context.Context, userId uint32, toUser
 	if err := r.data.db.WithContext(ctx).
 		Where("user_id IN ? AND follower_id = ?", toUserId, userId).
 		Find(&relation).Error; err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	for _, follow := range relation {
 		relationMap[follow.UserId] = true
@@ -557,18 +556,18 @@ func CreateCacheByTran(ctx context.Context, cache *redis.Client, ul []uint32, us
 		}
 		err := pipe.HMSet(ctx, strconv.Itoa(int(userId)), insertMap).Err()
 		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
 		begin, end := 360, 720
 		err = pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, begin, end)).Err()
 		if err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		return nil
 	})
 	if err != nil {
-		return errors.Join(errorX.ErrRedisTransaction, err)
+		return errors.Join(ErrRedisTransaction, err)
 	}
 	return nil
 }

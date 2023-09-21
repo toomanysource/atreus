@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	"github.com/go-kratos/kratos/v2/log"
 
 	"github.com/segmentio/kafka-go"
 )
+
+var ErrKafkaWriter = errors.New("kafka writer error")
 
 func Update(writer *kafka.Writer, key, value string) error {
 	err := writer.WriteMessages(context.TODO(),
@@ -19,7 +19,7 @@ func Update(writer *kafka.Writer, key, value string) error {
 			Value:     []byte(value),
 		})
 	if err != nil {
-		return errors.Join(errorX.ErrKafkaWriter, err)
+		return errors.Join(ErrKafkaWriter, err)
 	}
 	log.Infof("update message success, key: %v, value: %v", key, value)
 	return nil

@@ -2,24 +2,11 @@ package biz
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/toomanysource/atreus/middleware"
 
 	"github.com/go-kratos/kratos/v2/log"
-
-	"github.com/toomanysource/atreus/pkg/errorX"
-)
-
-const (
-	CreateType uint32 = 1
-	DeleteType uint32 = 2
-)
-
-var (
-	ErrCommentTextEmpty = errors.New("comment text is empty")
-	ErrInvalidId        = errors.New("invalid id")
 )
 
 type Comment struct {
@@ -128,6 +115,6 @@ func (uc *CommentUseCase) CommentAction(
 		}
 		return nil, nil
 	default:
-		return nil, errorX.ErrInValidActionType
+		return nil, ErrInValidActionType
 	}
 }

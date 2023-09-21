@@ -8,28 +8,22 @@ import (
 	"strconv"
 	"time"
 
-	"gorm.io/gorm"
+	publishv1 "github.com/toomanysource/atreus/api/publish/service/v1"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
+	"gorm.io/gorm"
 
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/go-redis/redis/v8"
 
-	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
-	"github.com/toomanysource/atreus/app/favorite/service/internal/server"
-
 	"github.com/go-kratos/kratos/v2/log"
+
+	"github.com/toomanysource/atreus/app/favorite/service/internal/biz"
 )
 
 const (
 	OccupyKey   = "-1"
 	OccupyValue = ""
-)
-
-var (
-	ErrExistFavorite    = errors.New("exist favorite relation")
-	ErrNotExistFavorite = errors.New("not exist favorite relation")
 )
 
 type Favorite struct {
@@ -50,7 +44,7 @@ type favoriteRepo struct {
 }
 
 func NewFavoriteRepo(
-	data *Data, publishConn server.PublishConn, logger log.Logger,
+	data *Data, publishConn publishv1.PublishServiceClient, logger log.Logger,
 ) biz.FavoriteRepo {
 	return &favoriteRepo{
 		data:        data,
@@ -218,7 +212,7 @@ func (r *favoriteRepo) CheckKey(ctx context.Context, userId uint32) (ok bool, er
 	// 在redis缓存中查询是否存在
 	count, err := r.data.cache.Exists(ctx, strconv.Itoa(int(userId))).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisQuery, err)
+		return false, errors.Join(ErrRedisQuery, err)
 	}
 	return count > 0, nil
 }
@@ -227,7 +221,7 @@ func (r *favoriteRepo) CheckKey(ctx context.Context, userId uint32) (ok bool, er
 func (r *favoriteRepo) CheckHKey(ctx context.Context, userId, videoId uint32) (bool, error) {
 	ok, err := r.data.cache.HExists(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(videoId))).Result()
 	if err != nil {
-		return false, errors.Join(errorX.ErrRedisQuery, err)
+		return false, errors.Join(ErrRedisQuery, err)
 	}
 	return ok, nil
 }
@@ -236,7 +230,7 @@ func (r *favoriteRepo) CheckHKey(ctx context.Context, userId, videoId uint32) (b
 func (r *favoriteRepo) InsertCache(ctx context.Context, userId, videoId uint32) error {
 	if err := r.data.cache.HSet(
 		ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(videoId)), "").Err(); err != nil {
-		return errors.Join(errorX.ErrRedisSet, err)
+		return errors.Join(ErrRedisSet, err)
 	}
 	return nil
 }
@@ -244,7 +238,7 @@ func (r *favoriteRepo) InsertCache(ctx context.Context, userId, videoId uint32) 
 // DeleteCache 删除缓存
 func (r *favoriteRepo) DeleteCache(ctx context.Context, userId, videoId uint32) (err error) {
 	if err = r.data.cache.HDel(ctx, strconv.Itoa(int(userId)), strconv.Itoa(int(videoId))).Err(); err != nil {
-		return errors.Join(errorX.ErrRedisDelete, err)
+		return errors.Join(ErrRedisDelete, err)
 	}
 	return nil
 }
@@ -253,7 +247,7 @@ func (r *favoriteRepo) DeleteCache(ctx context.Context, userId, videoId uint32) 
 func (r *favoriteRepo) GetFavoritesCache(ctx context.Context, userID uint32) (fl []uint32, err error) {
 	favorites, err := r.data.cache.HKeys(ctx, strconv.Itoa(int(userID))).Result()
 	if err != nil {
-		return nil, errors.Join(errorX.ErrRedisQuery, err)
+		return nil, errors.Join(ErrRedisQuery, err)
 	}
 	for _, v := range favorites {
 		if v == OccupyKey {
@@ -261,7 +255,7 @@ func (r *favoriteRepo) GetFavoritesCache(ctx context.Context, userID uint32) (fl
 		}
 		vc, err := strconv.Atoi(v)
 		if err != nil {
-			return nil, errors.Join(errorX.ErrStrconvParse, err)
+			return nil, errors.Join(ErrStrconvParse, err)
 		}
 		fl = append(fl, uint32(vc))
 	}
@@ -283,7 +277,7 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 			VideoID: videoId,
 		})
 		if result.Error != nil {
-			return errors.Join(errorX.ErrMysqlInsert, result.Error)
+			return errors.Join(ErrMysqlInsert, result.Error)
 		}
 		go func() {
 			if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "1"); err != nil {
@@ -303,7 +297,7 @@ func (r *favoriteRepo) InsertFavorite(ctx context.Context, userId, videoId uint3
 		return nil
 	}
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
+		return errors.Join(ErrMysqlQuery, err)
 	}
 	return ErrExistFavorite
 }
@@ -319,11 +313,11 @@ func (r *favoriteRepo) DelFavorite(ctx context.Context, userId, videoId uint32) 
 		return ErrNotExistFavorite
 	}
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
+		return errors.Join(ErrMysqlQuery, err)
 	}
 	result := r.data.db.WithContext(ctx).Where("user_id = ? AND video_id = ?", userId, videoId).Delete(&Favorite{})
 	if result.Error != nil {
-		return errors.Join(errorX.ErrMysqlDelete, result.Error)
+		return errors.Join(ErrMysqlDelete, result.Error)
 	}
 	go func() {
 		if err = kafkaX.Update(r.kfk.Favored, strconv.Itoa(int(authorId)), "-1"); err != nil {
@@ -350,7 +344,7 @@ func (r *favoriteRepo) GetFavoritesByUserId(ctx context.Context, userID uint32) 
 		Where("user_id = ?", userID).
 		Find(&favorites).Error
 	if err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	if len(favorites) == 0 {
 		return nil, nil
@@ -369,7 +363,7 @@ func (r *favoriteRepo) CheckFavorite(ctx context.Context, userId uint32, videoId
 	if err := r.data.db.WithContext(ctx).
 		Where("user_id = ? AND video_id IN ?", userId, videoIds).
 		Find(&favorites).Error; err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	favoriteMap := make(map[uint32]bool, len(favorites))
 	for _, favorite := range favorites {
@@ -399,17 +393,17 @@ func CreateCacheByTran(ctx context.Context, cache *redis.Client, vl []uint32, us
 			insertMap[vs] = OccupyValue
 		}
 		if err := pipe.HMSet(ctx, strconv.Itoa(int(userId)), insertMap).Err(); err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		// 将评论数量存入redis缓存,使用随机过期时间防止缓存雪崩
 		begin, end := 360, 720
 		if err := pipe.Expire(ctx, strconv.Itoa(int(userId)), randomTime(time.Minute, begin, end)).Err(); err != nil {
-			return errors.Join(errorX.ErrRedisSet, err)
+			return errors.Join(ErrRedisSet, err)
 		}
 		return nil
 	})
 	if err != nil {
-		return errors.Join(errorX.ErrRedisTransaction, err)
+		return errors.Join(ErrRedisTransaction, err)
 	}
 	return nil
 }

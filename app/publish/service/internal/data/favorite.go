@@ -4,19 +4,16 @@ import (
 	"context"
 	"errors"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
-
 	pb "github.com/toomanysource/atreus/api/favorite/service/v1"
-	"github.com/toomanysource/atreus/app/publish/service/internal/server"
 )
 
 type favoriteRepo struct {
 	client pb.FavoriteServiceClient
 }
 
-func NewFavoriteRepo(conn server.FavoriteConn) FavoriteRepo {
+func NewFavoriteRepo(conn pb.FavoriteServiceClient) FavoriteRepo {
 	return &favoriteRepo{
-		client: pb.NewFavoriteServiceClient(conn),
+		client: conn,
 	}
 }
 
@@ -24,7 +21,7 @@ func NewFavoriteRepo(conn server.FavoriteConn) FavoriteRepo {
 func (u *favoriteRepo) IsFavorite(ctx context.Context, userId uint32, videoIds []uint32) ([]bool, error) {
 	resp, err := u.client.IsFavorite(ctx, &pb.IsFavoriteRequest{UserId: userId, VideoIds: videoIds})
 	if err != nil {
-		return nil, errors.Join(errorX.ErrFavoriteServiceResponse, err)
+		return nil, errors.Join(ErrFavoriteServiceResponse, err)
 	}
 	return resp.IsFavorite, nil
 }

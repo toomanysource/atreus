@@ -22,21 +22,23 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewMysqlConn(confData, logger)
-	redisClient := data.NewRedisConn(confData, logger)
+	client := data.NewRedisConn(confData, logger)
 	kfkWriter := data.NewKafkaWriter(confData, logger)
-	dataData, cleanup, err := data.NewData(db, redisClient, kfkWriter, logger)
+	dataData, cleanup, err := data.NewData(db, client, kfkWriter, logger)
 	if err != nil {
 		return nil, nil, err
 	}
-	publishConn := server.NewPublishClient(client, logger)
-	favoriteRepo := data.NewFavoriteRepo(dataData, publishConn, logger)
+	discovery := server.NewDiscovery(registry)
+	publishServiceClient := server.NewPublishClient(discovery, logger)
+	favoriteRepo := data.NewFavoriteRepo(dataData, publishServiceClient, logger)
 	favoriteUseCase := biz.NewFavoriteUseCase(favoriteRepo, logger)
 	favoriteService := service.NewFavoriteService(favoriteUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, favoriteService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, favoriteService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	registrar := server.NewRegistrar(registry)
+	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {
 		cleanup()
 	}, nil

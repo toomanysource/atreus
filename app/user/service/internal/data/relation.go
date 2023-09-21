@@ -6,7 +6,6 @@ import (
 	"github.com/toomanysource/atreus/app/user/service/internal/biz"
 
 	pb "github.com/toomanysource/atreus/api/relation/service/v1"
-	"github.com/toomanysource/atreus/app/user/service/internal/server"
 )
 
 type relationRepo struct {
@@ -15,9 +14,9 @@ type relationRepo struct {
 
 var _ biz.RelationRepo = (*relationRepo)(nil)
 
-func NewRelationRepo(conn server.RelationConn) biz.RelationRepo {
+func NewRelationRepo(conn pb.RelationServiceClient) biz.RelationRepo {
 	return &relationRepo{
-		client: pb.NewRelationServiceClient(conn),
+		client: conn,
 	}
 }
 

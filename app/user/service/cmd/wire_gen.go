@@ -22,22 +22,24 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, client *conf.Client, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, registry *conf.Registry, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
 	db := data.NewGormDb(confData, logger)
-	redisClient := data.NewRedisConn(confData, logger)
+	client := data.NewRedisConn(confData, logger)
 	kfkReader := data.NewKafkaReader(confData)
-	dataData, cleanup, err := data.NewData(db, redisClient, kfkReader, logger)
+	dataData, cleanup, err := data.NewData(db, client, kfkReader, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	userRepo := data.NewUserRepo(dataData, logger)
-	relationConn := server.NewRelationClient(client, logger)
-	relationRepo := data.NewRelationRepo(relationConn)
+	discovery := server.NewDiscovery(registry)
+	relationServiceClient := server.NewRelationClient(discovery, logger)
+	relationRepo := data.NewRelationRepo(relationServiceClient)
 	userUsecase := biz.NewUserUsecase(userRepo, relationRepo, jwt, logger)
 	userService := service.NewUserService(userUsecase, logger)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, userService, logger)
-	app := newApp(logger, grpcServer, httpServer)
+	registrar := server.NewRegistrar(registry)
+	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {
 		cleanup()
 	}, nil

@@ -12,7 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/toomanysource/atreus/pkg/errorX"
+	favoritev1 "github.com/toomanysource/atreus/api/favorite/service/v1"
+	userv1 "github.com/toomanysource/atreus/api/user/service/v1"
 
 	"github.com/toomanysource/atreus/middleware"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/toomanysource/atreus/pkg/kafkaX"
 
 	"github.com/toomanysource/atreus/app/publish/service/internal/biz"
-	"github.com/toomanysource/atreus/app/publish/service/internal/server"
 	"github.com/toomanysource/atreus/pkg/ffmpegX"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -63,7 +63,7 @@ type publishRepo struct {
 }
 
 func NewPublishRepo(
-	data *Data, userConn server.UserConn, favoriteConn server.FavoriteConn, logger log.Logger,
+	data *Data, userConn userv1.UserServiceClient, favoriteConn favoritev1.FavoriteServiceClient, logger log.Logger,
 ) biz.PublishRepo {
 	return &publishRepo{
 		data:         data,
@@ -177,7 +177,7 @@ func (r *publishRepo) GetVideosByUserId(ctx context.Context, userId uint32) ([]*
 	userID := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	err := r.data.db.WithContext(ctx).Where("author_id = ?", userId).Find(&videoList).Error
 	if err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	if len(videoList) == 0 {
 		return nil, nil
@@ -222,7 +222,7 @@ func (r *publishRepo) GetVideosByVideoIds(ctx context.Context, userId uint32, vi
 	var videoList []*Video
 	err := r.data.db.WithContext(ctx).Where("id IN ?", videoIds).Find(&videoList).Error
 	if err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	if len(videoList) < len(videoIds) {
 		return nil, ErrVideoMissing
@@ -250,7 +250,7 @@ func (r *publishRepo) SaveVideoInfo(ctx context.Context, title string, userId ui
 		CreatedAt:     time.Now().UnixMilli(),
 	}
 	if err = r.data.db.WithContext(ctx).Create(v).Error; err != nil {
-		return errors.Join(errorX.ErrMysqlInsert, err)
+		return errors.Join(ErrMysqlInsert, err)
 	}
 	return nil
 }
@@ -291,7 +291,7 @@ func (r *publishRepo) UploadCoverImage(ctx context.Context, fileBytes []byte, ti
 	}
 	data, err := io.ReadAll(coverReader)
 	if err != nil {
-		return errors.Join(errorX.ErrFileRead, err)
+		return errors.Join(ErrFileRead, err)
 	}
 	coverBytes := bytes.NewReader(data)
 	return r.data.oss.UploadSizeFile(
@@ -306,11 +306,11 @@ func (r *publishRepo) GenerateCoverImage(fileBytes []byte) (io.Reader, error) {
 	// 创建临时文件
 	tempFile, err := os.CreateTemp("", "tempFile-*")
 	if err != nil {
-		return nil, errors.Join(errorX.ErrFileCreate, err)
+		return nil, errors.Join(ErrFileCreate, err)
 	}
 	defer os.Remove(tempFile.Name())
 	if _, err = tempFile.Write(fileBytes); err != nil {
-		return nil, errors.Join(errorX.ErrFileWrite, err)
+		return nil, errors.Join(ErrFileWrite, err)
 	}
 	// 调用ffmpeg 生成封面
 	return ffmpegX.ReadFrameAsImage(tempFile.Name(), FrameNumber)
@@ -322,7 +322,7 @@ func (r *publishRepo) GetVideoByTime(ctx context.Context, times int64) ([]*Video
 	err := r.data.db.WithContext(ctx).Where("created_at < ?", times).
 		Order("created_at desc").Limit(VideoCount).Find(&videoList).Error
 	if err != nil {
-		return nil, errors.Join(errorX.ErrMysqlQuery, err)
+		return nil, errors.Join(ErrMysqlQuery, err)
 	}
 	return videoList, nil
 }
@@ -369,12 +369,12 @@ func (r *publishRepo) UpdateFavoriteCount(ctx context.Context, videoId uint32, f
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
+		return errors.Join(ErrMysqlQuery, err)
 	}
 	newCount := calculate(video.FavoriteCount, favoriteChange)
 	err = r.data.db.WithContext(ctx).Where("id = ?", videoId).Update("favorite_count", newCount).Error
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlUpdate, err)
+		return errors.Join(ErrMysqlUpdate, err)
 	}
 	return err
 }
@@ -384,13 +384,13 @@ func (r *publishRepo) UpdateCommentCount(ctx context.Context, videoId uint32, ch
 	var video Video
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).First(&video).Error
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlQuery, err)
+		return errors.Join(ErrMysqlQuery, err)
 	}
 	newCount := calculate(video.CommentCount, change)
 	err = r.data.db.WithContext(ctx).Where("id = ?", videoId).
 		Update("comment_count", newCount).Error
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlUpdate, err)
+		return errors.Join(ErrMysqlUpdate, err)
 	}
 	return nil
 }
@@ -439,7 +439,7 @@ func (r *publishRepo) UpdateDatabaseUrl(ctx context.Context, videoId uint32, pla
 	err := r.data.db.WithContext(ctx).Where("id = ?", videoId).
 		Updates(&Video{PlayUrl: playUrl, CoverUrl: coverUrl}).Error
 	if err != nil {
-		return errors.Join(errorX.ErrMysqlUpdate, err)
+		return errors.Join(ErrMysqlUpdate, err)
 	}
 	return nil
 }
@@ -449,17 +449,17 @@ func (r *publishRepo) InitUpdateFavoriteQueue() {
 	kafkaX.Reader(r.kfk.favorite, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		videoId, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Error(errorX.ErrKafkaReader, err)
+			r.log.Error(ErrKafkaReader, err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Error(errorX.ErrKafkaReader, err)
+			r.log.Error(ErrKafkaReader, err)
 			return
 		}
 		err = r.UpdateFavoriteCount(ctx, uint32(videoId), int32(change))
 		if err != nil {
-			r.log.Error(errorX.ErrKafkaReader, err)
+			r.log.Error(ErrKafkaReader, err)
 			return
 		}
 	})
@@ -470,17 +470,17 @@ func (r *publishRepo) InitUpdateCommentQueue() {
 	kafkaX.Reader(r.kfk.comment, r.log, func(ctx context.Context, reader *kafka.Reader, msg kafka.Message) {
 		videoId, err := strconv.Atoi(string(msg.Key))
 		if err != nil {
-			r.log.Error(errorX.ErrKafkaReader, err)
+			r.log.Error(ErrKafkaReader, err)
 			return
 		}
 		change, err := strconv.Atoi(string(msg.Value))
 		if err != nil {
-			r.log.Error(errorX.ErrKafkaReader, err)
+			r.log.Error(ErrKafkaReader, err)
 			return
 		}
 		err = r.UpdateCommentCount(ctx, uint32(videoId), int32(change))
 		if err != nil {
-			r.log.Error(errorX.ErrKafkaReader, err)
+			r.log.Error(ErrKafkaReader, err)
 			return
 		}
 	})

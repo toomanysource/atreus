@@ -16,7 +16,6 @@ message Server {
     string network = 1;
     string addr = 2;
     google.protobuf.Duration timeout = 3;
-
   }
   message GRPC {
     string network = 1;
@@ -60,4 +59,12 @@ message JWT {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+}
+
+message Registry {
+  message Consul {
+    string address = 1;
+    string scheme = 2;
+  }
+  Consul consul = 1;
 }
