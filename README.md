@@ -58,6 +58,8 @@ Atreus is refer to [Kratos Layout](https://github.com/go-kratos/kratos-layout). 
 - [Redis](https://github.com/redis/go-redis)
 - [Kafka](https://github.com/segmentio/kafka-go)
 - [Minio](https://github.com/minio/minio)
+- [nginx](https://github.com/nginx/nginx)
+- [consul](https://github.com/hashicorp/consul)
 
 ## Get Started
 
