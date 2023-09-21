@@ -63,9 +63,7 @@ func NewCommentRepo(data *Data, db DBStore, cache CacheStore, logger log.Logger)
 }
 
 // DeleteComment 删除评论
-func (r *commentRepo) DeleteComment(
-	ctx context.Context, userId, videoId, commentId uint32,
-) error {
+func (r *commentRepo) DeleteComment(ctx context.Context, userId, videoId, commentId uint32) error {
 	c, err := r.db.GetComment(ctx, commentId)
 	if err != nil {
 		return err
@@ -77,30 +75,11 @@ func (r *commentRepo) DeleteComment(
 		return ErrVideoConflict
 	}
 
-	err = r.db.DeleteComment(ctx, commentId)
-	if err != nil {
+	if err = r.db.DeleteComment(ctx, commentId); err != nil {
 		return err
 	}
-	go func() {
-		if err = kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "-1"); err != nil {
-			r.log.Error(err)
-		}
-	}()
-	go func() {
-		ctx = context.Background()
-		ok, err := r.cache.HasComment(ctx, videoId, commentId)
-		if err != nil {
-			r.log.Error(err)
-			return
-		}
-		if ok {
-			return
-		}
-		err = r.cache.DelComment(ctx, videoId, commentId)
-		if err != nil {
-			r.log.Error(err)
-		}
-	}()
+	go r.updateVideoCommentCount(videoId, -1)
+	go r.cacheDeleteComment(videoId, commentId)
 	return nil
 }
 
@@ -114,45 +93,20 @@ func (r *commentRepo) CreateComment(
 		Content:  commentText,
 		CreateAt: createTime,
 	}
-	// 先在数据库中插入关系
-	err := r.db.InsertComment(ctx, comment)
-	if err != nil {
+	if err := r.db.InsertComment(ctx, comment); err != nil {
 		return nil, err
 	}
-	go func() {
-		if err = kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), "1"); err != nil {
-			r.log.Error(err)
-		}
-	}()
 
-	go func() {
-		ctx = context.Background()
-		ok, err := r.cache.HasVideo(ctx, videoId)
-		if err != nil {
-			r.log.Error(err)
-			return
-		}
-		if !ok {
-			return
-		}
-		marc, err := json.Marshal(comment)
-		if err != nil {
-			r.log.Error(err)
-			return
-		}
-		if err = r.cache.SetComment(ctx, videoId, comment.Id, string(marc)); err != nil {
-			r.log.Error(err)
-		}
-	}()
+	go r.updateVideoCommentCount(videoId, 1)
+	go r.cacheCreateComment(videoId, comment)
+
 	c := new(biz.Comment)
 	copier.Copy(c, comment)
 	return c, nil
 }
 
 // GetComments 获取评论列表
-func (r *commentRepo) GetComments(
-	ctx context.Context, videoId uint32,
-) (cls []*biz.Comment, err error) {
+func (r *commentRepo) GetComments(ctx context.Context, videoId uint32) (cls []*biz.Comment, err error) {
 	// 先在redis缓存中查询是否存在视频评论列表
 	ok, err := r.cache.HasVideo(ctx, videoId)
 	if err != nil {
@@ -165,15 +119,8 @@ func (r *commentRepo) GetComments(
 		if err != nil {
 			return nil, err
 		}
-		for _, v := range l {
-			if v == OccupyValue {
-				continue
-			}
-			co := &Comment{}
-			if err = json.Unmarshal([]byte(v), co); err != nil {
-				return nil, errors.Join(ErrJsonMarshal, err)
-			}
-			cl = append(cl, co)
+		if cl, err = jsonUnmarshalAll(l); err != nil {
+			return nil, err
 		}
 		sortComments(cl)
 	} else {
@@ -181,38 +128,81 @@ func (r *commentRepo) GetComments(
 		if err != nil {
 			return nil, err
 		}
-		go func(l []*Comment) {
-			insertMap := make(map[string]interface{}, len(l))
-			// 设置占位键值，防止缓存穿透
-			insertMap[OccupyKey] = OccupyValue
-			for _, v := range cl {
-				marc, err := json.Marshal(v)
-				if err != nil {
-					r.log.Error(errors.Join(ErrJsonMarshal, err))
-					return
-				}
-				insertMap[strconv.Itoa(int(v.Id))] = marc
-			}
-
-			if err = r.cache.SetComments(context.Background(), videoId, insertMap); err != nil {
-				r.log.Error(err)
-			}
-		}(cl)
+		go r.cacheCreateComments(cl, videoId)
 	}
 	if len(cl) == 0 {
 		return nil, nil
 	}
 	for _, comment := range cl {
-		cls = append(cls, &biz.Comment{
-			Id: comment.Id,
-			User: &biz.User{
-				Id: comment.UserId,
-			},
-			Content:    comment.Content,
-			CreateDate: comment.CreateAt,
-		})
+		co := &biz.Comment{User: &biz.User{Id: comment.UserId}}
+		copier.Copy(co, comment)
+		cls = append(cls, co)
 	}
 	return cls, nil
+}
+
+// updateVideoCommentCount 更新视频评论数
+func (r *commentRepo) updateVideoCommentCount(videoId uint32, count int) {
+	if err := kafkaX.Update(r.kfk, strconv.Itoa(int(videoId)), strconv.Itoa(count)); err != nil {
+		r.log.Error(err)
+	}
+}
+
+// cacheCreateComment 缓存评论
+func (r *commentRepo) cacheCreateComment(videoId uint32, comment *Comment) {
+	ctx := context.Background()
+	ok, err := r.cache.HasVideo(ctx, videoId)
+	if err != nil {
+		r.log.Error(err)
+		return
+	}
+	if !ok {
+		return
+	}
+	marc, err := json.Marshal(comment)
+	if err != nil {
+		r.log.Error(err)
+		return
+	}
+	if err = r.cache.SetComment(ctx, videoId, comment.Id, string(marc)); err != nil {
+		r.log.Error(err)
+	}
+}
+
+// cacheDeleteComment 删除评论
+func (r *commentRepo) cacheDeleteComment(videoId, commentId uint32) {
+	ctx := context.Background()
+	ok, err := r.cache.HasComment(ctx, videoId, commentId)
+	if err != nil {
+		r.log.Error(err)
+		return
+	}
+	if ok {
+		return
+	}
+	err = r.cache.DelComment(ctx, videoId, commentId)
+	if err != nil {
+		r.log.Error(err)
+	}
+}
+
+// cacheCreateComments 缓存评论列表
+func (r *commentRepo) cacheCreateComments(cl []*Comment, videoId uint32) {
+	insertMap := make(map[string]interface{}, len(cl))
+	// 设置占位键值，防止缓存穿透
+	insertMap[OccupyKey] = OccupyValue
+	for _, v := range cl {
+		marc, err := json.Marshal(v)
+		if err != nil {
+			r.log.Error(errors.Join(ErrJsonMarshal, err))
+			return
+		}
+		insertMap[strconv.Itoa(int(v.Id))] = marc
+	}
+
+	if err := r.cache.SetComments(context.Background(), videoId, insertMap); err != nil {
+		r.log.Error(err)
+	}
 }
 
 // sortComments 对评论列表进行排序
@@ -221,4 +211,19 @@ func sortComments(cl []*Comment) {
 	sort.Slice(cl, func(i, j int) bool {
 		return cl[i].Id > cl[j].Id
 	})
+}
+
+// jsonUnmarshalAll 对缓存评论列表进行反序列化
+func jsonUnmarshalAll(l []string) (cl []*Comment, err error) {
+	for _, v := range l {
+		if v == OccupyValue {
+			continue
+		}
+		co := &Comment{}
+		if err = json.Unmarshal([]byte(v), co); err != nil {
+			return nil, errors.Join(ErrJsonMarshal, err)
+		}
+		cl = append(cl, co)
+	}
+	return
 }
