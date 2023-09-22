@@ -2,6 +2,9 @@ package biz
 
 import (
 	"context"
+	"time"
+
+	"github.com/toomanysource/atreus/middleware"
 
 	"github.com/go-kratos/kratos/v2/log"
 )
@@ -28,55 +31,86 @@ type User struct {
 }
 
 type CommentRepo interface {
-	CreateComment(context.Context, uint32, string) (*Comment, error)
-	DeleteComment(context.Context, uint32, uint32) (*Comment, error)
-	GetComments(context.Context, uint32) ([]*Comment, error)
+	CreateComment(ctx context.Context, userId, videoId uint32, commentText string, createTime string) (*Comment, error)
+	DeleteComment(ctx context.Context, userId, videoId, commentId uint32) error
+	GetComments(ctx context.Context, videoId uint32) (cls []*Comment, err error)
+}
+
+type UserRepo interface {
+	GetUserInfos(context.Context, uint32, []uint32) ([]*User, error)
 }
 
 type CommentUseCase struct {
-	repo CommentRepo
-	log  *log.Helper
+	repo     CommentRepo
+	userRepo UserRepo
+	log      *log.Helper
 }
 
-func NewCommentUseCase(cr CommentRepo, logger log.Logger) *CommentUseCase {
+func NewCommentUseCase(cr CommentRepo, user UserRepo, logger log.Logger) *CommentUseCase {
 	return &CommentUseCase{
-		repo: cr, log: log.NewHelper(log.With(logger, "model", "usecase/comment")),
+		repo:     cr,
+		userRepo: user,
+		log:      log.NewHelper(log.With(logger, "model", "usecase/comment")),
 	}
 }
 
 func (uc *CommentUseCase) GetCommentList(
 	ctx context.Context, videoId uint32,
 ) ([]*Comment, error) {
-	comment, err := uc.repo.GetComments(ctx, videoId)
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
+	cls, err := uc.repo.GetComments(ctx, videoId)
 	if err != nil {
-		uc.log.Errorf("GetComments err: %v", err)
+		uc.log.Errorf("%v: %v", ErrGetCommentList, err)
+		return nil, ErrGetCommentList
 	}
-	return comment, err
+	// 获取评论列表中的所有用户id
+	userIds := make([]uint32, 0, len(cls))
+	for _, comment := range cls {
+		userIds = append(userIds, comment.User.Id)
+	}
+
+	// 统一查询，减少网络IO
+	users, err := uc.userRepo.GetUserInfos(ctx, userId, userIds)
+	if err != nil {
+		uc.log.Errorf("%v: %v", ErrGetCommentList, err)
+		return nil, ErrGetCommentList
+	}
+	for i, comment := range cls {
+		comment.User = users[i]
+	}
+	return cls, nil
 }
 
 func (uc *CommentUseCase) CommentAction(
 	ctx context.Context, videoId, commentId uint32,
 	actionType uint32, commentText string,
 ) (*Comment, error) {
+	userId := ctx.Value(middleware.UserIdKey("user_id")).(uint32)
 	switch actionType {
 	case CreateType:
 		if commentText == "" {
 			return nil, ErrCommentTextEmpty
 		}
-		comment, err := uc.repo.CreateComment(ctx, videoId, commentText)
+		createTime := time.Now().Format("01-02")
+		c, err := uc.repo.CreateComment(ctx, userId, videoId, commentText, createTime)
 		if err != nil {
-			uc.log.Errorf("CreateComment err: %v", err)
+			uc.log.Errorf("%v: %v", ErrCreateComment, err)
+			return nil, ErrCreateComment
 		}
-		return comment, err
+		users, err := uc.userRepo.GetUserInfos(ctx, userId, []uint32{userId})
+		if err != nil {
+			uc.log.Errorf("%v: %v", ErrCreateComment, err)
+			return nil, ErrCreateComment
+		}
+		c.User = users[0]
+		return c, nil
 	case DeleteType:
-		if commentId == 0 {
-			return nil, ErrInvalidId
-		}
-		comment, err := uc.repo.DeleteComment(ctx, videoId, commentId)
+		err := uc.repo.DeleteComment(ctx, userId, videoId, commentId)
 		if err != nil {
-			uc.log.Errorf("DeleteComment err: %v", err)
+			uc.log.Errorf("%v: %v", ErrDeleteComment, err)
+			return nil, ErrDeleteComment
 		}
-		return comment, err
+		return nil, nil
 	default:
 		return nil, ErrInValidActionType
 	}

@@ -6,18 +6,19 @@
 package main
 
 import (
-	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
-	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
-	"github.com/toomanysource/atreus/app/comment/service/internal/data"
-	"github.com/toomanysource/atreus/app/comment/service/internal/server"
-	"github.com/toomanysource/atreus/app/comment/service/internal/service"
-
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
+
+	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
+	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
+	"github.com/toomanysource/atreus/app/comment/service/internal/data"
+	"github.com/toomanysource/atreus/app/comment/service/internal/data/datastore"
+	"github.com/toomanysource/atreus/app/comment/service/internal/server"
+	"github.com/toomanysource/atreus/app/comment/service/internal/service"
 )
 
 // wireApp init kratos application.
 func wireApp(*conf.Server, *conf.Registry, *conf.Data, *conf.JWT, log.Logger) (*kratos.App, func(), error) {
-	panic(wire.Build(server.ProviderSet, data.ProviderSet, biz.ProviderSet, service.ProviderSet, newApp))
+	panic(wire.Build(server.ProviderSet, datastore.ProviderSet, data.ProviderSet, biz.ProviderSet, service.ProviderSet, newApp))
 }

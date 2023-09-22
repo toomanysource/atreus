@@ -13,6 +13,7 @@ import (
 	"github.com/toomanysource/atreus/app/comment/service/internal/biz"
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 	"github.com/toomanysource/atreus/app/comment/service/internal/data"
+	"github.com/toomanysource/atreus/app/comment/service/internal/data/datastore"
 	"github.com/toomanysource/atreus/app/comment/service/internal/server"
 	"github.com/toomanysource/atreus/app/comment/service/internal/service"
 
@@ -23,17 +24,20 @@ import (
 
 // wireApp init kratos application.
 func wireApp(confServer *conf.Server, registry *conf.Registry, confData *conf.Data, jwt *conf.JWT, logger log.Logger) (*kratos.App, func(), error) {
-	db := data.NewMysqlConn(confData, logger)
 	client := data.NewRedisConn(confData, logger)
 	writer := data.NewKafkaWriter(confData, logger)
-	dataData, cleanup, err := data.NewData(db, client, writer, logger)
+	dataData, cleanup, err := data.NewData(client, writer, logger)
 	if err != nil {
 		return nil, nil, err
 	}
+	db := data.NewMysqlConn(confData, logger)
+	dbStore := datastore.NewDBStore(db)
+	cacheStore := datastore.NewCacheStore(client)
+	commentRepo := data.NewCommentRepo(dataData, dbStore, cacheStore, logger)
 	discovery := server.NewDiscovery(registry)
 	userServiceClient := server.NewUserClient(discovery, logger)
-	commentRepo := data.NewCommentRepo(dataData, userServiceClient, logger)
-	commentUseCase := biz.NewCommentUseCase(commentRepo, logger)
+	userRepo := data.NewUserRepo(userServiceClient)
+	commentUseCase := biz.NewCommentUseCase(commentRepo, userRepo, logger)
 	commentService := service.NewCommentService(commentUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, commentService, logger)
 	httpServer := server.NewHTTPServer(confServer, jwt, commentService, logger)

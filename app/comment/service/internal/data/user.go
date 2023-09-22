@@ -14,7 +14,7 @@ type userRepo struct {
 	client pb.UserServiceClient
 }
 
-func NewUserRepo(conn pb.UserServiceClient) UserRepo {
+func NewUserRepo(conn pb.UserServiceClient) biz.UserRepo {
 	return &userRepo{
 		client: conn,
 	}
@@ -28,8 +28,6 @@ func (u *userRepo) GetUserInfos(ctx context.Context, userId uint32, userIds []ui
 	}
 
 	users := make([]*biz.User, 0, len(resp.Users))
-	if err = copier.Copy(&users, &resp.Users); err != nil {
-		return nil, errors.Join(ErrCopy, err)
-	}
+	copier.Copy(&users, &resp.Users)
 	return users, nil
 }

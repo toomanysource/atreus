@@ -5,42 +5,41 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/go-redis/redis/v8"
+
 	"github.com/segmentio/kafka-go"
 
 	"github.com/toomanysource/atreus/app/comment/service/internal/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-redis/redis/v8"
 	"github.com/google/wire"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-var ProviderSet = wire.NewSet(NewData, NewKafkaWriter, NewCommentRepo, NewUserRepo, NewMysqlConn, NewRedisConn)
+var ProviderSet = wire.NewSet(
+	NewData, NewKafkaWriter, NewCommentRepo, NewMysqlConn, NewRedisConn, NewUserRepo,
+)
+
+const (
+	OccupyKey   = "-1"
+	OccupyValue = ""
+)
 
 var (
-	ErrInvalidComment      = errors.New("invalid comment")
-	ErrCopy                = errors.New("copy error")
+	ErrUserConflict        = errors.New("user conflict")
+	ErrVideoConflict       = errors.New("video conflict")
 	ErrJsonMarshal         = errors.New("json marshal error")
-	ErrRedisSet            = errors.New("redis set error")
-	ErrRedisQuery          = errors.New("redis query error")
-	ErrMysqlDelete         = errors.New("mysql delete error")
-	ErrMysqlInsert         = errors.New("mysql insert error")
-	ErrMysqlQuery          = errors.New("mysql query error")
-	ErrRedisDelete         = errors.New("redis delete error")
-	ErrRedisTransaction    = errors.New("redis transaction error")
 	ErrUserServiceResponse = errors.New("user service response error")
 )
 
 type Data struct {
-	db    *gorm.DB
-	cache *redis.Client
-	kfk   *kafka.Writer
-	log   *log.Helper
+	kfk *kafka.Writer
+	log *log.Helper
 }
 
-func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger log.Logger) (*Data, func(), error) {
+func NewData(cache *redis.Client, kfk *kafka.Writer, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data/data"))
 	// 并发关闭所有数据库连接
 	cleanup := func() {
@@ -48,12 +47,12 @@ func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger l
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := cacheClient.Ping(context.Background()).Result()
+			_, err := cache.Ping(context.Background()).Result()
 			if err != nil {
 				logHelper.Warn("redis connection pool is empty")
 				return
 			}
-			if err = cacheClient.Close(); err != nil {
+			if err = cache.Close(); err != nil {
 				logHelper.Errorf("redis connection closure failed, err: %w", err)
 			}
 			logHelper.Info("successfully close the redis connection")
@@ -70,10 +69,8 @@ func NewData(db *gorm.DB, cacheClient *redis.Client, kfk *kafka.Writer, logger l
 	}
 
 	data := &Data{
-		db:    db.Model(&Comment{}),
-		cache: cacheClient,
-		kfk:   kfk,
-		log:   logHelper,
+		kfk: kfk,
+		log: logHelper,
 	}
 	return data, cleanup, nil
 }
@@ -89,7 +86,7 @@ func NewMysqlConn(c *conf.Data, l log.Logger) *gorm.DB {
 	}
 	InitDB(db)
 	logs.Info("database enabled successfully")
-	return db
+	return db.Model(&Comment{})
 }
 
 // NewRedisConn Redis数据库连接
@@ -116,7 +113,7 @@ func NewKafkaWriter(c *conf.Data, l log.Logger) *kafka.Writer {
 	logs := log.NewHelper(log.With(l, "module", "data/data/kafka"))
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(c.Kafka.Addr),
-		Topic:                  c.Kafka.CommentTopic,
+		Topic:                  c.Kafka.Topic,
 		Balancer:               &kafka.LeastBytes{},
 		WriteTimeout:           c.Kafka.WriteTimeout.AsDuration(),
 		ReadTimeout:            c.Kafka.ReadTimeout.AsDuration(),
